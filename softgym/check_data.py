@@ -28,8 +28,8 @@ if __name__ == '__main__':
     print(data['area'])
     print(data['action'])
     if args.render_demo:
-        crump_obs = data['obs'][0]
-        curr_obs = data['obs'][1]
+        crump_obs = data['obs'][0][:, :, -1]
+        curr_obs = data['obs'][1][:, :, -1]
         img = np.concatenate((
             cv2.cvtColor(crump_obs, cv2.COLOR_BGR2RGB),
             cv2.cvtColor(curr_obs, cv2.COLOR_BGR2RGB)),
