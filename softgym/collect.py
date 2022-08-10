@@ -1,4 +1,4 @@
-import os.path as osp
+import os
 import argparse
 import numpy as np
 import cv2
@@ -15,7 +15,9 @@ import pickle
 
 def dump(path, data, process, curr_num, data_num, step):
     fname = f'{curr_num + process * data_num:06d}-{step}.pkl'
-    pickle.dump(data, open(osp.join(path, fname), 'wb'))
+    if not os.path.exists(path):
+        os.makedirs(path)
+    pickle.dump(data, open(os.path.join(path, fname), 'wb'))
     print(f'process {process} saved {fname} to {path}')
 
 def run_jobs(process_id, args, env_kwargs):
@@ -47,7 +49,7 @@ def run_jobs(process_id, args, env_kwargs):
         _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
         crump_area = env._get_current_covered_area(pyflex.get_positions())
         crump_percent = crump_area / full_covered_area
-        print("percent: ", crump_percent)
+        # print("percent: ", crump_percent)
         crump_obs, crump_depth = pyflex.render_cloth()
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
         crump_depth[crump_depth > 5] = 0
@@ -60,6 +62,7 @@ def run_jobs(process_id, args, env_kwargs):
 
         action_data = []
         area_data = []
+        # curr_data = []
         max_recover = 0
 
         for id in range(args.data_type):
@@ -84,32 +87,36 @@ def run_jobs(process_id, args, env_kwargs):
                 covered_percent = covered_area / full_covered_area
                 area_data.append(covered_percent)
 
-            if covered_percent > max_recover:
-                max_recover = covered_percent
-
             # curr_obs, curr_depth = pyflex.render_cloth()
             # curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
             # curr_depth[curr_depth > 5] = 0
             # curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
             # curr_obs = np.concatenate([curr_obs, curr_depth], 2)
             # curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
+            # curr_data.append(curr_obs)
             # # show_obs(curr_depth)
 
-        if max_recover >= 0.8:
+            # print(id, covered_percent)
+
+            if covered_percent > max_recover:
+                max_recover = covered_percent
+
+        print("percent: ", max_recover, crump_percent)
+
+        if max_recover >= 0.8 and max_recover - 0.05 >= crump_percent:
             data = {}
             data['obs'] = np.array(crump_obs).copy()
+            # data['curr'] = np.array(curr_data).copy()
             assert data['obs'].shape == (320, 320, 4)
             data['area'] = area_data
-            print(data['area'])
             data['action'] = action_data
-            print(data['action'])
             dump(args.path, data, args.curr_data + process_id, data_id, args.data_num, 1)
             data_id += 1
 
         env.set_state(state_flat)
 
     if args.save_video_dir is not None:
-        save_name = osp.join(args.save_video_dir, args.env_name + f'{process_id}.gif')
+        save_name = os.path.join(args.save_video_dir, args.env_name + f'{process_id}.gif')
         save_numpy_as_gif(np.array(env.video_frames), save_name)
         print('Video generated and save to {}'.format(save_name))
 

@@ -28,12 +28,23 @@ if __name__ == '__main__':
     print(data['area'])
     print(data['action'])
     if args.render_demo:
-        crump_obs = data['obs'][0][:, :, -1]
-        curr_obs = data['obs'][1][:, :, -1]
-        img = np.concatenate((
+        next_obs = []
+        crump_obs = data['obs'][:, :, :-1]
+        curr_obs = data['curr']
+        for curr_img in curr_obs:
+            next_img = curr_img[:, :, :-1]
+            next_obs.append(next_img.copy())
+        l_img = np.concatenate((
             cv2.cvtColor(crump_obs, cv2.COLOR_BGR2RGB),
-            cv2.cvtColor(curr_obs, cv2.COLOR_BGR2RGB)),
+            cv2.cvtColor(next_obs[0], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(next_obs[1], cv2.COLOR_BGR2RGB)),
             axis=1)
+        r_img = np.concatenate((
+            cv2.cvtColor(next_obs[2], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(next_obs[3], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(next_obs[4], cv2.COLOR_BGR2RGB)),
+            axis=1)
+        img = np.concatenate((l_img, r_img), axis=0)
 
         print(f"saved {args.save_path}")
-        cv2.imwrite(f'./{args.save_path}-{args.iepisode}-{step}.jpg', img)
+        cv2.imwrite(f'{args.save_path}{args.iepisode}-{step}.jpg', img)
