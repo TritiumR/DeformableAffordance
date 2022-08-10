@@ -93,7 +93,7 @@ class Dataset:
         def cached_load(iepisode, index=-1):
             if self.cache_size == self.max_load:
                 if iepisode not in self._cache:
-                    return load(iepisode)[index]
+                    return load(iepisode)
             if iepisode not in self._cache:
                 self._cache[iepisode] = load(iepisode)
                 self.cache_size += 1
@@ -123,9 +123,9 @@ class Dataset:
             area = []
 
             data = cached_load(iepisode, i)
-            print(np.array(data['obs']).shape)
             obs = data['obs'][0]
-            obs = cv2.pyrDown(obs, dstsize=(360, 360))
+            obs = cv2.resize(obs, (320, 320), interpolation=cv2.INTER_AREA)
+            print(np.array(obs).shape)
             action.append(data['action'])
             area.append(data['area'])
             step = i

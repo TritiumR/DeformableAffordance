@@ -65,21 +65,21 @@ class Critic_MLP:
             if self.without_global:
                 self.conv_seq = tf.keras.Sequential([
                     tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                           input_shape=(320, 160, 256 + 256), name='critc_1'),  # last dimension -512
-                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 160, 256),
+                                           input_shape=(320, 320, 256 + 256), name='critc_1'),  # last dimension -512
+                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
                                            name='critc_2'),
                 ])
             else:
                 self.conv_seq = tf.keras.Sequential([
-                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 160, 256 + 256 + 512), name='critc_1'),
-                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 160, 256), name='critc_2'),
+                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 320, 256 + 256 + 512), name='critc_1'),
+                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256), name='critc_2'),
                 ])
         else:
             in0, out0 = ResNet43_8s(input_shape, 256, prefix='s0_d1_')
             self.model = tf.keras.Model(inputs=[in0], outputs=[out0])
             self.conv_seq = tf.keras.Sequential([
-                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 160, 256+256)),
-                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 160, 256)),
+                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 320, 256 + 256)),
+                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256)),
             ])
 
         self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -111,9 +111,9 @@ class Critic_MLP:
         # Pass `in_tensor` twice, get crop from `kernel_before_crop` (not `input_data`).
         if self.unet:
             feat, global_feat = self.model([in_tensor])
-            global_feat = tf.tile(global_feat, [1, 320, 160, 1])
+            global_feat = tf.tile(global_feat, [1, 320, 320, 1])
             select_feat = feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :]
-            select_feat = tf.tile(select_feat, [1, 320, 160, 1])
+            select_feat = tf.tile(select_feat, [1, 320, 320, 1])
             # ipdb.set_trace()
             # print(f'input img {in_img.shape} feat {in_img.shape} select_feat {select_feat.shape} p0 {p0}')
             if self.without_global:
@@ -156,11 +156,11 @@ class Critic_MLP:
         # Pass `in_tensor` twice, get crop from `kernel_before_crop` (not `input_data`).
         if self.unet:
             feat, global_feat = self.model([in_tensor])
-            global_feat = tf.tile(global_feat, [1, 320, 160, 1])
+            global_feat = tf.tile(global_feat, [1, 320, 320, 1])
             select_feat_batch = []
             for i in range(batch_len):
                 select_feat = feat[i:i+1, p0_batch[i][0]:p0_batch[i][0] + 1, p0_batch[i][1]:p0_batch[i][1] + 1, :]
-                select_feat = tf.tile(select_feat, [1, 320, 160, 1])
+                select_feat = tf.tile(select_feat, [1, 320, 320, 1])
                 select_feat_batch.append(select_feat)
                 # ipdb.set_trace()
             select_feat = tf.concat(select_feat_batch, axis=0)
@@ -173,7 +173,7 @@ class Critic_MLP:
             select_feat_batch = []
             for i in range(batch_len):
                 select_feat = feat[i:i+1, p0_batch[i][0]:p0_batch[i][0] + 1, p0_batch[i][1]:p0_batch[i][1] + 1, :]
-                select_feat = tf.tile(select_feat, [1, 320, 160, 1])
+                select_feat = tf.tile(select_feat, [1, 320, 320, 1])
                 select_feat_batch.append(select_feat)
                 # ipdb.set_trace()
             select_feat = tf.concat(select_feat_batch, axis=0)
@@ -204,16 +204,16 @@ class Critic_MLP:
         # Pass `in_tensor` twice, get crop from `kernel_before_crop` (not `input_data`).
         if self.unet:
             feat, global_feat = self.model([in_tensor])
-            global_feat = tf.tile(global_feat, [1, 320, 160, 1])
+            global_feat = tf.tile(global_feat, [1, 320, 320, 1])
             select_feat = feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :]
-            select_feat = tf.tile(select_feat, [1, 320, 160, 1])
+            select_feat = tf.tile(select_feat, [1, 320, 320, 1])
             # ipdb.set_trace()
             # print(f'input img {in_img.shape} feat {in_img.shape} select_feat {select_feat.shape} p0 {p0}')
             all_feat = tf.concat([feat, select_feat, global_feat], axis=-1)
         else:
             feat = self.model([in_tensor])
             select_feat = feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :]
-            select_feat = tf.tile(select_feat, [1, 320, 160, 1])
+            select_feat = tf.tile(select_feat, [1, 320, 320, 1])
             all_feat = tf.concat([feat, select_feat], axis=-1)
         output = self.conv_seq(all_feat)
 
@@ -231,11 +231,11 @@ class Critic_MLP:
         feat, global_feat = self.model([in_tensor])
 
         len_p = len(plist)
-        global_feat = tf.tile(global_feat, [len_p, 320, 160, 1])
+        global_feat = tf.tile(global_feat, [len_p, 320, 320, 1])
         select_feat_list = []
         for idx_p0 in range(len_p):
             p0 = plist[idx_p0]
-            select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, 320, 160, 1])
+            select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, 320, 320, 1])
             select_feat_list.append(select_feat)
         select_feat = tf.concat(select_feat_list, axis=0)
         feat = tf.tile(feat, [len_p, 1, 1, 1])
@@ -265,11 +265,11 @@ class Critic_MLP:
     def forward_with_plist(self, in_img, plist):
         len_p = len(plist)
         feat, global_feat = self.forward_with_feat(in_img)
-        global_feat = tf.tile(global_feat, [len_p, 320, 160, 1])
+        global_feat = tf.tile(global_feat, [len_p, 320, 320, 1])
         select_feat_list = []
         for idx_p0 in range(len_p):
             p0 = plist[idx_p0]
-            select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, 320, 160, 1])
+            select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, 320, 320, 1])
             select_feat_list.append(select_feat)
         select_feat = tf.concat(select_feat_list, axis=0)
         feat = tf.tile(feat, [len_p, 1, 1, 1])
@@ -614,7 +614,7 @@ class Critic_MLP:
         ncols = 12
         assert self.num_rotations == nrows * (ncols / 2)
         idx = 0
-        fig, ax = plt.subplots(nrows, ncols, figsize=(12,6))
+        fig, ax = plt.subplots(nrows, ncols, figsize=(12, 6))
         for _ in range(nrows):
             for _ in range(ncols):
                 plt.subplot(nrows, ncols, idx+1)

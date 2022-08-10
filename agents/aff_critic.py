@@ -29,9 +29,9 @@ class AffCritic:
         self.task = task
         self.total_iter = 0
         if use_goal_image:
-            self.input_shape = (360, 360, 8)
+            self.input_shape = (320, 320, 8)
         else:
-            self.input_shape = (360, 360, 4)
+            self.input_shape = (320, 320, 4)
         self.models_dir = os.path.join('checkpoints', self.name)
 
         self.critic_pick = critic_pick

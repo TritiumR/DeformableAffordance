@@ -9,5 +9,5 @@ python ./softgym/train.py \
   --exp_name 0809-01-tryone \
   --suffix tryone \
   --max_load 1000 \
-  --batch 1 \
+  --batch 4 \
 
