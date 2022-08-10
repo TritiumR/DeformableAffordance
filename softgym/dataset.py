@@ -125,7 +125,6 @@ class Dataset:
             data = cached_load(iepisode, i)
             obs = data['obs'][0]
             obs = cv2.resize(obs, (320, 320), interpolation=cv2.INTER_AREA)
-            print(np.array(obs).shape)
             action.append(data['action'])
             area.append(data['area'])
             step = i
