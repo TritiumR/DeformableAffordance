@@ -300,8 +300,8 @@ class Critic_MLP:
                     else:
                         loss = loss + tf.keras.losses.MAE(reward[idx],
                                                           QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :])
-                    print(QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1]])
-                    print("reward:", reward[idx])
+                    # print(QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1]])
+                    # print("reward:", reward[idx])
             loss = loss / len_q
             loss = tf.reduce_mean(loss)
             grad = tape.gradient(loss, self.model.trainable_variables)

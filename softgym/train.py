@@ -78,10 +78,6 @@ def main():
         tf.keras.backend.set_learning_phase(0)
 
         # agent.train() concludes with agent.save() inside it, then exit.
-        if args.save_zero:
-            print('We are now exiting due to args.save_zero...')
-            agent.total_iter = num_train_iters
-            continue
 
     # num_train_iters = num_train_iters * 2
     # performance = []

@@ -47,12 +47,12 @@ class AffCritic:
         if task == 'cloth-flatten':
             if step == 1:
                 for i in range(0, m_len):
-                    full_area, prev_area, curr_area = metric[i]
-                    reward.append((curr_area - prev_area) / full_area)
+                    curr_percent = metric[i] * 30
+                    reward.append(curr_percent)
             else:
                 for i in range(0, m_len):
-                    full_area, prev_area, curr_area = metric[i]
-                    reward.append((curr_area - prev_area) / full_area)
+                    curr_percent = metric[i] * 30
+                    reward.append(curr_percent)
             return reward
 
     def train_OS(self, train_data, writer):
@@ -160,7 +160,7 @@ class AffCritic:
                 p0 = [int((act[0][0] + 1) * 0.5 * self.input_shape[0]), int((act[0][1] + 1) * 0.5 * self.input_shape[0])]
                 p1_list = []
                 for point in act:
-                    p1 = [int((point[0] + 1) * 0.5 * self.input_shape[0]), int((point[1] + 1) * 0.5 * self.input_shape[0])]
+                    p1 = [int((point[2] + 1) * 0.5 * self.input_shape[0]), int((point[3] + 1) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
                 # Do data augmentation (perturb rotation and translation).

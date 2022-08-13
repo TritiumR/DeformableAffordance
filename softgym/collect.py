@@ -57,7 +57,6 @@ def run_jobs(process_id, args, env_kwargs):
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
         crump_obs = cv2.resize(crump_obs, (320, 320), interpolation=cv2.INTER_AREA)
 
-        crump_indexs = np.transpose(np.nonzero(crump_obs[:, :, 0]))
         state_crump = env.get_state()
 
         action_data = []
@@ -74,7 +73,7 @@ def run_jobs(process_id, args, env_kwargs):
                 _, _, _, info = env.step(reverse_action, record_continuous_video=False, img_size=args.img_size)
                 covered_area = env._get_current_covered_area(pyflex.get_positions())
                 covered_percent = covered_area / full_covered_area
-                area_data.append(covered_percent)
+                area_data.append([crump_percent, covered_percent])
 
             # take random action
             else:
@@ -85,7 +84,7 @@ def run_jobs(process_id, args, env_kwargs):
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
                 covered_area = env._get_current_covered_area(pyflex.get_positions())
                 covered_percent = covered_area / full_covered_area
-                area_data.append(covered_percent)
+                area_data.append([crump_percent, covered_percent])
 
             # curr_obs, curr_depth = pyflex.render_cloth()
             # curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]

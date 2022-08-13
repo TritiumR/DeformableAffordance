@@ -87,7 +87,6 @@ class Dataset:
         def load(iepisode):
             path = self.path
             fname = f'{iepisode:06d}-{len(episode_samples)}.pkl'
-            print(fname)
             return pickle.load(open(os.path.join(path, fname), 'rb'))
 
         def cached_load(iepisode, index=-1):
@@ -99,22 +98,14 @@ class Dataset:
                 self.cache_size += 1
             return self._cache[iepisode]
 
-
         if self.demo_times == 5:
-            last_id = i // 6 * 6
-            action = []
-            area = []
+            data = cached_load(iepisode, i)
+            obs = data['obs']
 
-            data = cached_load(iepisode, last_id // 6)
-            obs = data['obs'][0]
+            action = data['action']
+            area = data['area']
 
-
-            for id in range(0, 5):
-                data_id = cached_load(iepisode, last_id + id + 1)
-                action.append(data_id['action'].copy())
-                area.append(data_id['area'].copy())
-
-            step = last_id
+            step = i
 
             return obs, action, area, step
 
@@ -123,8 +114,8 @@ class Dataset:
             area = []
 
             data = cached_load(iepisode, i)
-            obs = data['obs'][0]
-            obs = cv2.resize(obs, (320, 320), interpolation=cv2.INTER_AREA)
+            obs = data['obs']
+            # obs = cv2.resize(obs, (320, 320), interpolation=cv2.INTER_AREA)
             action.append(data['action'])
             area.append(data['area'])
             step = i
