@@ -22,7 +22,7 @@ import ipdb
 
 
 class AffCritic:
-    def __init__(self, name, task, critic_pick=False, random_pick=False, use_goal_image=False,
+    def __init__(self, name, task, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
                  out_logits=1):
         """Creates Transporter agent with attention and transport modules."""
         self.name = name
@@ -34,7 +34,9 @@ class AffCritic:
             self.input_shape = (320, 320, 4)
         self.models_dir = os.path.join('checkpoints', self.name)
 
+        self.expert_pick = expert_pick
         self.critic_pick = critic_pick
+        self.critic_num = 5
         self.random_pick = random_pick
 
         self.out_logits = out_logits
@@ -424,94 +426,27 @@ class AffCritic:
         self.total_iter += num_iter
         self.save_aff()
 
-    # def visual_aff_critic(self, input_image, p0_pixel, p1_pixel, cable_list, critic_list, critic_score):
-    #     obs_img = input_image[:, :, :3]
-    #
-    #     # goal_img = input_image[:, :, 6:9]
-    #     #
-    #     # base1 = f'{self.name}-{self.task}-{self.crop_size}'
-    #     # head = os.path.join('visual_aff', base1)
-    #     # if not os.path.exists(head):
-    #     #     os.makedirs(head)
-    #     #
-    #     # file_name = os.path.join(head, f'0511-goal')
-    #     # print(f"saved {file_name}")
-    #     # cv2.imwrite(f'{file_name}.jpg', goal_img)
-    #     # print('saves')
-    #
-    #     for u in range(max(0, p0_pixel[0] - 2), min(320, p0_pixel[0] + 2)):
-    #         for v in range(max(0, p0_pixel[1] - 2), min(160, p0_pixel[1] + 2)):
-    #             obs_img[u][v] = (255, 0, 0)
-    #
-    #     for u in range(max(0, p1_pixel[0] - 2), min(320, p1_pixel[0] + 2)):
-    #         for v in range(max(0, p1_pixel[1] - 2), min(160, p1_pixel[1] + 2)):
-    #             obs_img[u][v] = (255, 255, 255)
-    #
-    #     vis_critic = np.float32(critic_score[0])
-    #     vis_critic = vis_critic - np.min(vis_critic)
-    #     vis_critic = 255 * vis_critic / np.max(vis_critic)
-    #     vis_critic = 255 - vis_critic
-    #     vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
-    #
-    #     cable_score = []
-    #     vis_cable_critic_list = []
-    #
-    #     for i in range(0, len(cable_list)):
-    #         if self.out_logits == 3:
-    #             max_dis, avg_dis, convex = critic_list[i, :, :, 0], critic_list[i, :, :, 1], critic_list[i, :, :, 2]
-    #             critic = convex * self.cvx_weight - max_dis * self.max_weight - avg_dis * self.avg_weight
-    #         elif self.out_logits == 2:
-    #             max_dis, avg_dis = critic_list[i, :, :, 0], critic_list[i, :, :, 1]
-    #             critic = 0 - self.max_weight * max_dis - self.avg_weight * avg_dis
-    #         else:
-    #             critic = critic_list[i, :, :, 0]
-    #         # if i % 4 == 0:
-    #         #     vis_cable_critic = np.float32(critic)
-    #         #     vis_cable_critic = vis_cable_critic - np.min(vis_cable_critic)
-    #         #     vis_cable_critic = 255 * vis_cable_critic / np.max(vis_cable_critic)
-    #         #     vis_cable_critic = 255 - vis_cable_critic
-    #         #     vis_cable_critic = cv2.applyColorMap(np.uint8(vis_cable_critic), cv2.COLORMAP_JET)
-    #         #     vis_cable_critic_list.append(vis_cable_critic)
-    #         cable_score.append(np.max(critic))
-    #
-    #     low_score = np.min(np.array(cable_score))
-    #     vis_attention = np.full((320, 160, 1), low_score)
-    #
-    #     for i in range(0, len(cable_list)):
-    #         cable = cable_list[i]
-    #         score = cable_score[i]
-    #         for u in range(max(0, cable[0] - 2), min(320, cable[0] + 2)):
-    #             for v in range(max(0, cable[1] - 2), min(160, cable[1] + 2)):
-    #                 vis_attention[u][v] = score
-    #
-    #     vis_attention = vis_attention - np.min(vis_attention)
-    #     vis_attention = 255 * vis_attention / np.max(vis_attention)
-    #     vis_attention = 255 - vis_attention
-    #     vis_attention = cv2.applyColorMap(np.uint8(vis_attention), cv2.COLORMAP_JET)
-    #
-    #     # if self.use_aff:
-    #     #     vis_aff = np.float32(attention[0])
-    #     # else:
-    #     #     vis_aff = np.float32(attention)
-    #     # vis_aff = vis_aff - np.min(vis_aff)
-    #     # vis_aff = 255 * vis_aff / np.max(vis_aff)
-    #     # vis_aff = 255 - vis_aff
-    #     # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
-    #
-    #     vis_img = np.concatenate((
-    #         vis_attention,
-    #         obs_img,
-    #         vis_critic),
-    #         axis=1)
-    #
-    #     # vis_critic_img = np.concatenate(np.array(vis_cable_critic_list), axis=1)
-    #     # cv2.imwrite(f'./draw/vis_img-{p0_pixel}.jpg', cv2.cvtColor(vis_img, cv2.COLOR_RGB2BGR))
-    #     # cv2.imwrite(f'./draw/aff_critic_map-{p0_pixel}.jpg', cv2.cvtColor(vis_critic_img, cv2.COLOR_RGB2BGR))
-    #     # print('saved img')
-    #
-    #     return vis_img
+    def visualize_critic(self, input_image, p0_pixel, p1_pixel, critic_score):
+        obs_img = input_image[:, :, :3]
 
-    def act(self, obs, info, times=0, debug_imgs=False, goal=None, task=None):
+        for u in range(max(0, p0_pixel[0] - 2), min(320, p0_pixel[0] + 2)):
+            for v in range(max(0, p0_pixel[1] - 2), min(320, p0_pixel[1] + 2)):
+                obs_img[u][v] = (255, 0, 0)
+
+        for u in range(max(0, p1_pixel[0] - 2), min(320, p1_pixel[0] + 2)):
+            for v in range(max(0, p1_pixel[1] - 2), min(320, p1_pixel[1] + 2)):
+                obs_img[u][v] = (255, 255, 255)
+
+        vis_critic = np.float32(critic_score[0])
+        vis_critic = vis_critic - np.min(vis_critic)
+        vis_critic = 255 * vis_critic / np.max(vis_critic)
+        vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
+
+        vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_critic), axis=1)
+
+        cv2.imwrite(f'./visual/-critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+
+    def act(self, obs, goal=None, p0=None):
         """Run inference and return best action given visual observations.
 
         If goal-conditioning, provide `goal`. Both `obs` and `goal` have
@@ -529,17 +464,21 @@ class AffCritic:
             input_image = np.concatenate((obs, goal), axis=2)
 
         if self.random_pick:
-            indexs = np.transpose(np.nonzero(obs[:, :, 0]))
+            indexs = np.transpose(np.nonzero(obs[:, :, 3]))
             index = random.choice(indexs)
             u1 = index[0]
             v1 = index[1]
             print((u1, v1))
             p0_pixel = (u1, v1)
 
+        if self.expert_pick:
+            p0_pixel = p0
+
         elif self.critic_pick:
             p0_list = []
-            indexs = np.transpose(np.nonzero(obs[:, :, 0]))
+            indexs = np.transpose(np.nonzero(obs[:, :, 3]))
 
+            p0_list.append(p0)
             for i in range(0, self.critic_num):
                 index = random.choice(indexs)
                 u1 = index[0]
@@ -581,8 +520,6 @@ class AffCritic:
 
             p0_pixel = argmax[1:3]
 
-            # self.visualize_pick_aff(obs.copy(), attention[0], argmax[1])
-
         img_critic = obs.copy()
         output = self.critic_model.forward(img_critic, p0_pixel)
         critic_score = output[:, :, :, 0]
@@ -590,10 +527,13 @@ class AffCritic:
         argmax = np.unravel_index(argmax, shape=critic_score.shape)
         p1_pixel = argmax[1:3]
 
-        # compute coverage
-        """ TODO """
+        self.visualize_critic(obs.copy(), p0_pixel, p1_pixel, critic_score)
 
-        act = np.array([p0_pixel, p1_pixel])
+        u1 = (p0_pixel[0]) * 2.0 / self.input_shape[0] - 1
+        v1 = (p0_pixel[1]) * 2.0 / self.input_shape[0] - 1
+        u2 = (p1_pixel[0]) * 2.0 / self.input_shape[0] - 1
+        v2 = (p1_pixel[1]) * 2.0 / self.input_shape[0] - 1
+        act = np.array([u1, v1, u2, v2])
         return act
 
 
@@ -688,9 +628,9 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     """
 
     def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', out_logits=1,
-                 without_global=False, critic_pick=False, random_pick=False, learning_rate=1e-4):
+                 without_global=False, critic_pick=False, random_pick=False, expert_pick=False, learning_rate=1e-4):
         super().__init__(name, task, use_goal_image=use_goal_image, out_logits=out_logits,
-                         critic_pick=critic_pick, random_pick=random_pick)
+                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick)
 
         self.attention_model = Affordance(input_shape=self.input_shape,
                                           preprocess=self.preprocess,
@@ -714,8 +654,6 @@ class OriginalTransporterAffCriticAgent(AffCritic):
         if load_critic_dir != 'xxx':
             print('*' * 50)
             print('*' * 20 + 'load critic model' + '*' * 20)
-            print('*' * 6 + f'cvx_weight {self.cvx_weight} max_weight {self.max_weight} avg_weight {self.avg_weight}' + '*' * 6)
-            print('*' * 20 + f'use_aff {self.use_aff}' + '*' * 20)
             print('*' * 3 + f'load_critic_dir {load_critic_dir}' + '*' * 3)
             self.critic_model.load(load_critic_dir)
             print('*' * 50)

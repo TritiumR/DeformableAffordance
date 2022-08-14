@@ -13,7 +13,6 @@ import pyflex
 from matplotlib import pyplot as plt
 import tensorflow as tf
 
-import multiprocessing
 import random
 import pickle
 
