@@ -19,7 +19,7 @@ def run_jobs(process_id, args, env_kwargs):
     env.start_record()
     for i in range(env.horizon):
         state_dicts = env.get_state()
-        action = np.array([0, 0, 0.5, 0.5])
+        action = np.array([0, 0, 0.2, 0.8])
         # action = env.action_space.sample()
         # print(action)
         # By default, the environments will apply action repitition. The option of record_continuous_video provides rendering of all
@@ -70,7 +70,7 @@ def main():
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
-    parser.add_argument('--save_video_dir', type=str, default='./data/', help='Path to the saved video')
+    parser.add_argument('--save_video_dir', type=str, default=None, help='Path to the saved video')
     parser.add_argument('--img_size', type=int, default=720, help='Size of the recorded videos')
     parser.add_argument('--test_depth', type=int, default=0, help='If to test the depth rendering by showing it')
     parser.add_argument('--process_num', type=int, default=1, help='How many process do you need')

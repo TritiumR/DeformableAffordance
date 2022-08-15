@@ -57,83 +57,83 @@ class AffCritic:
                     reward.append(curr_percent)
             return reward
 
-    def train_OS(self, train_data, writer):
-        if self.use_goal_image:
-            obs, goal, act, metric, step = train_data
-        else:
-            obs, act, metric, step = train_data
+    # def train_OS(self, train_data, writer):
+    #     if self.use_goal_image:
+    #         obs, goal, act, metric, step = train_data
+    #     else:
+    #         obs, act, metric, step = train_data
+    #
+    #     p0 = act[0][:2]
+    #     p1_list = act[:, 2:]
+    #     # Do data augmentation (perturb rotation and translation).
+    #     pixels_list = [p0]
+    #     pixels_list.extend(p1_list)
+    #     input_image, pixels = agent_utils.perturb(obs, pixels_list)
+    #     p0 = pixels[0]
+    #     p1_list = pixels[1:]
+    #
+    #     reward = self.compute_reward(self.task, metric, step)
+    #
+    #     loss1 = self.critic_model.train(obs, p0, p1_list, reward, False, self.task)
+    #     with writer.as_default():
+    #         tf.summary.scalar('critic_loss', self.critic_model.metric.result(),
+    #             step=self.total_iter)
+    #         tf.summary.scalar('success_rate', float(self.success_rate),
+    #                           step=self.total_iter)
+    #     print(f'Train Iter: {self.total_iter} Critic Loss: {loss1:.4f}')
+    #
+    #     self.total_iter += 1
 
-        p0 = act[0][:2]
-        p1_list = act[:, 2:]
-        # Do data augmentation (perturb rotation and translation).
-        pixels_list = [p0]
-        pixels_list.extend(p1_list)
-        input_image, pixels = agent_utils.perturb(obs, pixels_list)
-        p0 = pixels[0]
-        p1_list = pixels[1:]
-
-        reward = self.compute_reward(self.task, metric, step)
-
-        loss1 = self.critic_model.train(obs, p0, p1_list, reward, False, self.task)
-        with writer.as_default():
-            tf.summary.scalar('critic_loss', self.critic_model.metric.result(),
-                step=self.total_iter)
-            tf.summary.scalar('success_rate', float(self.success_rate),
-                              step=self.total_iter)
-        print(f'Train Iter: {self.total_iter} Critic Loss: {loss1:.4f}')
-
-        self.total_iter += 1
-
-    def train_aff_OS(self, train_data, writer):
-        if self.use_goal_image:
-            obs, goal, act, metric, step = train_data
-        else:
-            obs, act, metric, step = train_data
-
-        p0 = act[0][:2]
-
-        # Do data augmentation (perturb rotation and translation).
-        pixels_list = [p0]
-        input_image, pixels = utils.perturb(obs, pixels_list)
-        p_list = pixels
-        len_p = len(p_list)
-
-        img_critic = input_image.copy()
-        critic_map = self.critic_model.forward_aff_batch_gt(img_critic, p_list)
-        critic_map = critic_map.numpy()
-        circle_range = self.crop_circle
-        for i in range(critic_map.shape[0]):
-            place_mask = np.zeros((320, 160))
-            for u in range(max(0, p_list[i][0] - circle_range), min(320, p_list[i][0] + circle_range)):
-                v_range = int(pow((circle_range ** 2 - (p_list[i][0] - u) ** 2), 0.5))
-                for v in range(max(0, p_list[i][1] - v_range), min(160, p_list[i][1] + v_range)):
-                    place_mask[u][v] = 1
-            critic_map[i] = critic_map[i] - np.min(critic_map[i])
-            critic_map[i] = critic_map[i] * place_mask
-        critic_max = critic_map.max(axis=1).max(axis=1)
-
-        with tf.GradientTape() as tape:
-            loss = None
-            aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
-            for idx_p0 in range(len_p):
-                p0 = p_list[idx_p0]
-                output = aff_pred[:, p0[0], p0[1], :]
-                gt = critic_max[idx_p0]
-                if loss is None:
-                    loss = tf.keras.losses.MAE(gt, output)
-                else:
-                    loss = loss + tf.keras.losses.MAE(gt, output)
-                # loss = tf.nn.softmax_cross_entropy_with_logits(label, output)
-            loss = tf.reduce_mean(loss)
-        grad = tape.gradient(loss, self.attention_model.model.trainable_variables)
-        self.attention_model.optim.apply_gradients(
-            zip(grad, self.attention_model.model.trainable_variables))
-        self.attention_model.metric(loss)
-        with writer.as_default():
-            tf.summary.scalar('attention_loss', self.attention_model.metric.result(), step=self.total_iter)
-
-        print(f'Train Iter: {self.total_iter} aff Loss: {loss:.4f}')
-        self.total_iter += 1
+    # def train_aff_OS(self, train_data, writer):
+    #     if self.use_goal_image:
+    #         obs, goal, act, metric, step = train_data
+    #     else:
+    #         obs, act, metric, step = train_data
+    #
+    #     p0 = act[0][:2]
+    #
+    #     # Do data augmentation (perturb rotation and translation).
+    #     pixels_list = [p0]
+    #     input_image, pixels = utils.perturb(obs, pixels_list)
+    #     p_list = pixels
+    #     len_p = len(p_list)
+    #
+    #     img_critic = input_image.copy()
+    #     critic_map = self.critic_model.forward_aff_batch_gt(img_critic, p_list)
+    #     critic_map = critic_map.numpy()
+    #     circle_range = self.crop_circle
+    #     for i in range(critic_map.shape[0]):
+    #         place_mask = np.zeros((320, 160))
+    #         for u in range(max(0, p_list[i][0] - circle_range), min(320, p_list[i][0] + circle_range)):
+    #             v_range = int(pow((circle_range ** 2 - (p_list[i][0] - u) ** 2), 0.5))
+    #             for v in range(max(0, p_list[i][1] - v_range), min(160, p_list[i][1] + v_range)):
+    #                 place_mask[u][v] = 1
+    #         critic_map[i] = critic_map[i] - np.min(critic_map[i])
+    #         critic_map[i] = critic_map[i] * place_mask
+    #     critic_max = critic_map.max(axis=1).max(axis=1)
+    #
+    #     with tf.GradientTape() as tape:
+    #         loss = None
+    #         aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
+    #         for idx_p0 in range(len_p):
+    #             p0 = p_list[idx_p0]
+    #             output = aff_pred[:, p0[0], p0[1], :]
+    #             gt = critic_max[idx_p0]
+    #             if loss is None:
+    #                 loss = tf.keras.losses.MAE(gt, output)
+    #             else:
+    #                 loss = loss + tf.keras.losses.MAE(gt, output)
+    #             # loss = tf.nn.softmax_cross_entropy_with_logits(label, output)
+    #         loss = tf.reduce_mean(loss)
+    #     grad = tape.gradient(loss, self.attention_model.model.trainable_variables)
+    #     self.attention_model.optim.apply_gradients(
+    #         zip(grad, self.attention_model.model.trainable_variables))
+    #     self.attention_model.metric(loss)
+    #     with writer.as_default():
+    #         tf.summary.scalar('attention_loss', self.attention_model.metric.result(), step=self.total_iter)
+    #
+    #     print(f'Train Iter: {self.total_iter} aff Loss: {loss:.4f}')
+    #     self.total_iter += 1
 
     def train(self, dataset, num_iter, writer, batch=1):
         for i in range(num_iter):
@@ -159,10 +159,10 @@ class AffCritic:
                 else:
                     input_image = obs.copy()
 
-                p0 = [int((act[0][0] + 1) * 0.5 * self.input_shape[0]), int((act[0][1] + 1) * 0.5 * self.input_shape[0])]
+                p0 = [int((act[0][1] + 1) * 0.5 * self.input_shape[0]), int((act[0][0] + 1) * 0.5 * self.input_shape[0])]
                 p1_list = []
                 for point in act:
-                    p1 = [int((point[2] + 1) * 0.5 * self.input_shape[0]), int((point[3] + 1) * 0.5 * self.input_shape[0])]
+                    p1 = [int((point[3] + 1) * 0.5 * self.input_shape[0]), int((point[2] + 1) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
                 # Do data augmentation (perturb rotation and translation).
@@ -313,23 +313,23 @@ class AffCritic:
     #     print(f"saved {file_name}")
     #     cv2.imwrite(f'{file_name}.jpg', visual_img)
 
-    def critic_forward(self, dataset, num_iter, visualize):
-        for i in range(num_iter):
-            if self.use_goal_image:
-                obs, goal, act, metric, step = dataset.sample_index(last_index=100, goal_images=True)
-                input_image = np.concatenate((obs, goal), axis=2)
-            else:
-                obs, act, metric, step = dataset.sample_index()
-                input_image = obs.copy()
-
-            p0 = act[0][:2]
-
-            critic_map = self.critic_model.forward(input_image, p0)
-
-            if visualize:
-                self.visualize_place_critic(input_image[:, :, :3], p0, critic_map, i + self.total_iter)
-
-        self.total_iter += num_iter
+    # def critic_forward(self, dataset, num_iter, visualize):
+    #     for i in range(num_iter):
+    #         if self.use_goal_image:
+    #             obs, goal, act, metric, step = dataset.sample_index(last_index=100, goal_images=True)
+    #             input_image = np.concatenate((obs, goal), axis=2)
+    #         else:
+    #             obs, act, metric, step = dataset.sample_index()
+    #             input_image = obs.copy()
+    #
+    #         p0 = act[0][:2]
+    #
+    #         critic_map = self.critic_model.forward(input_image, p0)
+    #
+    #         if visualize:
+    #             self.visualize_place_critic(input_image[:, :, :3], p0, critic_map, i + self.total_iter)
+    #
+    #     self.total_iter += num_iter
 
     # def visualize_pick_aff(self, input_img, aff_map, id):
     #     pick_obs = input_img[:, :, :3].copy()
@@ -361,70 +361,70 @@ class AffCritic:
     #     print(f"saved {file_name}")
     #     cv2.imwrite(f'{file_name}.jpg', visual_img)
 
-    def aff_forward(self, dataset, num_iter, visualize):
-        for i in range(num_iter):
-            if self.use_goal_image:
-                obs, goal, act, metric, step = dataset.sample_index(last_index=100, goal_images=True)
-                input_image = np.concatenate((obs, goal), axis=2)
-            else:
-                obs, act, metric, step = dataset.sample_index()
-                input_image = obs.copy()
+    # def aff_forward(self, dataset, num_iter, visualize):
+    #     for i in range(num_iter):
+    #         if self.use_goal_image:
+    #             obs, goal, act, metric, step = dataset.sample_index(last_index=100, goal_images=True)
+    #             input_image = np.concatenate((obs, goal), axis=2)
+    #         else:
+    #             obs, act, metric, step = dataset.sample_index()
+    #             input_image = obs.copy()
+    #
+    #         p0 = act[0][:2]
+    #         p1_list = act[:, 2:]
+    #
+    #         # Do data augmentation (perturb rotation and translation).
+    #         pixels_list = [p0]
+    #         pixels_list.extend(p1_list)
+    #
+    #         if self.attn_no_targ and self.use_goal_image:
+    #             maxdim = int(input_image.shape[2] / 2)
+    #             input_only = input_image[:, :, :maxdim]
+    #             aff_map = self.attention_model.forward(input_only)
+    #         else:
+    #             aff_map = self.attention_model.forward(input_image)
+    #
+    #         if visualize:
+    #             self.visualize_pick_aff(input_image, aff_map, i + self.total_iter)
+    #
+    #     self.total_iter += num_iter
 
-            p0 = act[0][:2]
-            p1_list = act[:, 2:]
-
-            # Do data augmentation (perturb rotation and translation).
-            pixels_list = [p0]
-            pixels_list.extend(p1_list)
-
-            if self.attn_no_targ and self.use_goal_image:
-                maxdim = int(input_image.shape[2] / 2)
-                input_only = input_image[:, :, :maxdim]
-                aff_map = self.attention_model.forward(input_only)
-            else:
-                aff_map = self.attention_model.forward(input_image)
-
-            if visualize:
-                self.visualize_pick_aff(input_image, aff_map, i + self.total_iter)
-
-        self.total_iter += num_iter
-
-    def train_aff(self, dataset, num_iter, writer, visualize):
-        for i in range(num_iter):
-            if self.use_goal_image:
-                obs, goal, act, metric, step = dataset.sample_index(last_index=100, goal_images=True)
-                input_image = np.concatenate((obs, goal), axis=2)
-            else:
-                obs, act, metric, step = dataset.sample_index()
-                input_image = obs.copy()
-
-            p0 = act[0][:2]
-            p1_list = act[:, 2:]
-
-            # Do data augmentation (perturb rotation and translation).
-            pixels_list = [p0]
-            pixels_list.extend(p1_list)
-            # original_pixels = pixels_list
-            input_image, pixels = utils.perturb(input_image, pixels_list)
-            p0 = pixels[0]
-            p1_list = pixels[1:]
-
-            critic_map = self.critic_model.forward_aff_gt(input_image, p0)
-            critic_max = critic_map.numpy().max()
-
-            if self.attn_no_targ and self.use_goal_image:
-                maxdim = int(input_image.shape[2] / 2)
-                input_only = input_image[:, :, :maxdim]
-                loss0 = self.attention_model.train(input_only, p0, critic_max)
-            else:
-                loss0 = self.attention_model.train(input_image, p0, critic_max)
-            with writer.as_default():
-                tf.summary.scalar('attention_loss', self.attention_model.metric.result(), step=self.total_iter+i)
-
-            print(f'Train Iter: {self.total_iter + i} aff Loss: {loss0:.4f}')
-
-        self.total_iter += num_iter
-        self.save_aff()
+    # def train_aff(self, dataset, num_iter, writer, visualize):
+    #     for i in range(num_iter):
+    #         if self.use_goal_image:
+    #             obs, goal, act, metric, step = dataset.sample_index(last_index=100, goal_images=True)
+    #             input_image = np.concatenate((obs, goal), axis=2)
+    #         else:
+    #             obs, act, metric, step = dataset.sample_index()
+    #             input_image = obs.copy()
+    #
+    #         p0 = act[0][:2]
+    #         p1_list = act[:, 2:]
+    #
+    #         # Do data augmentation (perturb rotation and translation).
+    #         pixels_list = [p0]
+    #         pixels_list.extend(p1_list)
+    #         # original_pixels = pixels_list
+    #         input_image, pixels = utils.perturb(input_image, pixels_list)
+    #         p0 = pixels[0]
+    #         p1_list = pixels[1:]
+    #
+    #         critic_map = self.critic_model.forward_aff_gt(input_image, p0)
+    #         critic_max = critic_map.numpy().max()
+    #
+    #         if self.attn_no_targ and self.use_goal_image:
+    #             maxdim = int(input_image.shape[2] / 2)
+    #             input_only = input_image[:, :, :maxdim]
+    #             loss0 = self.attention_model.train(input_only, p0, critic_max)
+    #         else:
+    #             loss0 = self.attention_model.train(input_image, p0, critic_max)
+    #         with writer.as_default():
+    #             tf.summary.scalar('attention_loss', self.attention_model.metric.result(), step=self.total_iter+i)
+    #
+    #         print(f'Train Iter: {self.total_iter + i} aff Loss: {loss0:.4f}')
+    #
+    #     self.total_iter += num_iter
+    #     self.save_aff()
 
     def visualize_critic(self, input_image, p0_pixel, p1_pixel, critic_score):
         obs_img = input_image[:, :, :3]
@@ -471,7 +471,7 @@ class AffCritic:
             print((u1, v1))
             p0_pixel = (u1, v1)
 
-        if self.expert_pick:
+        elif self.expert_pick:
             p0_pixel = p0
 
         elif self.critic_pick:
@@ -527,12 +527,12 @@ class AffCritic:
         argmax = np.unravel_index(argmax, shape=critic_score.shape)
         p1_pixel = argmax[1:3]
 
-        self.visualize_critic(obs.copy(), p0_pixel, p1_pixel, critic_score)
+        # self.visualize_critic(obs.copy(), p0_pixel, p1_pixel, critic_score)
 
-        u1 = (p0_pixel[0]) * 2.0 / self.input_shape[0] - 1
-        v1 = (p0_pixel[1]) * 2.0 / self.input_shape[0] - 1
-        u2 = (p1_pixel[0]) * 2.0 / self.input_shape[0] - 1
-        v2 = (p1_pixel[1]) * 2.0 / self.input_shape[0] - 1
+        u1 = (p0_pixel[1]) * 2.0 / self.input_shape[0] - 1
+        v1 = (p0_pixel[0]) * 2.0 / self.input_shape[0] - 1
+        u2 = (p1_pixel[1]) * 2.0 / self.input_shape[0] - 1
+        v2 = (p1_pixel[0]) * 2.0 / self.input_shape[0] - 1
         act = np.array([u1, v1, u2, v2])
         return act
 

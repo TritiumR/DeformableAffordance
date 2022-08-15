@@ -4,7 +4,7 @@ CUDA_VISIBLE_DEVICES=0 python ./softgym/test.py \
   --agent aff_critic \
   --num_demos 2500 \
   --out_logits 1 \
-  --exp_name 0814-01-trytwo-critic \
+  --exp_name 0815-01-trytwo-critic \
   --suffix trytwo \
   --process_num 1 \
   --num_test 20 \

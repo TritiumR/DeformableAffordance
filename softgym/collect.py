@@ -40,8 +40,8 @@ def run_jobs(process_id, args, env_kwargs):
         # crumple the cloth
         indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
         index = random.choice(indexs)
-        u1 = (index[0]) * 2.0 / env.camera_height - 1
-        v1 = (index[1]) * 2.0 / env.camera_height - 1
+        u1 = (index[1]) * 2.0 / env.camera_height - 1
+        v1 = (index[0]) * 2.0 / env.camera_height - 1
         action = env.action_space.sample()
         action[0] = u1
         action[1] = v1
