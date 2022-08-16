@@ -21,7 +21,8 @@ import pickle
 
 def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
     obs_img = obs[:, :, :3].copy()
-    p0_pixel = (int((p0[1] + 1) * 160), int((p0[0] + 1) * 160))
+    p0_pixel = (int((p0[1] + 1.) * 160), int((p0[0] + 1.) * 160))
+    print("p0_pixel: ", p0_pixel)
 
     for u in range(max(0, p0_pixel[0] - 2), min(320, p0_pixel[0] + 2)):
         for v in range(max(0, p0_pixel[1] - 2), min(320, p0_pixel[1] + 2)):
@@ -43,7 +44,7 @@ def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
         for j in range(16):
             env.set_state(state_crump)
             p1 = ((j - 8) / 8, (i - 8) / 8)
-            action = np.array([p0[0], p0[1], p1[0], p1[1]])
+            action = np.array([p0[0], p0[1], p1[1], p1[0]])
             _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
             gt_area = env._get_current_covered_area(pyflex.get_positions())
             gt_percent = gt_area / full_covered_area
@@ -105,7 +106,7 @@ def run_jobs(process_id, args, env_kwargs):
         action = env.action_space.sample()
         action[0] = u1
         action[1] = v1
-        p0_visu = action[2:].copy()
+        print('action1: ', action)
 
         _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
         crump_area = env._get_current_covered_area(pyflex.get_positions())
@@ -120,9 +121,12 @@ def run_jobs(process_id, args, env_kwargs):
 
         state_crump = env.get_state()
 
+        reverse_p0 = (action[2], action[3])
+        print("reverse_p0: ", reverse_p0)
+
         if args.expert_pick or args.critic_pick:
-            reverse_p0 = (int((action[3] + 1) * 160), int((action[2] + 1) * 160))
-            action = agent.act(crump_obs.copy(), p0=reverse_p0)
+            reverse_p0_pixel = (int((action[3] + 1) * 160), int((action[2] + 1) * 160))
+            action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
         else:
             action = agent.act(crump_obs.copy())
 
@@ -142,7 +146,7 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_gt(crump_obs.copy(), env, agent, p0_visu, full_covered_area, args, state_crump)
+        visualize_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
 
 
 

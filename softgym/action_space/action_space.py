@@ -373,12 +373,13 @@ class PickerQPG(PickerPickPlace):
 class PickAndPlace(PickerQPG):
     def __init__(self, image_size, cam_pos, cam_angle, full=True, **kwargs):
         super().__init__(image_size, cam_pos, cam_angle, full=full, **kwargs)
-        space_low = np.array([-1., -1., -1., -1.] * self.num_picker)  # [u1, v1, u2, v2]
-        space_high = np.array([1., 1., 1., 1.] * self.num_picker)
+        space_low = np.array([-0.9, -0.9, -0.9, -0.9] * self.num_picker)  # [u1, v1, u2, v2]
+        space_high = np.array([0.9, 0.9, 0.9, 0.9] * self.num_picker)
         self.action_space = Box(space_low, space_high, dtype=np.float32)
 
     def step(self, action):
-        """ Action is in 4D: (u1,v1) the start of the pick in image coordinate; (u2, v2) the start of the pick in image coordinate"""
+        """ Action is in 4D: (u1,v1) the start of the pick in image coordinate;
+        (u2, v2) the start of the pick in image coordinate"""
         u1, v1 = action[:2]
         u1 = ((u1 + 1.) * 0.5) * self.image_size[0]
         v1 = ((v1 + 1.) * 0.5) * self.image_size[1]
@@ -389,7 +390,7 @@ class PickAndPlace(PickerQPG):
         u2 = ((u2 + 1.) * 0.5) * self.image_size[0]
         v2 = ((v2 + 1.) * 0.5) * self.image_size[1]
         x2, y2, z2 = super()._get_world_coor_from_image(u2, v2)
-        y2 += 0.1
+        y2 += 0.03
 
         # a set of checkpoints along pick and place
         st_high = np.array([x1, 0.12, z1, 0])
@@ -409,8 +410,7 @@ class PickAndPlace(PickerQPG):
             new_particle_pos = particle_pos.copy()
             for i in range(self.num_picker):
                 if self.picked_particles[i] is not None:
-                    new_particle_pos[self.picked_particles[i], 3] = self.particle_inv_mass[
-                        self.picked_particles[i]]  # Revert the mass
+                    new_particle_pos[self.picked_particles[i], 3] = self.particle_inv_mass[self.picked_particles[i]]
                     self.picked_particles[i] = None
             pyflex.set_positions(new_particle_pos)
             for i in range(20):

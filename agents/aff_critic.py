@@ -534,6 +534,7 @@ class AffCritic:
         u2 = (p1_pixel[1]) * 2.0 / self.input_shape[0] - 1
         v2 = (p1_pixel[0]) * 2.0 / self.input_shape[0] - 1
         act = np.array([u1, v1, u2, v2])
+        print('action3: ', act)
         return act
 
 

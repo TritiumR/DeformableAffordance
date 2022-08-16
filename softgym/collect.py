@@ -34,14 +34,23 @@ def run_jobs(process_id, args, env_kwargs):
         state_flat = env.get_state()
         pyflex.step()
 
-        prev_obs, _ = pyflex.render_cloth()
+        prev_obs, prev_depth = pyflex.render_cloth()
         prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
 
-        # crumple the cloth
-        indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
-        index = random.choice(indexs)
-        u1 = (index[1]) * 2.0 / env.camera_height - 1
-        v1 = (index[0]) * 2.0 / env.camera_height - 1
+        # crumple the cloth by grabbing corner
+        mask = prev_obs[10:, :, 0]
+        indexs = np.transpose(np.where(mask == 255))
+        corner_id = random.randint(0, 3)
+        # print(corner_id)
+        top, left = indexs.min(axis=0)
+        bottom, right = indexs.max(axis=0)
+
+        corners = [[top + 10, left],
+                   [top + 10, right],
+                   [bottom + 10, right],
+                   [bottom + 10, left]]
+        u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+        v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
         action = env.action_space.sample()
         action[0] = u1
         action[1] = v1

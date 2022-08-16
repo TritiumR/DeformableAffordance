@@ -10,6 +10,7 @@ import pyflex
 from matplotlib import pyplot as plt
 
 import multiprocessing
+import random
 
 def run_jobs(process_id, args, env_kwargs):
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -18,18 +19,57 @@ def run_jobs(process_id, args, env_kwargs):
     frames = [env.get_image(args.img_size, args.img_size)]
     env.start_record()
     for i in range(env.horizon):
-        state_dicts = env.get_state()
-        action = np.array([0, 0, 0.2, 0.8])
+        # from flat configuration
+        full_covered_area = env._set_to_flatten()
+        pyflex.step()
+
+        prev_obs, prev_depth = pyflex.render_cloth()
+        prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
+        prev_depth[prev_depth > 5] = 0
+        prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+        # print(prev_depth[0, 0], prev_depth[719, 719])
+        # show_obs(prev_obs)
+
+        # crumple the cloth by grabbing corner
+        mask = prev_obs[10:, :, 0]
+        indexs = np.transpose(np.where(mask == 255))
+        corner_id = random.randint(0, 3)
+        print(corner_id)
+        top, left = indexs.min(axis=0)
+        bottom, right = indexs.max(axis=0)
+
+        print(top, left)
+        print(bottom, right)
+
+        corners = [[top + 11, left],
+                   [top + 11, right],
+                   [bottom + 10, right],
+                   [bottom + 10, left]]
+        u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+        v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+        action = env.action_space.sample()
+        action[0] = u1
+        action[1] = v1
+
         # action = env.action_space.sample()
         # print(action)
         # By default, the environments will apply action repitition. The option of record_continuous_video provides rendering of all
         # intermediate frames. Only use this option for visualization as it increases computation.
         _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
         frames.extend(info['flex_env_recorded_frames'])
+        crump_area = env._get_current_covered_area(pyflex.get_positions())
+        crump_percent = crump_area / full_covered_area
+        print("percent111: ", crump_percent)
         if args.test_depth:
             # show_obs(env._get_obs())
             show_depth()
-        env.set_state(state_dicts)
+
+        reverse_action = np.array([action[2], action[3], action[0], action[1]])
+        _, _, _, info = env.step(reverse_action, record_continuous_video=True, img_size=args.img_size)
+        covered_area = env._get_current_covered_area(pyflex.get_positions())
+        covered_percent = covered_area / full_covered_area
+        print("percent222: ", covered_percent)
+
 
     if args.save_video_dir is not None:
         save_name = osp.join(args.save_video_dir, args.env_name + f'{process_id}.gif')
@@ -41,7 +81,7 @@ def show_obs(obs):
     cv2.namedWindow(window_name, 0)
     cv2.resizeWindow(window_name, 720, 720)
     cv2.imshow(window_name, obs)  # 显示窗口的名字， 所要显示的图片
-    cv2.waitKey(0)
+    cv2.waitKey(5000)
     cv2.destroyAllWindows()
 
 def show_depth():
