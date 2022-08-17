@@ -393,9 +393,9 @@ class PickAndPlace(PickerQPG):
         y2 += 0.03
 
         # a set of checkpoints along pick and place
-        st_high = np.array([x1, 0.12, z1, 0])
+        st_high = np.array([x1, 0.13, z1, 0])
         st = np.array([x1, y1, z1, 0])
-        en_high = np.array([x2, 0.12, z2, 1])
+        en_high = np.array([x2, 0.13, z2, 1])
         en = np.array([x2, y2, z2, 1])
         if self.full:
             self.total_steps += PickerPickPlace.step(self, st_high)

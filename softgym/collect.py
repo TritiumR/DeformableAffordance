@@ -13,8 +13,8 @@ import multiprocessing
 import random
 import pickle
 
-def dump(path, data, process, curr_num, data_num, step):
-    fname = f'{curr_num + process * data_num:06d}-{step}.pkl'
+def dump(path, data, process, curr_num, data_id, data_num, step):
+    fname = f'{curr_num + data_id + process * data_num:06d}-{step}.pkl'
     if not os.path.exists(path):
         os.makedirs(path)
     pickle.dump(data, open(os.path.join(path, fname), 'wb'))
@@ -118,7 +118,7 @@ def run_jobs(process_id, args, env_kwargs):
             assert data['obs'].shape == (320, 320, 4)
             data['area'] = area_data
             data['action'] = action_data
-            dump(args.path, data, args.curr_data + process_id, data_id, args.data_num, 1)
+            dump(args.path, data, process_id, args.curr_data, data_id, args.data_num, 1)
             data_id += 1
 
         env.set_state(state_flat)

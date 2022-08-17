@@ -43,7 +43,7 @@ def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
     for i in range(16):
         for j in range(16):
             env.set_state(state_crump)
-            p1 = ((j - 8) / 8, (i - 8) / 8)
+            p1 = ((i - 8) / 8, (j - 8) / 8)
             action = np.array([p0[0], p0[1], p1[1], p1[0]])
             _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
             gt_area = env._get_current_covered_area(pyflex.get_positions())
@@ -98,11 +98,20 @@ def run_jobs(process_id, args, env_kwargs):
         prev_obs, _ = pyflex.render_cloth()
         prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
 
-        # crumple the cloth
-        indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
-        index = random.choice(indexs)
-        u1 = (index[1]) * 2.0 / env.camera_height - 1
-        v1 = (index[0]) * 2.0 / env.camera_height - 1
+        # crumple the cloth by grabbing corner
+        mask = prev_obs[10:, :, 0]
+        indexs = np.transpose(np.where(mask == 255))
+        corner_id = random.randint(0, 3)
+        # print(corner_id)
+        top, left = indexs.min(axis=0)
+        bottom, right = indexs.max(axis=0)
+
+        corners = [[top + 10, left],
+                   [top + 10, right],
+                   [bottom + 10, right],
+                   [bottom + 10, left]]
+        u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+        v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
         action = env.action_space.sample()
         action[0] = u1
         action[1] = v1
