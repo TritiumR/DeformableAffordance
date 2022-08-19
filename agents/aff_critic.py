@@ -49,11 +49,11 @@ class AffCritic:
         if task == 'cloth-flatten':
             if step == 1:
                 for i in range(0, m_len):
-                    curr_percent = metric[i] * 30
+                    curr_percent = metric[i][1] * 30
                     reward.append(curr_percent)
             else:
                 for i in range(0, m_len):
-                    curr_percent = metric[i] * 30
+                    curr_percent = metric[i][1] * 30
                     reward.append(curr_percent)
             return reward
 
@@ -168,21 +168,20 @@ class AffCritic:
                 # Do data augmentation (perturb rotation and translation).
                 pixels_list = [p0]
                 pixels_list.extend(p1_list)
-                input_image, pixels = agent_utils.perturb(input_image, pixels_list)
-                if input_image is None:
+                input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
+                if input_image_perturb is None:
                     flag = 1
-                    break
-                p0 = pixels[0]
-                p1_list = pixels[1:]
-
-                input_batch.append(input_image.copy())
+                    input_batch.append(input_image.copy())
+                else:
+                    p0 = pixels[0]
+                    p1_list = pixels[1:]
+                    input_batch.append(input_image_perturb.copy())
 
                 p0_batch.append(p0)
                 p1_list_batch.append(p1_list.copy())
 
             if flag == 1:
-                print("empty iter")
-                continue
+                print("no perturb")
 
             # Compute Transport training loss.
             if self.out_logits == 1:

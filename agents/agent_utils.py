@@ -198,7 +198,6 @@ def perturb(input_image, pixels, set_theta_zero=False):
         if set_theta_zero:
             theta = 0.
         transform = get_image_transform(theta, trans, pivot)
-        transform_params = theta, trans, pivot
 
         # Ensure pixels remain in the image after transform.
         is_valid = True

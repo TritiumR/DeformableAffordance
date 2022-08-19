@@ -98,7 +98,7 @@ class Dataset:
                 self.cache_size += 1
             return self._cache[iepisode]
 
-        if self.demo_times == 5:
+        if self.demo_times > 1:
             data = cached_load(iepisode, i)
             obs = data['obs']
 
