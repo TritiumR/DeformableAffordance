@@ -49,11 +49,11 @@ class AffCritic:
         if task == 'cloth-flatten':
             if step == 1:
                 for i in range(0, m_len):
-                    curr_percent = metric[i][1] * 30
+                    curr_percent = metric[i][1] * 50
                     reward.append(curr_percent)
             else:
                 for i in range(0, m_len):
-                    curr_percent = metric[i][1] * 30
+                    curr_percent = metric[i][1] * 50
                     reward.append(curr_percent)
             return reward
 
@@ -533,7 +533,6 @@ class AffCritic:
         u2 = (p1_pixel[1]) * 2.0 / self.input_shape[0] - 1
         v2 = (p1_pixel[0]) * 2.0 / self.input_shape[0] - 1
         act = np.array([u1, v1, u2, v2])
-        print('action3: ', act)
         return act
 
 

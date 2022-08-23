@@ -73,6 +73,13 @@ def run_jobs(process_id, args, env_kwargs):
         # curr_data = []
         max_recover = 0
 
+        another_pick = random.randint(0, 10)
+        if another_pick == 0:
+            another_action = env.action_space.sample()
+            action[2] = another_action[0]
+            action[3] = another_action[1]
+            print('another_pick')
+
         for id in range(args.data_type):
             env.set_state(state_crump)
             # take reverse action
@@ -111,7 +118,7 @@ def run_jobs(process_id, args, env_kwargs):
 
         print("percent: ", max_recover, crump_percent)
 
-        if max_recover >= 0.8 and max_recover - 0.05 >= crump_percent:
+        if (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent) or another_pick == 0:
             data = {}
             data['obs'] = np.array(crump_obs).copy()
             # data['curr'] = np.array(curr_data).copy()

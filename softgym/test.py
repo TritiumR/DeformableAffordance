@@ -19,10 +19,45 @@ import random
 import pickle
 
 
+def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
+    vis_aff = np.zeros((32, 32))
+    gt_aff = np.zeros((32, 32))
+    for i in range(32):
+        for j in range(32):
+            env.set_state(state_crump)
+            p0 = (i * 10, j * 10)
+            action = agent.act(obs.copy(), p0=p0)
+            _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
+            gt_area = env._get_current_covered_area(pyflex.get_positions())
+            gt_percent = gt_area / full_covered_area
+            gt_aff[i][j] = gt_percent
+            output = agent.critic_model.forward(obs.copy(), p0)
+            critic_score = output[:, :, :, 0]
+            vis_aff[i][j] = np.max(critic_score)
+
+    score = int(np.max(vis_aff) / 3 * 10)
+    gt_score = int(np.max(gt_aff) * 100)
+
+    vis_aff = cv2.resize(vis_aff, (320, 320))
+    gt_aff = cv2.resize(gt_aff, (320, 320))
+
+    vis_aff = vis_aff - np.min(vis_aff)
+    vis_aff = 255 * vis_aff / np.max(vis_aff)
+    vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
+
+    gt_aff = gt_aff - np.min(gt_aff)
+    gt_aff = 255 * gt_aff / np.max(gt_aff)
+    gt_aff = cv2.applyColorMap(np.uint8(gt_aff), cv2.COLORMAP_JET)
+
+    vis_img = np.concatenate((cv2.cvtColor(obs, cv2.COLOR_BGR2RGB), gt_aff, vis_aff), axis=1)
+
+    cv2.imwrite(f'./visual/aff_max-{gt_score}-{score}.jpg', vis_img)
+    print("save to" + f'./visual/aff_max-{gt_score}-{score}.jpg')
+
+
 def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
     obs_img = obs[:, :, :3].copy()
     p0_pixel = (int((p0[1] + 1.) * 160), int((p0[0] + 1.) * 160))
-    print("p0_pixel: ", p0_pixel)
 
     for u in range(max(0, p0_pixel[0] - 2), min(320, p0_pixel[0] + 2)):
         for v in range(max(0, p0_pixel[1] - 2), min(320, p0_pixel[1] + 2)):
@@ -64,6 +99,7 @@ def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
 
     cv2.imwrite(f'./visual/-gt-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
     print("save to" + f'./visual/-gt-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+
 
 def run_jobs(process_id, args, env_kwargs):
     # Set the beginning of the agent name.
@@ -115,7 +151,6 @@ def run_jobs(process_id, args, env_kwargs):
         action = env.action_space.sample()
         action[0] = u1
         action[1] = v1
-        print('action1: ', action)
 
         _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
         crump_area = env._get_current_covered_area(pyflex.get_positions())
@@ -129,9 +164,6 @@ def run_jobs(process_id, args, env_kwargs):
         crump_obs = cv2.resize(crump_obs, (320, 320), interpolation=cv2.INTER_AREA)
 
         state_crump = env.get_state()
-
-        reverse_p0 = (action[2], action[3])
-        print("reverse_p0: ", reverse_p0)
 
         if args.expert_pick or args.critic_pick:
             reverse_p0_pixel = (int((action[3] + 1) * 160), int((action[2] + 1) * 160))
@@ -155,8 +187,8 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-
+        # visualize_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
 
 
 def main():

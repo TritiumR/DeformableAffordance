@@ -390,7 +390,7 @@ class PickAndPlace(PickerQPG):
         u2 = ((u2 + 1.) * 0.5) * self.image_size[0]
         v2 = ((v2 + 1.) * 0.5) * self.image_size[1]
         x2, y2, z2 = super()._get_world_coor_from_image(u2, v2)
-        y2 += 0.03
+        y2 += 0.1
 
         # a set of checkpoints along pick and place
         st_high = np.array([x1, 0.13, z1, 0])
