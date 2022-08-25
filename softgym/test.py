@@ -20,12 +20,12 @@ import pickle
 
 
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
-    vis_aff = np.zeros((32, 32))
-    gt_aff = np.zeros((32, 32))
-    for i in range(32):
-        for j in range(32):
+    vis_aff = np.zeros((16, 16))
+    gt_aff = np.zeros((16, 16))
+    for i in range(16):
+        for j in range(16):
             env.set_state(state_crump)
-            p0 = (i * 10, j * 10)
+            p0 = (i * 20, j * 20)
             action = agent.act(obs.copy(), p0=p0)
             _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
             gt_area = env._get_current_covered_area(pyflex.get_positions())
@@ -97,8 +97,8 @@ def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
 
     vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/-gt-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-    print("save to" + f'./visual/-gt-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+    cv2.imwrite(f'./visual/6300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+    print("save to" + f'./visual/6300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
 
 
 def run_jobs(process_id, args, env_kwargs):
@@ -165,8 +165,10 @@ def run_jobs(process_id, args, env_kwargs):
 
         state_crump = env.get_state()
 
+        reverse_p0 = (action[2], action[3])
+
         if args.expert_pick or args.critic_pick:
-            reverse_p0_pixel = (int((action[3] + 1) * 160), int((action[2] + 1) * 160))
+            reverse_p0_pixel = (int((action[3] + 1.) * 160), int((action[2] + 1.) * 160))
             action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
         else:
             action = agent.act(crump_obs.copy())
@@ -176,19 +178,27 @@ def run_jobs(process_id, args, env_kwargs):
         covered_percent = covered_area / full_covered_area
         print("curr percent: ", covered_percent)
 
+        if covered_percent >= 0.8:
+            if covered_percent - crump_percent >= 0.05:
+                result = 'success'
+            else:
+                result = 'mid'
+        else:
+            result = 'fail'
+
         if args.save_video_dir is not None:
             path_name = os.path.join(args.save_video_dir, name + args.exp_name)
             if not os.path.exists(path_name):
                 os.makedirs(path_name)
-            save_name = os.path.join(path_name, f'{process_id}-{test_id}.gif')
+            save_name = os.path.join(path_name, f'{process_id}-{test_id}-{result}.gif')
             save_numpy_as_gif(np.array(env.video_frames), save_name)
             print('Video generated and save to {}'.format(save_name))
 
         env.end_record()
         test_id += 1
 
-        # visualize_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
 
 
 def main():
@@ -203,7 +213,7 @@ def main():
     parser.add_argument('--agent', default='aff_critic')
     parser.add_argument('--num_test', type=int, default=1, help='How many test do you need for inferring')
     parser.add_argument('--process_num', type=int, default=1, help='How many process do you need')
-    parser.add_argument('--save_video_dir', type=str, default='./test_video/', help='Path to the saved video')
+    parser.add_argument('--save_video_dir', type=str, default=None, help='Path to the saved video')
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--out_logits',     default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')

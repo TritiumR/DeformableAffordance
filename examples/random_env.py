@@ -73,7 +73,7 @@ def run_jobs(process_id, args, env_kwargs):
 
         curr_obs, _ = pyflex.render_cloth()
         curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
-        cv2.imwrite(f'./visual/obs-{i}-step-{args.step}.jpg', curr_obs)
+        cv2.imwrite(f'./visual/obs-{i}-step-{args.step}.jpg', cv2.cvtColor(curr_obs, cv2.COLOR_BGR2RGB))
         print("save to" + f'./visual/obs-{i}-step-{args.step}.jpg')
 
 

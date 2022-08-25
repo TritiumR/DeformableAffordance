@@ -37,6 +37,7 @@ def main():
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--max_load',       default=-1, type=int)
     parser.add_argument('--batch',          default=1, type=int)
+    parser.add_argument('--model', default='critic', type=str)
     args = parser.parse_args()
 
     dataset = Dataset(os.path.join('data', f"{args.task}-{args.suffix}"), max_load=args.max_load,
@@ -71,26 +72,17 @@ def main():
     dataset.set(train_episodes)
 
     while agent.total_iter < args.num_iters:
-        # Train agent.
-        tf.keras.backend.set_learning_phase(1)
-        agent.train(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
-        tf.keras.backend.set_learning_phase(0)
+        if args.model == 'critic':
+            # Train critic.
+            tf.keras.backend.set_learning_phase(1)
+            agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
+            tf.keras.backend.set_learning_phase(0)
+        if args.model == 'aff':
+            # Train aff.
+            tf.keras.backend.set_learning_phase(1)
+            agent.train_aff(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer)
+            tf.keras.backend.set_learning_phase(0)
 
-        # agent.train() concludes with agent.save() inside it, then exit.
-
-    # num_train_iters = num_train_iters * 2
-    # performance = []
-    # while agent.total_iter < num_train_aff_iters + num_train_critic_iters:
-    #     # Train agent.
-    #     tf.keras.backend.set_learning_phase(1)
-    #     agent.train_aff(dataset, num_iter=num_train_aff_iters // 10, writer=train_summary_writer, visualize=args.visualize)
-    #     tf.keras.backend.set_learning_phase(0)
-    #
-    #     # agent.train() concludes with agent.save() inside it, then exit.
-    #     if args.save_zero:
-    #         print('We are now exiting due to args.save_zero...')
-    #         agent.total_iter = num_train_iters
-    #         continue
 
 if __name__ == '__main__':
     main()

@@ -48,7 +48,7 @@ class Dataset:
         """Limit random samples to specific fixed set."""
         self.episode_set = episodes
 
-    def sample_index(self, goal_images=False, last_index=0, visualize=False, task='cloth-flatten'):
+    def sample_index(self, task='cloth-flatten'):
         """Randomly sample from the dataset uniformly.
 
         The 'cached_load' will use the load (from pickle file) to
@@ -79,8 +79,6 @@ class Dataset:
         episode_samples = np.argwhere(is_episode_sample).squeeze().reshape(-1)
 
         ep_len = len(episode_samples)
-        if last_index > ep_len:
-            last_index = ep_len
 
         i = random.randint(0, ep_len - 1)
 
@@ -103,20 +101,22 @@ class Dataset:
             obs = data['obs']
 
             action = data['action']
-            area = data['area']
+            metric = data['area']
 
             step = i
 
-            return obs, action, area, step
+            return obs, action, metric, step
 
         if self.demo_times == 1:
             action = []
-            area = []
+            metric = []
 
             data = cached_load(iepisode, i)
             obs = data['obs']
-            # obs = cv2.resize(obs, (320, 320), interpolation=cv2.INTER_AREA)
+
             action.append(data['action'])
-            area.append(data['area'])
+            metric.append(data['area'])
+
             step = i
-            return obs, action, area, step
+
+            return obs, action, metric, step

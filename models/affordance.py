@@ -32,8 +32,8 @@ class Affordance:
             in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
             self.conv_seq = tf.keras.Sequential([
                 tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                       input_shape=(320, 160, 256 + 512)),
-                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 160, 256)),
+                                       input_shape=(320, 320, 256 + 512)),
+                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256)),
             ])
             self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
         else:
@@ -57,7 +57,7 @@ class Affordance:
 
         if self.unet:
             feat, global_feat = self.model([in_tensor])
-            global_feat = tf.tile(global_feat, [1, 320, 160, 1])
+            global_feat = tf.tile(global_feat, [1, 320, 320, 1])
             all_feat = tf.concat([feat, global_feat], axis=-1)
             logits = self.conv_seq(all_feat)
         else:
@@ -89,26 +89,3 @@ class Affordance:
 
     def save(self, filename):
         self.model.save(filename)
-
-    def get_attention_heatmap(self, attention):
-        """Given attention, get a human-readable heatmap.
-
-        https://docs.opencv.org/master/d3/d50/group__imgproc__colormap.html  
-        In my normal usage, the attention is already softmax-ed but just be
-        aware in case it's not. Also be aware of RGB vs BGR mode. We should
-        ensure we're in BGR mode before saving. Also with RAINBOW mode, red =
-        hottest (highest attention values), green=medium, blue=lowest.
-
-        Note: to see the grayscale only (which may be easier to interpret,
-        actually...) save `vis_attention` just before applying the colormap.
-        """
-        # Options: cv2.COLORMAP_PLASMA, cv2.COLORMAP_JET, etc.
-        #attention = tf.reshape(attention, (1, np.prod(attention.shape)))
-        #attention = tf.nn.softmax(attention)
-        vis_attention = np.float32(attention).reshape((320, 160))
-        vis_attention = vis_attention - np.min(vis_attention)
-        vis_attention = 255 * vis_attention / np.max(vis_attention)
-        vis_attention = 255 - vis_attention
-        vis_attention = cv2.applyColorMap(np.uint8(vis_attention), cv2.COLORMAP_JET)
-        vis_attention = cv2.cvtColor(vis_attention, cv2.COLOR_RGB2BGR)
-        return vis_attention

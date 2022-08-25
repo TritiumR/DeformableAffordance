@@ -23,16 +23,17 @@ import ipdb
 
 class AffCritic:
     def __init__(self, name, task, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
-                 out_logits=1):
+                 out_logits=1, step=1):
         """Creates Transporter agent with attention and transport modules."""
         self.name = name
         self.task = task
+        self.step = step
         self.total_iter = 0
         if use_goal_image:
             self.input_shape = (320, 320, 8)
         else:
             self.input_shape = (320, 320, 4)
-        self.models_dir = os.path.join('checkpoints', self.name)
+        self.models_dir = os.path.join('checkpoints', self.name + f'-step-{self.step}')
 
         self.expert_pick = expert_pick
         self.critic_pick = critic_pick
@@ -57,85 +58,62 @@ class AffCritic:
                     reward.append(curr_percent)
             return reward
 
-    # def train_OS(self, train_data, writer):
-    #     if self.use_goal_image:
-    #         obs, goal, act, metric, step = train_data
-    #     else:
-    #         obs, act, metric, step = train_data
-    #
-    #     p0 = act[0][:2]
-    #     p1_list = act[:, 2:]
-    #     # Do data augmentation (perturb rotation and translation).
-    #     pixels_list = [p0]
-    #     pixels_list.extend(p1_list)
-    #     input_image, pixels = agent_utils.perturb(obs, pixels_list)
-    #     p0 = pixels[0]
-    #     p1_list = pixels[1:]
-    #
-    #     reward = self.compute_reward(self.task, metric, step)
-    #
-    #     loss1 = self.critic_model.train(obs, p0, p1_list, reward, False, self.task)
-    #     with writer.as_default():
-    #         tf.summary.scalar('critic_loss', self.critic_model.metric.result(),
-    #             step=self.total_iter)
-    #         tf.summary.scalar('success_rate', float(self.success_rate),
-    #                           step=self.total_iter)
-    #     print(f'Train Iter: {self.total_iter} Critic Loss: {loss1:.4f}')
-    #
-    #     self.total_iter += 1
+    def train_aff(self, dataset, num_iter, writer):
+        for i in range(num_iter):
+            obs, act, _, _ = dataset.sample_index(task=self.task)
 
-    # def train_aff_OS(self, train_data, writer):
-    #     if self.use_goal_image:
-    #         obs, goal, act, metric, step = train_data
-    #     else:
-    #         obs, act, metric, step = train_data
-    #
-    #     p0 = act[0][:2]
-    #
-    #     # Do data augmentation (perturb rotation and translation).
-    #     pixels_list = [p0]
-    #     input_image, pixels = utils.perturb(obs, pixels_list)
-    #     p_list = pixels
-    #     len_p = len(p_list)
-    #
-    #     img_critic = input_image.copy()
-    #     critic_map = self.critic_model.forward_aff_batch_gt(img_critic, p_list)
-    #     critic_map = critic_map.numpy()
-    #     circle_range = self.crop_circle
-    #     for i in range(critic_map.shape[0]):
-    #         place_mask = np.zeros((320, 160))
-    #         for u in range(max(0, p_list[i][0] - circle_range), min(320, p_list[i][0] + circle_range)):
-    #             v_range = int(pow((circle_range ** 2 - (p_list[i][0] - u) ** 2), 0.5))
-    #             for v in range(max(0, p_list[i][1] - v_range), min(160, p_list[i][1] + v_range)):
-    #                 place_mask[u][v] = 1
-    #         critic_map[i] = critic_map[i] - np.min(critic_map[i])
-    #         critic_map[i] = critic_map[i] * place_mask
-    #     critic_max = critic_map.max(axis=1).max(axis=1)
-    #
-    #     with tf.GradientTape() as tape:
-    #         loss = None
-    #         aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
-    #         for idx_p0 in range(len_p):
-    #             p0 = p_list[idx_p0]
-    #             output = aff_pred[:, p0[0], p0[1], :]
-    #             gt = critic_max[idx_p0]
-    #             if loss is None:
-    #                 loss = tf.keras.losses.MAE(gt, output)
-    #             else:
-    #                 loss = loss + tf.keras.losses.MAE(gt, output)
-    #             # loss = tf.nn.softmax_cross_entropy_with_logits(label, output)
-    #         loss = tf.reduce_mean(loss)
-    #     grad = tape.gradient(loss, self.attention_model.model.trainable_variables)
-    #     self.attention_model.optim.apply_gradients(
-    #         zip(grad, self.attention_model.model.trainable_variables))
-    #     self.attention_model.metric(loss)
-    #     with writer.as_default():
-    #         tf.summary.scalar('attention_loss', self.attention_model.metric.result(), step=self.total_iter)
-    #
-    #     print(f'Train Iter: {self.total_iter} aff Loss: {loss:.4f}')
-    #     self.total_iter += 1
+            a_len = len(act)
 
-    def train(self, dataset, num_iter, writer, batch=1):
+            if self.use_goal_image:
+                input_image = np.concatenate((obs, goal), axis=2)
+            else:
+                input_image = obs.copy()
+
+            p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
+            # Do data augmentation (perturb rotation and translation).
+            input_image_perturb, p0_list = agent_utils.perturb(input_image.copy(), [p0])
+            if input_image_perturb is not None:
+                input_image = input_image_perturb
+                p0 = p0_list[0]
+            else:
+                print('no perturb')
+
+            p_list = [p0]
+            for i in range(a_len):
+                u = random.randint(0, 319)
+                v = random.randint(0, 319)
+                p_list.append((u, v))
+
+            critic_map = self.critic_model.forward_with_plist(input_image.copy(), p_list)
+            critic_map = critic_map.numpy()
+
+            p_len = len(p_list)
+            aff_score = critic_map.max(axis=1).max(axis=1)
+
+            with tf.GradientTape() as tape:
+                loss = None
+                aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
+                for idx_p0 in range(p_len):
+                    p0 = p_list[idx_p0]
+                    output = aff_pred[:, p0[0], p0[1], :]
+                    gt = aff_score[idx_p0]
+                    if loss is None:
+                        loss = tf.keras.losses.MAE(gt, output)
+                    else:
+                        loss = loss + tf.keras.losses.MAE(gt, output)
+                loss = tf.reduce_mean(loss)
+            grad = tape.gradient(loss, self.attention_model.model.trainable_variables)
+            self.attention_model.optim.apply_gradients(zip(grad, self.attention_model.model.trainable_variables))
+            self.attention_model.metric(loss)
+            with writer.as_default():
+                tf.summary.scalar('attention_loss', self.attention_model.metric.result(), step=self.total_iter + i)
+
+            print(f'Train Iter: {self.total_iter + i} aff Loss: {loss:.4f}')
+
+        self.total_iter += num_iter
+        self.save_aff()
+
+    def train_critic(self, dataset, num_iter, writer, batch=1):
         for i in range(num_iter):
             # for batch training
             input_batch = []
@@ -147,10 +125,9 @@ class AffCritic:
             flag = 0
 
             for bh in range(batch):
-                obs, act, metric, step = dataset.sample_index(last_index=100, task=self.task)
-                # print(obs.shape)
+                obs, act, metric, step = dataset.sample_index(task=self.task)
 
-                reward = self.compute_reward(self.task, metric, step)
+                reward = self.compute_reward(self.task, metric, self.step)
                 reward_batch.append(reward.copy())
                 step_batch.append(step)
 
@@ -159,10 +136,10 @@ class AffCritic:
                 else:
                     input_image = obs.copy()
 
-                p0 = [int((act[0][1] + 1) * 0.5 * self.input_shape[0]), int((act[0][0] + 1) * 0.5 * self.input_shape[0])]
+                p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
                 p1_list = []
                 for point in act:
-                    p1 = [int((point[3] + 1) * 0.5 * self.input_shape[0]), int((point[2] + 1) * 0.5 * self.input_shape[0])]
+                    p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
                 # Do data augmentation (perturb rotation and translation).
@@ -197,14 +174,10 @@ class AffCritic:
                 else:
                     loss1, loss_max_dis, loss_avg_dis, loss_cvx = self.critic_model.train_phy_batch(input_batch, p0_batch, p1_list_batch, distance_batch, nxt_distances_batch, cvx_batch, nxt_cvx_batch, ep_batch, ep_len_batch, False, self.task)
                 with writer.as_default():
-                    tf.summary.scalar('critic_loss', self.critic_model.metric.result(),
-                        step=self.total_iter+i)
-                    tf.summary.scalar('max_dis_loss', float(loss_max_dis),
-                        step=self.total_iter+i)
-                    tf.summary.scalar('avg_dis_loss', float(loss_avg_dis),
-                        step=self.total_iter+i)
-                    tf.summary.scalar('cvx_loss', float(loss_cvx),
-                        step=self.total_iter+i)
+                    tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
+                    tf.summary.scalar('max_dis_loss', float(loss_max_dis), step=self.total_iter+i)
+                    tf.summary.scalar('avg_dis_loss', float(loss_avg_dis), step=self.total_iter+i)
+                    tf.summary.scalar('cvx_loss', float(loss_cvx), step=self.total_iter+i)
 
                 print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss1:.4f} Max_Dis Loss: {loss_max_dis:.4f} Avg_Dis Loss: {loss_avg_dis:.4f} CVX Loss: {loss_cvx:.4f}')
 
@@ -388,63 +361,6 @@ class AffCritic:
     #
     #     self.total_iter += num_iter
 
-    # def train_aff(self, dataset, num_iter, writer, visualize):
-    #     for i in range(num_iter):
-    #         if self.use_goal_image:
-    #             obs, goal, act, metric, step = dataset.sample_index(last_index=100, goal_images=True)
-    #             input_image = np.concatenate((obs, goal), axis=2)
-    #         else:
-    #             obs, act, metric, step = dataset.sample_index()
-    #             input_image = obs.copy()
-    #
-    #         p0 = act[0][:2]
-    #         p1_list = act[:, 2:]
-    #
-    #         # Do data augmentation (perturb rotation and translation).
-    #         pixels_list = [p0]
-    #         pixels_list.extend(p1_list)
-    #         # original_pixels = pixels_list
-    #         input_image, pixels = utils.perturb(input_image, pixels_list)
-    #         p0 = pixels[0]
-    #         p1_list = pixels[1:]
-    #
-    #         critic_map = self.critic_model.forward_aff_gt(input_image, p0)
-    #         critic_max = critic_map.numpy().max()
-    #
-    #         if self.attn_no_targ and self.use_goal_image:
-    #             maxdim = int(input_image.shape[2] / 2)
-    #             input_only = input_image[:, :, :maxdim]
-    #             loss0 = self.attention_model.train(input_only, p0, critic_max)
-    #         else:
-    #             loss0 = self.attention_model.train(input_image, p0, critic_max)
-    #         with writer.as_default():
-    #             tf.summary.scalar('attention_loss', self.attention_model.metric.result(), step=self.total_iter+i)
-    #
-    #         print(f'Train Iter: {self.total_iter + i} aff Loss: {loss0:.4f}')
-    #
-    #     self.total_iter += num_iter
-    #     self.save_aff()
-
-    def visualize_critic(self, input_image, p0_pixel, p1_pixel, critic_score):
-        obs_img = input_image[:, :, :3]
-
-        for u in range(max(0, p0_pixel[0] - 2), min(320, p0_pixel[0] + 2)):
-            for v in range(max(0, p0_pixel[1] - 2), min(320, p0_pixel[1] + 2)):
-                obs_img[u][v] = (255, 0, 0)
-
-        for u in range(max(0, p1_pixel[0] - 2), min(320, p1_pixel[0] + 2)):
-            for v in range(max(0, p1_pixel[1] - 2), min(320, p1_pixel[1] + 2)):
-                obs_img[u][v] = (255, 255, 255)
-
-        vis_critic = np.float32(critic_score[0])
-        vis_critic = vis_critic - np.min(vis_critic)
-        vis_critic = 255 * vis_critic / np.max(vis_critic)
-        vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
-
-        vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_critic), axis=1)
-
-        cv2.imwrite(f'./visual/-critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-
     def act(self, obs, goal=None, p0=None):
         """Run inference and return best action given visual observations.
 
@@ -495,6 +411,9 @@ class AffCritic:
                 if cable_score > max_score:
                     max_i = i
                     max_score = cable_score
+
+            if max_i == 0:
+                print('reverse')
 
             p0_pixel = (p0_list[max_i][0], p0_list[max_i][1])
 
@@ -586,29 +505,29 @@ class AffCritic:
         critic_fname = os.path.join(self.models_dir, critic_fname)
         self.critic_model.save(critic_fname)
 
-    def save_critic_with_epoch(self, remove=True):
-        """Save models."""
-        if not os.path.exists(self.models_dir):
-            os.makedirs(self.models_dir)
-        critic_fname = 'critic-ckpt-%d.h5' % self.total_iter
-        critic_fname = os.path.join(self.models_dir, critic_fname)
-        if remove and self.prev_critic_fname is not None:
-            cmd = "rm %s" % self.prev_critic_fname
-            call(cmd, shell=True)
-        self.prev_critic_fname = critic_fname
-        self.critic_model.save(critic_fname)
-
-    def save_aff_with_epoch(self, remove=True):
-        """Save models."""
-        if not os.path.exists(self.models_dir):
-            os.makedirs(self.models_dir)
-        aff_fname = 'attention-ckpt-%d.h5' % self.total_iter
-        aff_fname = os.path.join(self.models_dir, aff_fname)
-        if remove and self.prev_aff_fname is not None:
-            cmd = "rm %s" % self.prev_aff_fname
-            call(cmd, shell=True)
-        self.prev_aff_fname = aff_fname
-        self.attention_model.save(aff_fname)
+    # def save_critic_with_epoch(self, remove=True):
+    #     """Save models."""
+    #     if not os.path.exists(self.models_dir):
+    #         os.makedirs(self.models_dir)
+    #     critic_fname = 'critic-ckpt-%d.h5' % self.total_iter
+    #     critic_fname = os.path.join(self.models_dir, critic_fname)
+    #     if remove and self.prev_critic_fname is not None:
+    #         cmd = "rm %s" % self.prev_critic_fname
+    #         call(cmd, shell=True)
+    #     self.prev_critic_fname = critic_fname
+    #     self.critic_model.save(critic_fname)
+    #
+    # def save_aff_with_epoch(self, remove=True):
+    #     """Save models."""
+    #     if not os.path.exists(self.models_dir):
+    #         os.makedirs(self.models_dir)
+    #     aff_fname = 'attention-ckpt-%d.h5' % self.total_iter
+    #     aff_fname = os.path.join(self.models_dir, aff_fname)
+    #     if remove and self.prev_aff_fname is not None:
+    #         cmd = "rm %s" % self.prev_aff_fname
+    #         call(cmd, shell=True)
+    #     self.prev_aff_fname = aff_fname
+    #     self.attention_model.save(aff_fname)
 
     def save_aff(self):
         """Save models."""
@@ -626,10 +545,11 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     turned to 36 for Andy's paper) and to crop to get kernels _before_ the query.
     """
 
-    def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', out_logits=1,
-                 without_global=False, critic_pick=False, random_pick=False, expert_pick=False, learning_rate=1e-4):
+    def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
+                 out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
+                 learning_rate=1e-4):
         super().__init__(name, task, use_goal_image=use_goal_image, out_logits=out_logits,
-                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick)
+                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step)
 
         self.attention_model = Affordance(input_shape=self.input_shape,
                                           preprocess=self.preprocess,
@@ -642,6 +562,20 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        learning_rate=learning_rate,
                                        without_global=without_global,
                                        )
+
+        if load_next_dir != 'xxx':
+            self.next_model = Critic_MLP(input_shape=self.input_shape,
+                                         preprocess=self.preprocess,
+                                         out_logits=self.out_logits,
+                                         learning_rate=0,
+                                         without_global=without_global,
+                                         )
+
+            print('*' * 50)
+            print('*' * 20 + 'load next model' + '*' * 20)
+            print('*' * 3 + f'load_next_dir {load_next_dir}' + '*' * 3)
+            self.next_model.load(load_next_dir)
+            print('*' * 50)
 
         if load_aff_dir != 'xxx':
             print('*' * 50)
@@ -657,6 +591,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
             self.critic_model.load(load_critic_dir)
             print('*' * 50)
             print(f'*' * 20 + f'critic_pick {self.critic_pick}'+ '*' * 20)
+
 
 class GoalTransporterAgent(AffCritic):
     """
