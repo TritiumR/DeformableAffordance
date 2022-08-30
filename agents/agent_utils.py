@@ -212,7 +212,6 @@ def perturb(input_image, pixels, set_theta_zero=False):
         if is_valid:
             break
         if i > 100:
-            print('out of range')
             return None, None
 
     # Apply rigid transform to image and pixel labels.

@@ -73,12 +73,22 @@ def run_jobs(process_id, args, env_kwargs):
         # curr_data = []
         max_recover = 0
 
-        another_pick = random.randint(0, 10)
+        another_pick = random.randint(0, 25)
         if another_pick == 0:
             another_action = env.action_space.sample()
             action[2] = another_action[0]
             action[3] = another_action[1]
             print('another_pick')
+
+        p0 = [int((action[3] + 1.) * 160), int((action[2] + 1.) * 160)]
+        pick_area = crump_obs[max(0, p0[0] - 1): min(320, p0[0] + 1),
+                              max(0, p0[1] - 1): min(320, p0[1] + 1),
+                              :3].copy()
+        if np.sum(pick_area) == 0 and another_pick != 0:
+            print('not on cloth')
+            # cv2.imwrite(f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg', cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB))
+            # print("save to" + f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg')
+            continue
 
         for id in range(args.data_type):
             env.set_state(state_crump)

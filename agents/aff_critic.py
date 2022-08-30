@@ -127,8 +127,6 @@ class AffCritic:
             for bh in range(batch):
                 obs, act, metric, step = dataset.sample_index(task=self.task)
 
-                reward = self.compute_reward(self.task, metric, self.step)
-                reward_batch.append(reward.copy())
                 step_batch.append(step)
 
                 if self.use_goal_image:
@@ -141,6 +139,17 @@ class AffCritic:
                 for point in act:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
+
+                pick_area = obs[max(0, p0[0] - 4): min(self.input_shape[0], p0[0] + 4),
+                                max(0, p0[1] - 4): min(self.input_shape[0], p0[1] + 4),
+                                :3]
+                if np.sum(pick_area) == 0:
+                    print('not on cloth')
+                    m_len = len(metric)
+                    reward = np.zeros(m_len)
+                else:
+                    reward = self.compute_reward(self.task, metric, self.step)
+                reward_batch.append(reward.copy())
 
                 # Do data augmentation (perturb rotation and translation).
                 pixels_list = [p0]
@@ -428,10 +437,10 @@ class AffCritic:
                 img_aff = obs.copy()
                 attention = self.attention_model.forward(img_aff)
 
-            mask = np.where(obs == 0, 0, 1)
-
-            attention = attention - np.min(attention)
-            attention = attention * mask
+            # mask = np.where(obs == 0, 0, 1)
+            #
+            # attention = attention - np.min(attention)
+            # attention = attention * mask
 
             argmax = np.argmax(attention)
             argmax = np.unravel_index(argmax, shape=attention.shape)

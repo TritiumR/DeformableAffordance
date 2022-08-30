@@ -19,6 +19,52 @@ import random
 import pickle
 
 
+def visualize_aff_critic(obs, agent):
+    img_aff = obs.copy()
+    attention = agent.attention_model.forward(img_aff)
+
+    argmax = np.argmax(attention)
+    argmax = np.unravel_index(argmax, shape=attention.shape)
+
+    p0_pixel = argmax[1:3]
+    print(p0_pixel)
+
+    img_critic = obs.copy()
+    critic = agent.critic_model.forward(img_critic, p0_pixel)
+
+    argmax = np.argmax(critic)
+    argmax = np.unravel_index(argmax, shape=critic.shape)
+
+    p1_pixel = argmax[1:3]
+    print(p1_pixel)
+
+    vis_aff = np.array(attention[0])
+    vis_critic = np.array(critic[0])
+
+    vis_aff = vis_aff - np.min(vis_aff)
+    vis_aff = 255 * vis_aff / np.max(vis_aff)
+    vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
+
+    vis_critic = vis_critic - np.min(vis_critic)
+    vis_critic = 255 * vis_critic / np.max(vis_critic)
+    vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
+
+    img_obs = obs[:, :, :3]
+
+    for u in range(max(0, p0_pixel[0] - 4), min(320, p0_pixel[0] + 4)):
+        for v in range(max(0, p0_pixel[1] - 4), min(320, p0_pixel[1] + 4)):
+            img_obs[u][v] = (255, 0, 0)
+
+    for u in range(max(0, p1_pixel[0] - 4), min(320, p1_pixel[0] + 4)):
+        for v in range(max(0, p1_pixel[1] - 4), min(320, p1_pixel[1] + 4)):
+            img_obs[u][v] = (255, 255, 255)
+
+    vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
+
+    cv2.imwrite(f'./visual/first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+    print("save to" + f'./visual/first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+
+
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
     vis_aff = np.zeros((16, 16))
     gt_aff = np.zeros((16, 16))
@@ -51,11 +97,11 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
 
     vis_img = np.concatenate((cv2.cvtColor(obs, cv2.COLOR_BGR2RGB), gt_aff, vis_aff), axis=1)
 
-    cv2.imwrite(f'./visual/aff_max-{gt_score}-{score}.jpg', vis_img)
-    print("save to" + f'./visual/aff_max-{gt_score}-{score}.jpg')
+    cv2.imwrite(f'./visual/10300-aff_max-{gt_score}-{score}.jpg', vis_img)
+    print("save to" + f'./visual/10300-aff_max-{gt_score}-{score}.jpg')
 
 
-def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
+def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
     obs_img = obs[:, :, :3].copy()
     p0_pixel = (int((p0[1] + 1.) * 160), int((p0[0] + 1.) * 160))
 
@@ -97,8 +143,8 @@ def visualize_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
 
     vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/6300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-    print("save to" + f'./visual/6300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+    cv2.imwrite(f'./visual/10300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+    print("save to" + f'./visual/10300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
 
 
 def run_jobs(process_id, args, env_kwargs):
@@ -197,8 +243,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
         # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_aff_critic(crump_obs.copy(), agent)
 
 
 def main():

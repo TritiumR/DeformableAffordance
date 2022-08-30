@@ -29,6 +29,8 @@ def run_jobs(process_id, args, env_kwargs):
             prev_depth[prev_depth > 5] = 0
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
 
+            # show_obs(prev_obs)
+
             # crumple the cloth randomly
             indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
             index = random.choice(indexs)
@@ -53,13 +55,19 @@ def run_jobs(process_id, args, env_kwargs):
             # v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
 
             action = env.action_space.sample()
-            action[0] = u1
-            action[1] = v1
+            action[0] = 0
+            action[1] = 0
+            print("action: ", action[0], action[1])
+
+            action[2] = 0.9
+            action[3] = -0.9
+
+            print("action: ", action[2], action[3])
 
             _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
             crump_area = env._get_current_covered_area(pyflex.get_positions())
             crump_percent = crump_area / full_covered_area
-            print(f"percent-{step}: ", crump_percent)
+            # print(f"percent-{step}: ", crump_percent)
 
             if args.test_depth:
                 # show_obs(env._get_obs())
@@ -71,10 +79,10 @@ def run_jobs(process_id, args, env_kwargs):
             # covered_percent = covered_area / full_covered_area
             # print("percent222: ", covered_percent)
 
-        curr_obs, _ = pyflex.render_cloth()
-        curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
-        cv2.imwrite(f'./visual/obs-{i}-step-{args.step}.jpg', cv2.cvtColor(curr_obs, cv2.COLOR_BGR2RGB))
-        print("save to" + f'./visual/obs-{i}-step-{args.step}.jpg')
+        # curr_obs, _ = pyflex.render_cloth()
+        # curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
+        # cv2.imwrite(f'./visual/obs-{i}-step-{args.step}.jpg', cv2.cvtColor(curr_obs, cv2.COLOR_BGR2RGB))
+        # print("save to" + f'./visual/obs-{i}-step-{args.step}.jpg')
 
 
     if args.save_video_dir is not None:
