@@ -80,15 +80,21 @@ def run_jobs(process_id, args, env_kwargs):
             action[3] = another_action[1]
             print('another_pick')
 
-        p0 = [int((action[3] + 1.) * 160), int((action[2] + 1.) * 160)]
-        pick_area = crump_obs[max(0, p0[0] - 1): min(320, p0[0] + 1),
-                              max(0, p0[1] - 1): min(320, p0[1] + 1),
-                              :3].copy()
-        if np.sum(pick_area) == 0 and another_pick != 0:
-            print('not on cloth')
-            # cv2.imwrite(f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg', cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB))
-            # print("save to" + f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg')
-            continue
+        # p0 = [int((action[3] + 1.) * 160), int((action[2] + 1.) * 160)]
+        # pick_area = crump_obs[max(0, p0[0] - 4): min(320, p0[0] + 4),
+        #                       max(0, p0[1] - 4): min(320, p0[1] + 4),
+        #                       :3].copy()
+        # if np.sum(pick_area) == 0 and another_pick != 0:
+        #     print('not on cloth')
+        #     img, _ = pyflex.render()
+        #     img = img.reshape((720, 720, 4))[::-1, :, :3]
+        #     img = cv2.resize(img, (320, 320), interpolation=cv2.INTER_AREA)
+        #     for u in range(max(0, p0[0] - 4), min(320, p0[0] + 4)):
+        #         for v in range(max(0, p0[1] - 4), min(320, p0[1] + 4)):
+        #             img[u][v] = (255, 0, 0)
+        #     cv2.imwrite(f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg', cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        #     print("save to" + f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg')
+        #     continue
 
         for id in range(args.data_type):
             env.set_state(state_crump)
@@ -99,6 +105,18 @@ def run_jobs(process_id, args, env_kwargs):
                 _, _, _, info = env.step(reverse_action, record_continuous_video=False, img_size=args.img_size)
                 covered_area = env._get_current_covered_area(pyflex.get_positions())
                 covered_percent = covered_area / full_covered_area
+                if env.action_tool.not_on_cloth:
+                    area_data.append([crump_percent, 0])
+                    print('not on cloth')
+                    # p0 = [int((reverse_action[1] + 1.) * 160), int((reverse_action[0] + 1.) * 160)]
+                    # img, _ = pyflex.render()
+                    # img = img.reshape((720, 720, 4))[::-1, :, :3]
+                    # img = cv2.resize(img, (320, 320), interpolation=cv2.INTER_AREA)
+                    # for u in range(max(0, p0[0] - 4), min(320, p0[0] + 4)):
+                    #     for v in range(max(0, p0[1] - 4), min(320, p0[1] + 4)):
+                    #         img[u][v] = (255, 0, 0)
+                    # cv2.imwrite(f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg', cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                    # print("save to" + f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg')
                 area_data.append([crump_percent, covered_percent])
 
             # take random action
@@ -110,6 +128,8 @@ def run_jobs(process_id, args, env_kwargs):
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
                 covered_area = env._get_current_covered_area(pyflex.get_positions())
                 covered_percent = covered_area / full_covered_area
+                if env.action_tool.not_on_cloth:
+                    area_data.append([crump_percent, 0])
                 area_data.append([crump_percent, covered_percent])
 
             # curr_obs, curr_depth = pyflex.render_cloth()

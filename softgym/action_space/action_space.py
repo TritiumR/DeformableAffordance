@@ -34,6 +34,7 @@ class Picker(ActionToolBase):
         self.picker_threshold = picker_threshold
         self.num_picker = num_picker
         self.picked_particles = [None] * self.num_picker
+        self.not_on_cloth = True
         self.picker_low, self.picker_high = np.array(list(picker_low)), np.array(list(picker_high))
         self.init_pos = init_pos
         self.particle_radius = particle_radius
@@ -43,6 +44,7 @@ class Picker(ActionToolBase):
         space_low = np.array([-0.1, -0.1, -0.1, 0] * self.num_picker) * 0.1  # [dx, dy, dz, [0, 1]]
         space_high = np.array([0.1, 0.1, 0.1, 10] * self.num_picker) * 0.1
         self.action_space = Box(space_low, space_high, dtype=np.float32)
+        # self.visualize_picker_boundary()
 
     def update_picker_boundary(self, picker_low, picker_high):
         self.picker_low, self.picker_high = np.array(picker_low).copy(), np.array(picker_high).copy()
@@ -149,6 +151,7 @@ class Picker(ActionToolBase):
                                 pick_id = idx_dists[j, 0]
                                 pick_dist = idx_dists[j, 1]
                         if pick_id is not None:
+                            self.not_on_cloth = False
                             self.picked_particles[i] = int(pick_id)
 
                 if self.picked_particles[i] is not None:
@@ -391,7 +394,7 @@ class PickAndPlace(PickerQPG):
         u2 = ((u2 + 1.) * 0.5) * self.image_size[0]
         v2 = ((v2 + 1.) * 0.5) * self.image_size[1]
         x2, y2, z2 = super()._get_world_coor_from_image(u2, v2)
-        y2 += 0.04
+        y2 += 0.05
         # print(x2, z2)
 
         # a set of checkpoints along pick and place
@@ -399,6 +402,9 @@ class PickAndPlace(PickerQPG):
         st = np.array([x1, y1, z1, 0])
         en_high = np.array([x2, 0.13, z2, 1])
         en = np.array([x2, y2, z2, 1])
+
+        self.not_on_cloth = True
+
         if self.full:
             self.total_steps += PickerPickPlace.step(self, st_high)
             self.total_steps += PickerPickPlace.step(self, st)

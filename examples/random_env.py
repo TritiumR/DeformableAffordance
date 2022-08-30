@@ -13,8 +13,11 @@ import multiprocessing
 import random
 
 def run_jobs(process_id, args, env_kwargs):
+    print(111)
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
+    print(222)
     env.reset()
+    print(333)
 
     frames = [env.get_image(args.img_size, args.img_size)]
     env.start_record()
@@ -67,7 +70,7 @@ def run_jobs(process_id, args, env_kwargs):
             _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
             crump_area = env._get_current_covered_area(pyflex.get_positions())
             crump_percent = crump_area / full_covered_area
-            # print(f"percent-{step}: ", crump_percent)
+            print(f"percent-{step}: ", crump_percent)
 
             if args.test_depth:
                 # show_obs(env._get_obs())

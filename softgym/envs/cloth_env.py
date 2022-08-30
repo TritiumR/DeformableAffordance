@@ -43,7 +43,7 @@ class ClothEnv(FlexEnv):
             self.action_tool = PickAndPlace((self.camera_height, self.camera_height), cam_pos, cam_angle,
                                              picker_threshold=picker_threshold,
                                              num_picker=num_picker, particle_radius=particle_radius, env=self,
-                                             picker_low=(-1.1, 0., -1.1), picker_high=(1.1, 0.3, 1.1)
+                                             picker_low=(-1.0, 0., -1.0), picker_high=(1.0, 0.3, 1.0)
                                              )
             self.action_space = self.action_tool.action_space
         if observation_mode in ['key_point', 'point_cloud']:
