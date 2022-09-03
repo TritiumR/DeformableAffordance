@@ -43,7 +43,7 @@ class AffCritic:
         self.out_logits = out_logits
         self.use_goal_image = use_goal_image
 
-    def compute_reward(self, task, metric, step):
+    def compute_reward(self, task, metric, step, gt_aff=None, obs=None):
         m_len = len(metric)
         reward = []
 
@@ -53,14 +53,16 @@ class AffCritic:
                     curr_percent = metric[i][1] * 50
                     reward.append(curr_percent)
             else:
+                gt_state = np.max(gt_aff.forward(obs)) * 50
                 for i in range(0, m_len):
                     curr_percent = metric[i][1] * 50
-                    reward.append(curr_percent)
+                    reward_i = (curr_percent + gt_state) / 2
+                    reward.append(reward_i)
             return reward
 
     def train_aff(self, dataset, num_iter, writer):
         for i in range(num_iter):
-            obs, act, _, _ = dataset.sample_index(task=self.task)
+            obs, act, _, _, not_on_cloth = dataset.sample_index(task=self.task)
 
             a_len = len(act)
 
@@ -96,7 +98,12 @@ class AffCritic:
                 for idx_p0 in range(p_len):
                     p0 = p_list[idx_p0]
                     output = aff_pred[:, p0[0], p0[1], :]
-                    gt = aff_score[idx_p0]
+                    if not_on_cloth[0] == 1:
+                        if idx_p0 == 0:
+                            print('not on cloth')
+                        gt = np.zeros(shape=aff_score[idx_p0].shape)
+                    else:
+                        gt = aff_score[idx_p0]
                     if loss is None:
                         loss = tf.keras.losses.MAE(gt, output)
                     else:
@@ -125,7 +132,7 @@ class AffCritic:
             flag = 0
 
             for bh in range(batch):
-                obs, act, metric, step = dataset.sample_index(task=self.task)
+                obs, act, metric, step, not_on_cloth = dataset.sample_index(task=self.task)
 
                 step_batch.append(step)
 
@@ -140,10 +147,17 @@ class AffCritic:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
-                pick_area = obs[max(0, p0[0] - 4): min(self.input_shape[0], p0[0] + 4),
-                                max(0, p0[1] - 4): min(self.input_shape[0], p0[1] + 4),
-                                :3]
-                if np.sum(pick_area) == 0:
+                # pick_area = obs[max(0, p0[0] - 4): min(self.input_shape[0], p0[0] + 4),
+                #                 max(0, p0[1] - 4): min(self.input_shape[0], p0[1] + 4),
+                #                 :3]
+                # if np.sum(pick_area) == 0:
+                #     print('not on cloth')
+                #     m_len = len(metric)
+                #     reward = np.zeros(m_len)
+                # else:
+                #     reward = self.compute_reward(self.task, metric, self.step)
+                # reward_batch.append(reward.copy())
+                if not_on_cloth[0] == 1:
                     print('not on cloth')
                     m_len = len(metric)
                     reward = np.zeros(m_len)
@@ -437,10 +451,11 @@ class AffCritic:
                 img_aff = obs.copy()
                 attention = self.attention_model.forward(img_aff)
 
-            # mask = np.where(obs == 0, 0, 1)
-            #
-            # attention = attention - np.min(attention)
-            # attention = attention * mask
+            depth = obs[:, :, -1:]
+            mask = np.where(depth == 0, 0, 1)
+
+            attention = attention - np.min(attention)
+            attention = attention * mask
 
             argmax = np.argmax(attention)
             argmax = np.unravel_index(argmax, shape=attention.shape)
@@ -573,11 +588,9 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        )
 
         if load_next_dir != 'xxx':
-            self.next_model = Critic_MLP(input_shape=self.input_shape,
+            self.next_model = Affordance(input_shape=self.input_shape,
                                          preprocess=self.preprocess,
-                                         out_logits=self.out_logits,
-                                         learning_rate=0,
-                                         without_global=without_global,
+                                         learning_rate=learning_rate,
                                          )
 
             print('*' * 50)

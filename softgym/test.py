@@ -23,6 +23,11 @@ def visualize_aff_critic(obs, agent):
     img_aff = obs.copy()
     attention = agent.attention_model.forward(img_aff)
 
+    depth = obs[:, :, -1:].copy()
+    mask = np.where(depth == 0, 0, 1)
+    attention = attention - np.min(attention)
+    attention = attention * mask
+
     argmax = np.argmax(attention)
     argmax = np.unravel_index(argmax, shape=attention.shape)
 
@@ -42,6 +47,7 @@ def visualize_aff_critic(obs, agent):
     vis_critic = np.array(critic[0])
 
     vis_aff = vis_aff - np.min(vis_aff)
+    vis_aff = vis_aff * mask
     vis_aff = 255 * vis_aff / np.max(vis_aff)
     vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
 
@@ -61,8 +67,8 @@ def visualize_aff_critic(obs, agent):
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-    print("save to" + f'./visual/first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+    cv2.imwrite(f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+    print("save to" + f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
 
 
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
@@ -97,8 +103,8 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
 
     vis_img = np.concatenate((cv2.cvtColor(obs, cv2.COLOR_BGR2RGB), gt_aff, vis_aff), axis=1)
 
-    cv2.imwrite(f'./visual/10300-aff_max-{gt_score}-{score}.jpg', vis_img)
-    print("save to" + f'./visual/10300-aff_max-{gt_score}-{score}.jpg')
+    cv2.imwrite(f'./visual/6000-aff_max-{gt_score}-{score}.jpg', vis_img)
+    print("save to" + f'./visual/6000-aff_max-{gt_score}-{score}.jpg')
 
 
 def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
@@ -143,8 +149,8 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
 
     vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/10300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-    print("save to" + f'./visual/10300-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+    cv2.imwrite(f'./visual/6000-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+    print("save to" + f'./visual/6000-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
 
 
 def run_jobs(process_id, args, env_kwargs):
@@ -245,7 +251,7 @@ def run_jobs(process_id, args, env_kwargs):
 
         # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
         # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        visualize_aff_critic(crump_obs.copy(), agent)
+        # visualize_aff_critic(crump_obs.copy(), agent)
 
 
 def main():

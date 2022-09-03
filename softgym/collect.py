@@ -13,12 +13,14 @@ import multiprocessing
 import random
 import pickle
 
+
 def dump(path, data, process, curr_num, data_id, data_num, step):
     fname = f'{curr_num + data_id + process * data_num:06d}-{step}.pkl'
     if not os.path.exists(path):
         os.makedirs(path)
     pickle.dump(data, open(os.path.join(path, fname), 'wb'))
     print(f'process {process} saved {fname} to {path}')
+
 
 def run_jobs(process_id, args, env_kwargs):
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -34,28 +36,36 @@ def run_jobs(process_id, args, env_kwargs):
         state_flat = env.get_state()
         pyflex.step()
 
-        prev_obs, prev_depth = pyflex.render_cloth()
-        prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
+        for step_i in range(args.step):
+            prev_obs, prev_depth = pyflex.render_cloth()
+            prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
 
-        # crumple the cloth by grabbing corner
-        mask = prev_obs[10:, :, 0]
-        indexs = np.transpose(np.where(mask == 255))
-        corner_id = random.randint(0, 3)
-        # print(corner_id)
-        top, left = indexs.min(axis=0)
-        bottom, right = indexs.max(axis=0)
+            # crumple the cloth by grabbing corner
+            if step_i == 1:
+                mask = prev_obs[10:, :, 0]
+                indexs = np.transpose(np.where(mask == 255))
+                corner_id = random.randint(0, 3)
+                # print(corner_id)
+                top, left = indexs.min(axis=0)
+                bottom, right = indexs.max(axis=0)
 
-        corners = [[top + 10, left],
-                   [top + 10, right],
-                   [bottom + 10, right],
-                   [bottom + 10, left]]
-        u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
-        v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
-        action = env.action_space.sample()
-        action[0] = u1
-        action[1] = v1
+                corners = [[top + 10, left],
+                           [top + 10, right],
+                           [bottom + 10, right],
+                           [bottom + 10, left]]
+                u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+                v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+            else:
+                indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
+                index = random.choice(indexs)
+                u1 = (index[1]) * 2.0 / env.camera_height - 1
+                v1 = (index[0]) * 2.0 / env.camera_height - 1
+            action = env.action_space.sample()
+            action[0] = u1
+            action[1] = v1
 
-        _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
+            _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
+
         crump_area = env._get_current_covered_area(pyflex.get_positions())
         crump_percent = crump_area / full_covered_area
         # print("percent: ", crump_percent)
@@ -71,6 +81,7 @@ def run_jobs(process_id, args, env_kwargs):
         action_data = []
         area_data = []
         # curr_data = []
+        not_on_cloth_data = []
         max_recover = 0
 
         another_pick = random.randint(0, 25)
@@ -106,8 +117,10 @@ def run_jobs(process_id, args, env_kwargs):
                 covered_area = env._get_current_covered_area(pyflex.get_positions())
                 covered_percent = covered_area / full_covered_area
                 if env.action_tool.not_on_cloth:
-                    area_data.append([crump_percent, 0])
+                    not_on_cloth_data.append(1)
                     print('not on cloth')
+                else:
+                    not_on_cloth_data.append(0)
                     # p0 = [int((reverse_action[1] + 1.) * 160), int((reverse_action[0] + 1.) * 160)]
                     # img, _ = pyflex.render()
                     # img = img.reshape((720, 720, 4))[::-1, :, :3]
@@ -128,8 +141,6 @@ def run_jobs(process_id, args, env_kwargs):
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
                 covered_area = env._get_current_covered_area(pyflex.get_positions())
                 covered_percent = covered_area / full_covered_area
-                if env.action_tool.not_on_cloth:
-                    area_data.append([crump_percent, 0])
                 area_data.append([crump_percent, covered_percent])
 
             # curr_obs, curr_depth = pyflex.render_cloth()
@@ -147,14 +158,18 @@ def run_jobs(process_id, args, env_kwargs):
                 max_recover = covered_percent
 
         print("percent: ", max_recover, crump_percent)
-
-        if (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent) or another_pick == 0:
+        if args.step == 1:
+            if_save = (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent) or another_pick == 0
+        else:
+            if_save = max_recover - 0.1 >= crump_percent
+        if if_save:
             data = {}
             data['obs'] = np.array(crump_obs).copy()
             # data['curr'] = np.array(curr_data).copy()
             assert data['obs'].shape == (320, 320, 4)
             data['area'] = area_data
             data['action'] = action_data
+            data['not_on_cloth'] = not_on_cloth_data
             dump(args.path, data, process_id, args.curr_data, data_id, args.data_num, 1)
             data_id += 1
 
@@ -207,6 +222,7 @@ def main():
     parser.add_argument('--data_num', type=int, default=1, help='How many data do you need for each process')
     parser.add_argument('--curr_data', type=int, default=0, help='How many data have existed')
     parser.add_argument('--data_type', type=int, default=1, help='What kind of data')
+    parser.add_argument('--step', type=int, default=1, help='How many steps from goal')
 
     args = parser.parse_args()
 

@@ -6,7 +6,7 @@ CUDA_VISIBLE_DEVICES=1 python ./softgym/train.py \
   --num_iters 300000 \
   --out_logits 1 \
   --demo_times 10 \
-  --exp_name 0825-05-tryfour-aff \
+  --exp_name 0901-02-tryfour-aff-not_on_cloth \
   --suffix tryfour \
   --max_load 2000 \
   --batch 3 \

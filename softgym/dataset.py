@@ -105,7 +105,9 @@ class Dataset:
 
             step = i
 
-            return obs, action, metric, step
+            not_on_cloth = data['not_on_cloth']
+
+            return obs, action, metric, step, not_on_cloth
 
         if self.demo_times == 1:
             action = []
@@ -119,4 +121,6 @@ class Dataset:
 
             step = i
 
-            return obs, action, metric, step
+            not_on_cloth = data['not_on_cloth']
+
+            return obs, action, metric, step, not_on_cloth
