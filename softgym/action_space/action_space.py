@@ -387,14 +387,14 @@ class PickAndPlace(PickerQPG):
         u1 = ((u1 + 1.) * 0.5) * self.image_size[0]
         v1 = ((v1 + 1.) * 0.5) * self.image_size[1]
         x1, y1, z1 = super()._get_world_coor_from_image(u1, v1)
-        y1 += 0.03
+        y1 += 0.05
         # print(x1, z1)
 
         u2, v2 = action[2:]
         u2 = ((u2 + 1.) * 0.5) * self.image_size[0]
         v2 = ((v2 + 1.) * 0.5) * self.image_size[1]
         x2, y2, z2 = super()._get_world_coor_from_image(u2, v2)
-        y2 += 0.1
+        y2 += 0.07
         # print(x2, z2)
 
         # a set of checkpoints along pick and place

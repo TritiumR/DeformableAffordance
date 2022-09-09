@@ -49,7 +49,7 @@ def main():
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
     # Set the beginning of the agent name.
-    name = f'{args.task}-Aff_Critic-{args.num_demos}-{args.suffix}'
+    name = f'{args.task}-Aff_Critic-{args.num_demos}-{args.exp_name}'
 
     # Initialize agent and limit random dataset sampling to fixed set.
     tf.random.set_seed(0)

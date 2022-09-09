@@ -84,7 +84,7 @@ def run_jobs(process_id, args, env_kwargs):
         not_on_cloth_data = []
         max_recover = 0
 
-        another_pick = random.randint(0, 25)
+        another_pick = random.randint(0, 40)
         if another_pick == 0:
             another_action = env.action_space.sample()
             action[2] = another_action[0]

@@ -13,6 +13,7 @@ from agents import agent_utils
 from softgym import dataset
 import copy
 import random
+import math
 
 from scipy.spatial import ConvexHull
 
@@ -37,7 +38,7 @@ class AffCritic:
 
         self.expert_pick = expert_pick
         self.critic_pick = critic_pick
-        self.critic_num = 5
+        self.critic_num = 33
         self.random_pick = random_pick
 
         self.out_logits = out_logits
@@ -82,6 +83,8 @@ class AffCritic:
 
             p_list = [p0]
             for i in range(a_len):
+                # sample_x = max(min(np.random.normal(loc=p0[0], scale=0.12), self.input_shape[0] - 1), 0)
+                # sample_y = max(min(np.random.normal(loc=p0[1], scale=0.12), self.input_shape[0] - 1), 0)
                 u = random.randint(0, 319)
                 v = random.randint(0, 319)
                 p_list.append((u, v))
@@ -98,12 +101,7 @@ class AffCritic:
                 for idx_p0 in range(p_len):
                     p0 = p_list[idx_p0]
                     output = aff_pred[:, p0[0], p0[1], :]
-                    if not_on_cloth[0] == 1:
-                        if idx_p0 == 0:
-                            print('not on cloth')
-                        gt = np.zeros(shape=aff_score[idx_p0].shape)
-                    else:
-                        gt = aff_score[idx_p0]
+                    gt = aff_score[idx_p0]
                     if loss is None:
                         loss = tf.keras.losses.MAE(gt, output)
                     else:
@@ -157,6 +155,7 @@ class AffCritic:
                 # else:
                 #     reward = self.compute_reward(self.task, metric, self.step)
                 # reward_batch.append(reward.copy())
+
                 if not_on_cloth[0] == 1:
                     print('not on cloth')
                     m_len = len(metric)
@@ -414,29 +413,37 @@ class AffCritic:
 
         elif self.critic_pick:
             p0_list = []
-            indexs = np.transpose(np.nonzero(obs[:, :, 3]))
-
-            p0_list.append(p0)
-            for i in range(0, self.critic_num):
-                index = random.choice(indexs)
-                u1 = index[0]
-                v1 = index[1]
-                p0_list.append((u1, v1))
+            # indexs = np.transpose(np.nonzero(obs[:, :, 3]))
+            interval = int(self.input_shape[0] / (self.critic_num - 1))
+            for i in range(self.critic_num):
+                for j in range(self.critic_num):
+                    p0_list.append((min(self.input_shape[0] - 1, i * interval), min(self.input_shape[1] - 1, j * interval)))
+            # p0_list.append(p0)
 
             img_pick = obs.copy()
-            critic_list = self.critic_model.forward_with_plist(img_pick, p0_list)
-
             max_score = -float('inf')
             max_i = 0
-
-            for i in range(0, self.critic_num):
-                cable_score = np.max(critic_list[i, :, :, 0])
-                if cable_score > max_score:
+            for i in range(0, self.critic_num ** 2):
+                # index = random.choice(indexs)
+                # u1 = index[0]
+                # v1 = index[1]
+                u1 = p0_list[i][0]
+                v1 = p0_list[i][1]
+                p0_pixel = (u1, v1)
+                critic_score = np.max(self.critic_model.forward(img_pick.copy(), p0_pixel)[:, :, :, 0])
+                if critic_score > max_score:
+                    max_score = critic_score
                     max_i = i
-                    max_score = cable_score
 
-            if max_i == 0:
-                print('reverse')
+            #
+            # for i in range(0, self.critic_num):
+            #     cable_score = np.max(critic_list[i, :, :, 0])
+            #     if cable_score > max_score:
+            #         max_i = i
+            #         max_score = cable_score
+
+            # if max_i == 0:
+            #     print('reverse')
 
             p0_pixel = (p0_list[max_i][0], p0_list[max_i][1])
 

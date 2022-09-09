@@ -25,9 +25,11 @@ def visualize_aff_critic(obs, agent):
 
     depth = obs[:, :, -1:].copy()
     mask = np.where(depth == 0, 0, 1)
+    state_map = np.where(depth == 0, 0, attention)
     attention = attention - np.min(attention)
     attention = attention * mask
 
+    state_score = np.max(state_map) * 2
     argmax = np.argmax(attention)
     argmax = np.unravel_index(argmax, shape=attention.shape)
 
@@ -67,8 +69,8 @@ def visualize_aff_critic(obs, agent):
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-    print("save to" + f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+    cv2.imwrite(f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
+    print("save to" + f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
 
 
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
@@ -87,7 +89,7 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
             critic_score = output[:, :, :, 0]
             vis_aff[i][j] = np.max(critic_score)
 
-    score = int(np.max(vis_aff) / 3 * 10)
+    score = int(np.max(vis_aff) * 2)
     gt_score = int(np.max(gt_aff) * 100)
 
     vis_aff = cv2.resize(vis_aff, (320, 320))
@@ -103,8 +105,8 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
 
     vis_img = np.concatenate((cv2.cvtColor(obs, cv2.COLOR_BGR2RGB), gt_aff, vis_aff), axis=1)
 
-    cv2.imwrite(f'./visual/6000-aff_max-{gt_score}-{score}.jpg', vis_img)
-    print("save to" + f'./visual/6000-aff_max-{gt_score}-{score}.jpg')
+    cv2.imwrite(f'./visual/9_9-7500-aff_max-{gt_score}-{score}.jpg', vis_img)
+    print("save to" + f'./visual/9_9-7500-aff_max-{gt_score}-{score}.jpg')
 
 
 def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
@@ -149,8 +151,8 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
 
     vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/6000-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-    print("save to" + f'./visual/6000-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+    cv2.imwrite(f'./visual/9_9-7500-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+    print("save to" + f'./visual/9_9-7500-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
 
 
 def run_jobs(process_id, args, env_kwargs):
@@ -194,10 +196,10 @@ def run_jobs(process_id, args, env_kwargs):
         top, left = indexs.min(axis=0)
         bottom, right = indexs.max(axis=0)
 
-        corners = [[top + 10, left],
-                   [top + 10, right],
-                   [bottom + 10, right],
-                   [bottom + 10, left]]
+        corners = [[top + 30, left + 20],
+                   [top + 30, right - 20],
+                   [bottom + (-10), right - 20],
+                   [bottom + (-10), left + 20]]
         u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
         v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
         action = env.action_space.sample()
@@ -230,7 +232,7 @@ def run_jobs(process_id, args, env_kwargs):
         covered_percent = covered_area / full_covered_area
         print("curr percent: ", covered_percent)
 
-        if covered_percent >= 0.8:
+        if covered_percent >= 0.75:
             if covered_percent - crump_percent >= 0.05:
                 result = 'success'
             else:
@@ -249,8 +251,8 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
         # visualize_aff_critic(crump_obs.copy(), agent)
 
 
