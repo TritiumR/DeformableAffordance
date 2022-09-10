@@ -458,11 +458,11 @@ class AffCritic:
                 img_aff = obs.copy()
                 attention = self.attention_model.forward(img_aff)
 
-            depth = obs[:, :, -1:]
-            mask = np.where(depth == 0, 0, 1)
-
-            attention = attention - np.min(attention)
-            attention = attention * mask
+            # depth = obs[:, :, -1:]
+            # mask = np.where(depth == 0, 0, 1)
+            #
+            # attention = attention - np.min(attention)
+            # attention = attention * mask
 
             argmax = np.argmax(attention)
             argmax = np.unravel_index(argmax, shape=attention.shape)

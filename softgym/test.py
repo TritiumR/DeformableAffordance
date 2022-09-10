@@ -23,13 +23,14 @@ def visualize_aff_critic(obs, agent):
     img_aff = obs.copy()
     attention = agent.attention_model.forward(img_aff)
 
-    depth = obs[:, :, -1:].copy()
-    mask = np.where(depth == 0, 0, 1)
-    state_map = np.where(depth == 0, 0, attention)
+    # depth = obs[:, :, -1:].copy()
+    # mask = np.where(depth == 0, 0, 1)
+    # state_map = np.where(depth == 0, 0, attention)
+    state_score = int(np.max(attention) * 2)
     attention = attention - np.min(attention)
-    attention = attention * mask
+    # attention = attention * mask
 
-    state_score = np.max(state_map) * 2
+    # state_score = int(np.max(state_map) * 2)
     argmax = np.argmax(attention)
     argmax = np.unravel_index(argmax, shape=attention.shape)
 
@@ -49,7 +50,7 @@ def visualize_aff_critic(obs, agent):
     vis_critic = np.array(critic[0])
 
     vis_aff = vis_aff - np.min(vis_aff)
-    vis_aff = vis_aff * mask
+    # vis_aff = vis_aff * mask
     vis_aff = 255 * vis_aff / np.max(vis_aff)
     vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
 
@@ -69,8 +70,8 @@ def visualize_aff_critic(obs, agent):
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
-    print("save to" + f'./visual/third-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
+    cv2.imwrite(f'./visual/fifth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
+    print("save to" + f'./visual/fifth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
 
 
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
@@ -180,7 +181,6 @@ def run_jobs(process_id, args, env_kwargs):
     test_id = 0
 
     while (test_id < args.num_test):
-        env.start_record()
         # from flat configuration
         full_covered_area = env._set_to_flatten()
         pyflex.step()
@@ -206,9 +206,12 @@ def run_jobs(process_id, args, env_kwargs):
         action[0] = u1
         action[1] = v1
 
-        _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
+        _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
         crump_area = env._get_current_covered_area(pyflex.get_positions())
         crump_percent = crump_area / full_covered_area
+        if crump_percent >= 0.8:
+            continue
+        env.start_record()
         print("crump percent: ", crump_percent)
         crump_obs, crump_depth = pyflex.render_cloth()
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
@@ -251,9 +254,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        # visualize_aff_critic(crump_obs.copy(), agent)
+        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_aff_critic(crump_obs.copy(), agent)
 
 
 def main():

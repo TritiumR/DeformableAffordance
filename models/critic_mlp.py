@@ -65,14 +65,14 @@ class Critic_MLP:
             if self.without_global:
                 self.conv_seq = tf.keras.Sequential([
                     tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                           input_shape=(320, 320, 256 + 256), name='critc_1'),  # last dimension -512
+                                           input_shape=(320, 320, 256 + 256), name='critic_1'),  # last dimension -512
                     tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
-                                           name='critc_2'),
+                                           name='critic_2'),
                 ])
             else:
                 self.conv_seq = tf.keras.Sequential([
-                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 320, 256 + 256 + 512), name='critc_1'),
-                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256), name='critc_2'),
+                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256), name='critic_2'),
                 ])
         else:
             in0, out0 = ResNet43_8s(input_shape, 256, prefix='s0_d1_')
