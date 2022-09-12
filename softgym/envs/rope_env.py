@@ -2,7 +2,7 @@ import numpy as np
 from gym.spaces import Box
 import pyflex
 from softgym.envs.flex_env import FlexEnv
-from softgym.action_space.action_space import Picker
+from softgym.action_space.action_space import Picker, PickAndPlace
 from softgym.action_space.robot_env import RobotBase
 from copy import deepcopy
 
@@ -13,7 +13,7 @@ class RopeNewEnv(FlexEnv):
         super().__init__(**kwargs)
 
         assert observation_mode in ['point_cloud', 'cam_rgb', 'key_point']
-        assert action_mode in ['picker', 'sawyer', 'franka']
+        assert action_mode in ['picker', 'sawyer', 'franka', 'pickandplace']
         self.observation_mode = observation_mode
         self.action_mode = action_mode
         self.num_picker = num_picker
@@ -24,6 +24,14 @@ class RopeNewEnv(FlexEnv):
             self.action_space = self.action_tool.action_space
         elif action_mode in ['sawyer', 'franka']:
             self.action_tool = RobotBase(action_mode)
+        elif action_mode == 'pickandplace':
+            cam_pos, cam_angle = self.get_camera_params()
+            self.action_tool = PickAndPlace((self.camera_height, self.camera_height), cam_pos, cam_angle,
+                                             picker_threshold=0.005,
+                                             num_picker=num_picker, particle_radius=0.00625, env=self,
+                                             picker_low=(-1.0, 0., -1.0), picker_high=(1.0, 0.3, 1.0)
+                                             )
+            self.action_space = self.action_tool.action_space
 
         if observation_mode in ['key_point', 'point_cloud']:
             if observation_mode == 'key_point':
@@ -62,6 +70,13 @@ class RopeNewEnv(FlexEnv):
                                    'height': self.camera_height}}
         }
         return config
+
+    def get_camera_params(self):
+        config = self.get_current_config()
+        camera_name = config['camera_name']
+        cam_pos = config['camera_params'][camera_name]['pos']
+        cam_angle = config['camera_params'][camera_name]['angle']
+        return cam_pos, cam_angle
 
     def _get_obs(self):
         if self.observation_mode == 'cam_rgb':

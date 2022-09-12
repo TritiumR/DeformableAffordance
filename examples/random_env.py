@@ -13,11 +13,8 @@ import multiprocessing
 import random
 
 def run_jobs(process_id, args, env_kwargs):
-    print(111)
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
-    print(222)
     env.reset()
-    print(333)
 
     frames = [env.get_image(args.img_size, args.img_size)]
     env.start_record()

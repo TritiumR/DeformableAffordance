@@ -66,7 +66,7 @@ class RopeFlattenEnv(RopeNewEnv):
         return self._get_obs()
 
     def _step(self, action):
-        if self.action_mode.startswith('picker'):
+        if self.action_mode.startswith('picker') or self.action_mode == 'pickandplace':
             self.action_tool.step(action)
             pyflex.step()
         else:

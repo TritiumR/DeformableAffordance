@@ -23,6 +23,7 @@ class RopeConfigurationEnv(RopeFlattenEnv):
 
         self.goal_characters = ['S', 'O', 'M', 'C', 'U']
         self.reward_type = reward_type
+        self.goal_state = []
         super().__init__(cached_states_path=cached_states_path, **kwargs)
        
         # change observation space: add goal character information
@@ -140,6 +141,7 @@ class RopeConfigurationEnv(RopeFlattenEnv):
             all_positions = pyflex.get_positions().reshape([-1, 4])
             all_positions = goal_c_pos.copy() # ignore the first a few cloth particles
             pyflex.set_positions(all_positions)
+            self.goal_state.append(self.get_state())
             self.update_camera('default_camera', default_config['camera_params']['default_camera']) # why we need to do this?
             self.action_tool.reset([0., -1., 0.]) # hide picker
             # goal_c_img = self.get_image(self.camera_height, self.camera_width)
@@ -230,7 +232,7 @@ class RopeConfigurationEnv(RopeFlattenEnv):
             reward = -dist / len(downsampled_goal_pos)
 
         performance = reward
-        performance_init =  performance if self.performance_init is None else self.performance_init  # Use the original performance
+        performance_init = performance if self.performance_init is None else self.performance_init  # Use the original performance
 
         return {
             'performance': performance,

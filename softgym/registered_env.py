@@ -48,12 +48,12 @@ env_arg_dict = {
         'deterministic': False
     },
     'RopeConfiguration': {'observation_mode': 'cam_rgb',
-                          'action_mode': 'picker',
-                          'num_picker': 2,
+                          'action_mode': 'pickandplace',
+                          'num_picker': 1,
                           'render': True,
                           'headless': True,
-                          'horizon': 100,  # this task is harder than just straigtening rope, therefore has larger horizon.
-                          'action_repeat': 8,
+                          'horizon': 20,  # this task is harder than just straigtening rope, therefore has larger horizon.
+                          'action_repeat': 1,
                           'render_mode': 'cloth',
                           'num_variations': 1000,
                           'use_cached_states': True,

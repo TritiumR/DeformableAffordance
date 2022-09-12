@@ -44,7 +44,7 @@ class AffCritic:
         self.out_logits = out_logits
         self.use_goal_image = use_goal_image
 
-    def compute_reward(self, task, metric, step, gt_aff=None, obs=None):
+    def compute_reward(self, task, metric, step, curr_obs=None):
         m_len = len(metric)
         reward = []
 
@@ -54,16 +54,29 @@ class AffCritic:
                     curr_percent = metric[i][1] * 50
                     reward.append(curr_percent)
             else:
-                gt_state = np.max(gt_aff.forward(obs)) * 50
                 for i in range(0, m_len):
+                    attention = self.next_model.forward(curr_obs[i].copy())
+
+                    # img_obs = obs[:, :, :3]
+                    # vis_aff = attention[0] - np.min(attention[0])
+                    # vis_aff = 255 * vis_aff / np.max(vis_aff)
+                    # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
+                    # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
+
+                    gt_state = np.max(attention)
+
+                    # cv2.imwrite(f'./test-{gt_state}.jpg', vis_img)
+
+                    # print('gt_state: ', gt_state)
                     curr_percent = metric[i][1] * 50
-                    reward_i = (curr_percent + gt_state) / 2
+                    # print("curr: ", curr_percent)
+                    reward_i = (curr_percent * 2 + gt_state) / 2
                     reward.append(reward_i)
             return reward
 
     def train_aff(self, dataset, num_iter, writer):
         for i in range(num_iter):
-            obs, act, _, _, not_on_cloth = dataset.sample_index(task=self.task)
+            obs, act, _, _, not_on_cloth = dataset.sample_index(need_next=False)
 
             a_len = len(act)
 
@@ -128,9 +141,13 @@ class AffCritic:
             reward_batch = []
 
             flag = 0
+            curr_obs = None
 
             for bh in range(batch):
-                obs, act, metric, step, not_on_cloth = dataset.sample_index(task=self.task)
+                if self.step > 1:
+                    obs, curr_obs, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                else:
+                    obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=Flase)
 
                 step_batch.append(step)
 
@@ -161,7 +178,7 @@ class AffCritic:
                     m_len = len(metric)
                     reward = np.zeros(m_len)
                 else:
-                    reward = self.compute_reward(self.task, metric, self.step)
+                    reward = self.compute_reward(self.task, metric, self.step, curr_obs)
                 reward_batch.append(reward.copy())
 
                 # Do data augmentation (perturb rotation and translation).
@@ -597,7 +614,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
         if load_next_dir != 'xxx':
             self.next_model = Affordance(input_shape=self.input_shape,
                                          preprocess=self.preprocess,
-                                         learning_rate=learning_rate,
+                                         learning_rate=0,
                                          )
 
             print('*' * 50)

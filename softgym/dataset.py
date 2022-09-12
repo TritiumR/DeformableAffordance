@@ -48,7 +48,7 @@ class Dataset:
         """Limit random samples to specific fixed set."""
         self.episode_set = episodes
 
-    def sample_index(self, task='cloth-flatten'):
+    def sample_index(self, need_next=False):
         """Randomly sample from the dataset uniformly.
 
         The 'cached_load' will use the load (from pickle file) to
@@ -107,6 +107,10 @@ class Dataset:
 
             not_on_cloth = data['not_on_cloth']
 
+            if need_next:
+                curr_obs = data['curr_obs']
+                return obs, curr_obs, action, metric, step, not_on_cloth
+
             return obs, action, metric, step, not_on_cloth
 
         if self.demo_times == 1:
@@ -115,6 +119,8 @@ class Dataset:
 
             data = cached_load(iepisode, i)
             obs = data['obs']
+            if need_next:
+                curr_obs = data['curr_obs']
 
             action.append(data['action'])
             metric.append(data['area'])
@@ -122,5 +128,9 @@ class Dataset:
             step = i
 
             not_on_cloth = data['not_on_cloth']
+
+            if need_next:
+                curr_obs = data['curr_obs']
+                return obs, curr_obs, action, metric, step, not_on_cloth
 
             return obs, action, metric, step, not_on_cloth

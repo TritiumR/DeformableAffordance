@@ -25,23 +25,33 @@ def dump(path, data, process, curr_num, data_id, data_num, step):
 def run_jobs(process_id, args, env_kwargs):
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
     env.reset()
-
-    frames = [env.get_image(args.img_size, args.img_size)]
-    # env.start_record()
+    env.start_record()
     data_id = 0
 
     while (data_id < args.data_num):
-        # from flat configuration
-        full_covered_area = env._set_to_flatten()
-        state_flat = env.get_state()
+        if args.env_name == 'ClothFlatten':
+            # from flat configuration
+            full_covered_area = env._set_to_flatten()
+        elif args.env_name == 'RopeConfiguration':
+            # from goal configuration
+            env.set_state(env.goal_state[0])
+            full_distance = env.compute_reward()
         pyflex.step()
 
         for step_i in range(args.step):
-            prev_obs, prev_depth = pyflex.render_cloth()
+            if args.env_name == 'ClothFlatten':
+                prev_obs, prev_depth = pyflex.render_cloth()
+            elif args.env_name == 'RopeConfiguration':
+                prev_obs, prev_depth = pyflex.render()
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
+            # print(np.min(prev_depth), np.max(prev_depth))
+            prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+            # depth_mask = np.where(prev_depth > 0.8, 0.0, 1.)
+            # print(depth_mask.shape)
+            # show_obs(depth_mask)
 
             # crumple the cloth by grabbing corner
-            if step_i == 1:
+            if step_i == 1 and args.env_name == 'ClothFlatten':
                 mask = prev_obs[10:, :, 0]
                 indexs = np.transpose(np.where(mask == 255))
                 corner_id = random.randint(0, 3)
@@ -64,13 +74,21 @@ def run_jobs(process_id, args, env_kwargs):
             action[0] = u1
             action[1] = v1
 
-            _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
+            _, _, _, info = env.step(action, record_continuous_video=args.render, img_size=args.img_size)
 
-        crump_area = env._get_current_covered_area(pyflex.get_positions())
-        crump_percent = crump_area / full_covered_area
-        # print("percent: ", crump_percent)
-        crump_obs, crump_depth = pyflex.render_cloth()
+        if args.env_name == 'ClothFlatten':
+            crump_area = env._get_current_covered_area(pyflex.get_positions())
+            crump_percent = crump_area / full_covered_area
+            # print("percent: ", crump_percent)
+        elif args.env_name == 'RopeConfiguration':
+            crump_distance = env.compute_reward()
+
+        if args.env_name == 'ClothFlatten':
+            crump_obs, crump_depth = pyflex.render_cloth()
+        elif args.env_name == 'RopeConfiguration':
+            crump_obs, crump_depth = pyflex.render()
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
+        # show_obs(crump_obs)
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
@@ -79,10 +97,10 @@ def run_jobs(process_id, args, env_kwargs):
         state_crump = env.get_state()
 
         action_data = []
-        area_data = []
-        # curr_data = []
+        metric_data = []
+        curr_data = []
         not_on_cloth_data = []
-        max_recover = 0
+        max_recover = float('-inf')
 
         another_pick = random.randint(0, 40)
         if another_pick == 0:
@@ -112,25 +130,31 @@ def run_jobs(process_id, args, env_kwargs):
             # take reverse action
             if id == 0:
                 reverse_action = np.array([action[2], action[3], action[0], action[1]])
+                print("reverse_action", reverse_action)
                 action_data.append(reverse_action.copy())
-                _, _, _, info = env.step(reverse_action, record_continuous_video=False, img_size=args.img_size)
-                covered_area = env._get_current_covered_area(pyflex.get_positions())
-                covered_percent = covered_area / full_covered_area
+                _, _, _, info = env.step(reverse_action, record_continuous_video=args.render, img_size=args.img_size)
+                if args.env_name == 'ClothFlatten':
+                    curr_obs, curr_depth = pyflex.render_cloth()
+                    recovered_area = env._get_current_covered_area(pyflex.get_positions())
+                    recovered_percent = recovered_area / full_covered_area
+                    metric_data.append([crump_percent, recovered_percent])
+                elif args.env_name == 'RopeConfiguration':
+                    curr_obs, curr_depth = pyflex.render()
+                    recovered_distance = env.compute_reward()
+                    metric_data.append([crump_distance, recovered_distance])
                 if env.action_tool.not_on_cloth:
                     not_on_cloth_data.append(1)
                     print('not on cloth')
                 else:
                     not_on_cloth_data.append(0)
-                    # p0 = [int((reverse_action[1] + 1.) * 160), int((reverse_action[0] + 1.) * 160)]
-                    # img, _ = pyflex.render()
-                    # img = img.reshape((720, 720, 4))[::-1, :, :3]
-                    # img = cv2.resize(img, (320, 320), interpolation=cv2.INTER_AREA)
-                    # for u in range(max(0, p0[0] - 4), min(320, p0[0] + 4)):
-                    #     for v in range(max(0, p0[1] - 4), min(320, p0[1] + 4)):
-                    #         img[u][v] = (255, 0, 0)
-                    # cv2.imwrite(f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg', cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-                    # print("save to" + f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg')
-                area_data.append([crump_percent, covered_percent])
+
+                curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
+                curr_depth[curr_depth > 5] = 0
+                curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+                curr_obs = np.concatenate([curr_obs, curr_depth], 2)
+                curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
+                curr_data.append(curr_obs.copy())
+
 
             # take random action
             else:
@@ -139,9 +163,22 @@ def run_jobs(process_id, args, env_kwargs):
                 random_action[1] = reverse_action[1]
                 action_data.append(random_action.copy())
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
-                covered_area = env._get_current_covered_area(pyflex.get_positions())
-                covered_percent = covered_area / full_covered_area
-                area_data.append([crump_percent, covered_percent])
+                if args.env_name == 'ClothFlatten':
+                    curr_obs, curr_depth = pyflex.render_cloth()
+                    recovered_area = env._get_current_covered_area(pyflex.get_positions())
+                    recovered_percent = recovered_area / full_covered_area
+                    metric_data.append([crump_percent, recovered_percent])
+                elif args.env_name == 'RopeConfiguration':
+                    curr_obs, curr_depth = pyflex.render()
+                    recovered_distance = env.compute_reward()
+                    metric_data.append([crump_distance, recovered_distance])
+
+                curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
+                curr_depth[curr_depth > 5] = 0
+                curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+                curr_obs = np.concatenate([curr_obs, curr_depth], 2)
+                curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
+                curr_data.append(curr_obs.copy())
 
             # curr_obs, curr_depth = pyflex.render_cloth()
             # curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
@@ -153,27 +190,37 @@ def run_jobs(process_id, args, env_kwargs):
             # # show_obs(curr_depth)
 
             # print(id, covered_percent)
+            if args.env_name == 'ClothFlatten':
+                if recovered_percent > max_recover:
+                    max_recover = recovered_percent
+            elif args.env_name == 'RopeConfiguration':
+                if recovered_distance > max_recover:
+                    max_recover = recovered_distance
 
-            if covered_percent > max_recover:
-                max_recover = covered_percent
+        if args.env_name == 'ClothFlatten':
+            print("metric: ", max_recover, crump_percent)
+        elif args.env_name == 'RopeConfiguration':
+            print("metric: ", max_recover, crump_distance)
 
-        print("percent: ", max_recover, crump_percent)
-        if args.step == 1:
-            if_save = (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent) or another_pick == 0
-        else:
-            if_save = max_recover - 0.1 >= crump_percent
+        if args.env_name == 'ClothFlatten':
+            if args.step == 1:
+                if_save = (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent) or another_pick == 0
+            else:
+                if_save = max_recover - 0.1 >= crump_percent or another_pick == 0
+        elif args.env_name == 'RopeConfiguration':
+            if_save = max_recover >= -0.1 and max_recover - 0.1 >= crump_distance
+
         if if_save:
             data = {}
             data['obs'] = np.array(crump_obs).copy()
+            data['curr_obs'] = curr_data
             # data['curr'] = np.array(curr_data).copy()
             assert data['obs'].shape == (320, 320, 4)
-            data['area'] = area_data
+            data['area'] = metric_data
             data['action'] = action_data
             data['not_on_cloth'] = not_on_cloth_data
-            dump(args.path, data, process_id, args.curr_data, data_id, args.data_num, 1)
+            dump(args.path, data, process_id, args.curr_data, data_id, args.data_num, args.step)
             data_id += 1
-
-        env.set_state(state_flat)
 
     if args.save_video_dir is not None:
         save_name = os.path.join(args.save_video_dir, args.env_name + f'{process_id}.gif')
@@ -185,7 +232,7 @@ def show_obs(obs):
     cv2.namedWindow(window_name, 0)
     cv2.resizeWindow(window_name, 720, 720)
     cv2.imshow(window_name, obs)
-    cv2.waitKey(3000)
+    cv2.waitKey(10000)
     cv2.destroyAllWindows()
 
 def show_depth():
@@ -213,6 +260,7 @@ def main():
     # ['PassWater', 'PourWater', 'PourWaterAmount', 'RopeFlatten', 'ClothFold', 'ClothFlatten', 'ClothDrop', 'ClothFoldCrumpled', 'ClothFoldDrop', 'RopeConfiguration']
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--path', type=str, default='./data/')
+    parser.add_argument('--render', action='store_true')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--save_video_dir', type=str, default=None, help='Path to the saved video')

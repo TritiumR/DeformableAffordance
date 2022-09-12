@@ -1,9 +1,14 @@
-CUDA_VISIBLE_DEVICES=0 python softgym/collect.py \
+#!/bin/bash
+for ((i=0;i<=6;i++))
+do
+  CUDA_VISIBLE_DEVICES=$i python softgym/collect.py \
   --env_name ClothFlatten \
-  --path ./data/cloth-flatten-tryseven \
-  --process_num 3 \
-  --data_num 2500 \
+  --path ./data/cloth-flatten-tryseven-step2 \
+  --process_num 2 \
+  --data_num 500 \
   --data_type 10 \
-  --curr_data 0 \
-  --step 1 \
-  --headless 1
+  --curr_data $(($i * 1000)) \
+  --step 2 \
+  --headless 1 &\
+  echo "running $i"
+done

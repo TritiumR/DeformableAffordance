@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--task', type=str, default='cloth-flatten')
     parser.add_argument('--agent', default='aff_critic')
+    parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--validate', default=0, type=int)
     parser.add_argument('--num_iters', type=int, default=1, help='How many iterations do you need for training')
@@ -34,6 +35,7 @@ def main():
     parser.add_argument('--suffix', default='')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
+    parser.add_argument('--load_next_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--max_load',       default=-1, type=int)
     parser.add_argument('--batch',          default=1, type=int)
@@ -59,9 +61,11 @@ def main():
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
+                                     load_next_dir=args.load_next_dir,
                                      out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
-                                     without_global=args.without_global
+                                     without_global=args.without_global,
+                                     step=args.step
                                      )
 
     # Limit random data sampling to fixed set.

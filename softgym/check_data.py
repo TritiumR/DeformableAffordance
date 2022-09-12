@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # Parse command line arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument('--path',            default='./data/')
-    parser.add_argument('--save_path',       default='./visual/')
+    parser.add_argument('--save_path',       default='./')
     parser.add_argument('--iepisode',        default=0, type=int)
     parser.add_argument('--step',             default=1, type=int)
     parser.add_argument('--render_demo',     action='store_true')
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     if args.render_demo:
         next_obs = []
         crump_obs = data['obs'][:, :, :-1]
-        curr_obs = data['curr']
+        curr_obs = data['curr_obs']
         for curr_img in curr_obs:
             next_img = curr_img[:, :, :-1]
             next_obs.append(next_img.copy())
