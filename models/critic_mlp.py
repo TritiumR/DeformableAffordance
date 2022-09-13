@@ -58,6 +58,8 @@ class Critic_MLP:
         input_shape = np.array(input_shape)
         input_shape = tuple(input_shape)
 
+        # strategy = tf.distribute.MirroredStrategy()
+        # with strategy.scope():
         # 2 fully convolutional ResNets [43 layers and stride 8]
         if self.unet:
             in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
@@ -84,7 +86,6 @@ class Critic_MLP:
 
         self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self.metric = tf.keras.metrics.Mean(name='transport_loss')
-        self.validate_metric = tf.keras.metrics.Mean(name='validate_loss')
 
     def forward(self, in_img, p0):
         """Forward pass.

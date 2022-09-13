@@ -145,9 +145,9 @@ class AffCritic:
 
             for bh in range(batch):
                 if self.step > 1:
-                    obs, curr_obs, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                    obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
                 else:
-                    obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=Flase)
+                    obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
 
                 step_batch.append(step)
 

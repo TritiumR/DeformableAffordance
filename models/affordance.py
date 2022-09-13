@@ -27,7 +27,8 @@ class Affordance:
 
         # Initialize fully convolutional Residual Network with 43 layers and
         # 8-stride (3 2x2 max pools and 3 2x bilinear upsampling)
-
+        # strategy = tf.distribute.MirroredStrategy()
+        # with strategy.scope():
         if self.unet:
             in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
             self.conv_seq = tf.keras.Sequential([

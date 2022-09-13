@@ -56,6 +56,13 @@ def main():
     # Initialize agent and limit random dataset sampling to fixed set.
     tf.random.set_seed(0)
 
+    # Limit random data sampling to fixed set.
+    num_demos = int(args.num_demos)
+
+    # Given `num_demos`, only sample up to that point, and not w/replacement.
+    train_episodes = np.random.choice(range(num_demos - args.validate), num_demos, False)
+    dataset.set(train_episodes)
+
     agent = agents.names[args.agent](name,
                                      args.task,
                                      use_goal_image=args.use_goal_image,
@@ -67,13 +74,6 @@ def main():
                                      without_global=args.without_global,
                                      step=args.step
                                      )
-
-    # Limit random data sampling to fixed set.
-    num_demos = int(args.num_demos)
-
-    # Given `num_demos`, only sample up to that point, and not w/replacement.
-    train_episodes = np.random.choice(range(num_demos - args.validate), num_demos, False)
-    dataset.set(train_episodes)
 
     while agent.total_iter < args.num_iters:
         if args.model == 'critic':

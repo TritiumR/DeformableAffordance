@@ -4,7 +4,7 @@ CUDA_VISIBLE_DEVICES=0 python ./softgym/test.py \
   --agent aff_critic \
   --num_demos 7500 \
   --out_logits 1 \
-  --exp_name 0910-01-tryseven-aff_critic \
+  --exp_name 0913-01-tryseven-aff_critic-to-adjust \
   --suffix tryseven \
   --process_num 1 \
   --num_test 20 \

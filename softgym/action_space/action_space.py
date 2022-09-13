@@ -146,6 +146,7 @@ class Picker(ActionToolBase):
                     idx_dists = idx_dists[mask, :].reshape((-1, 2))
                     if idx_dists.shape[0] > 0:
                         pick_id, pick_dist = None, None
+                        # print("num_pick: ", idx_dists.shape[0])
                         for j in range(idx_dists.shape[0]):
                             if idx_dists[j, 0] not in self.picked_particles and (pick_id is None or idx_dists[j, 1] < pick_dist):
                                 pick_id = idx_dists[j, 0]
@@ -429,4 +430,9 @@ class PickAndPlace(PickerQPG):
         else:
             raise NotImplementedError
         return self.total_steps
+
+    def hide(self):
+        hide_place = np.array([0., 1.1, 0., 0])
+        PickerPickPlace.step(self, hide_place)
+
 

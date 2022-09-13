@@ -6,7 +6,7 @@ do
   --path ./data/cloth-flatten-tryseven-step2 \
   --process_num 2 \
   --data_num 500 \
-  --data_type 10 \
+  --data_type 5 \
   --curr_data $(($i * 1000)) \
   --step 2 \
   --headless 1 &\

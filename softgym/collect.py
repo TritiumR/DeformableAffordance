@@ -25,7 +25,7 @@ def dump(path, data, process, curr_num, data_id, data_num, step):
 def run_jobs(process_id, args, env_kwargs):
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
     env.reset()
-    env.start_record()
+    # env.start_record()
     data_id = 0
 
     while (data_id < args.data_num):
@@ -34,7 +34,7 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            env.set_state(env.goal_state[0])
+            env.set_state(env.goal_state[4])
             full_distance = env.compute_reward()
         pyflex.step()
 
@@ -46,33 +46,59 @@ def run_jobs(process_id, args, env_kwargs):
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
             # print(np.min(prev_depth), np.max(prev_depth))
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            # depth_mask = np.where(prev_depth > 0.8, 0.0, 1.)
-            # print(depth_mask.shape)
-            # show_obs(depth_mask)
+            mask = np.where(prev_depth > 0.8, 0.0, 255.)
+            # print(mask.shape)
+            # cv2.imwrite(f'./visual/test-mask.jpg', mask)
 
             # crumple the cloth by grabbing corner
-            if step_i == 1 and args.env_name == 'ClothFlatten':
-                mask = prev_obs[10:, :, 0]
-                indexs = np.transpose(np.where(mask == 255))
-                corner_id = random.randint(0, 3)
-                # print(corner_id)
-                top, left = indexs.min(axis=0)
-                bottom, right = indexs.max(axis=0)
+            if args.env_name == 'ClothFlatten':
+                if step_i == 1:
+                    mask = prev_obs[10:, :, 0]
+                    indexs = np.transpose(np.where(mask == 255))
+                    corner_id = random.randint(0, 3)
+                    # print(corner_id)
+                    top, left = indexs.min(axis=0)
+                    bottom, right = indexs.max(axis=0)
 
-                corners = [[top + 10, left],
-                           [top + 10, right],
-                           [bottom + 10, right],
-                           [bottom + 10, left]]
-                u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
-                v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
-            else:
-                indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
-                index = random.choice(indexs)
-                u1 = (index[1]) * 2.0 / env.camera_height - 1
-                v1 = (index[0]) * 2.0 / env.camera_height - 1
-            action = env.action_space.sample()
-            action[0] = u1
-            action[1] = v1
+                    corners = [[top + 10, left],
+                               [top + 10, right],
+                               [bottom + 10, right],
+                               [bottom + 10, left]]
+                    u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+                    v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+                else:
+                    indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
+                    index = random.choice(indexs)
+                    u1 = (index[1]) * 2.0 / env.camera_height - 1
+                    v1 = (index[0]) * 2.0 / env.camera_height - 1
+
+                action = env.action_space.sample()
+                action[0] = u1
+                action[1] = v1
+
+            elif args.env_name == 'RopeConfiguration':
+                if step_i == 1:
+                    indexs = np.transpose(np.nonzero(mask[:, :, 0]))
+                    corner_id = random.randint(0, 3)
+                    # print(corner_id)
+                    top, left = indexs.min(axis=0)
+                    bottom, right = indexs.max(axis=0)
+
+                    corners = [[top, left],
+                               [top, right],
+                               [bottom, right],
+                               [bottom, left]]
+                    u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+                    v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+                else:
+                    indexs = np.transpose(np.nonzero(mask[:, :, 0]))
+                    index = random.choice(indexs)
+                    u1 = (index[1]) * 2.0 / env.camera_height - 1
+                    v1 = (index[0]) * 2.0 / env.camera_height - 1
+
+                u2 = random.uniform(-0.5, 0.5)
+                v2 = random.uniform(-0.5, 0.5)
+                action = np.array([u1, v1, u2, v2])
 
             _, _, _, info = env.step(action, record_continuous_video=args.render, img_size=args.img_size)
 
@@ -83,10 +109,14 @@ def run_jobs(process_id, args, env_kwargs):
         elif args.env_name == 'RopeConfiguration':
             crump_distance = env.compute_reward()
 
+        env.action_tool.hide()
+        # super(super(env.action_tool)).step([0., 1., 0., 0])
+
         if args.env_name == 'ClothFlatten':
             crump_obs, crump_depth = pyflex.render_cloth()
         elif args.env_name == 'RopeConfiguration':
             crump_obs, crump_depth = pyflex.render()
+
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
         # show_obs(crump_obs)
         crump_depth[crump_depth > 5] = 0
@@ -130,9 +160,11 @@ def run_jobs(process_id, args, env_kwargs):
             # take reverse action
             if id == 0:
                 reverse_action = np.array([action[2], action[3], action[0], action[1]])
-                print("reverse_action", reverse_action)
+                # print("reverse_action", reverse_action)
                 action_data.append(reverse_action.copy())
                 _, _, _, info = env.step(reverse_action, record_continuous_video=args.render, img_size=args.img_size)
+                env.action_tool.hide()
+
                 if args.env_name == 'ClothFlatten':
                     curr_obs, curr_depth = pyflex.render_cloth()
                     recovered_area = env._get_current_covered_area(pyflex.get_positions())
@@ -148,13 +180,13 @@ def run_jobs(process_id, args, env_kwargs):
                 else:
                     not_on_cloth_data.append(0)
 
-                curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
-                curr_depth[curr_depth > 5] = 0
-                curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-                curr_obs = np.concatenate([curr_obs, curr_depth], 2)
-                curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
-                curr_data.append(curr_obs.copy())
-
+                if args.step > 1:
+                    curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
+                    curr_depth[curr_depth > 5] = 0
+                    curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+                    curr_obs = np.concatenate([curr_obs, curr_depth], 2)
+                    curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
+                    curr_data.append(curr_obs.copy())
 
             # take random action
             else:
@@ -163,6 +195,8 @@ def run_jobs(process_id, args, env_kwargs):
                 random_action[1] = reverse_action[1]
                 action_data.append(random_action.copy())
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
+                env.action_tool.hide()
+
                 if args.env_name == 'ClothFlatten':
                     curr_obs, curr_depth = pyflex.render_cloth()
                     recovered_area = env._get_current_covered_area(pyflex.get_positions())
@@ -173,12 +207,13 @@ def run_jobs(process_id, args, env_kwargs):
                     recovered_distance = env.compute_reward()
                     metric_data.append([crump_distance, recovered_distance])
 
-                curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
-                curr_depth[curr_depth > 5] = 0
-                curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-                curr_obs = np.concatenate([curr_obs, curr_depth], 2)
-                curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
-                curr_data.append(curr_obs.copy())
+                if args.step > 1:
+                    curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
+                    curr_depth[curr_depth > 5] = 0
+                    curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+                    curr_obs = np.concatenate([curr_obs, curr_depth], 2)
+                    curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
+                    curr_data.append(curr_obs.copy())
 
             # curr_obs, curr_depth = pyflex.render_cloth()
             # curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
@@ -208,7 +243,7 @@ def run_jobs(process_id, args, env_kwargs):
             else:
                 if_save = max_recover - 0.1 >= crump_percent or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
-            if_save = max_recover >= -0.1 and max_recover - 0.1 >= crump_distance
+            if_save = max_recover >= -0.06 and max_recover - 0.02 >= crump_distance or another_pick == 0
 
         if if_save:
             data = {}
