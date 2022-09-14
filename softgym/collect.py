@@ -34,7 +34,7 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            env.set_state(env.goal_state[4])
+            env.set_state(env.goal_state[0])
             full_distance = env.compute_reward()
         pyflex.step()
 

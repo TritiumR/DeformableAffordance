@@ -25,14 +25,17 @@ def main():
     parser.add_argument('--agent', default='aff_critic')
     parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
+    parser.add_argument('--extra_num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--validate', default=0, type=int)
     parser.add_argument('--num_iters', type=int, default=1, help='How many iterations do you need for training')
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--learning_rate',  default=1e-4, type=float)
     parser.add_argument('--out_logits',     default=1, type=int)
     parser.add_argument('--demo_times', default=1, type=int)
+    parser.add_argument('--extra_demo_times', default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
     parser.add_argument('--suffix', default='')
+    parser.add_argument('--extra_suffix', default='')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
     parser.add_argument('--load_next_dir', default='xxx')
@@ -40,6 +43,7 @@ def main():
     parser.add_argument('--max_load',       default=-1, type=int)
     parser.add_argument('--batch',          default=1, type=int)
     parser.add_argument('--model', default='critic', type=str)
+    parser.add_argument('--multi_gpu', action='store_true')
     args = parser.parse_args()
 
     dataset = Dataset(os.path.join('data', f"{args.task}-{args.suffix}"), max_load=args.max_load,
@@ -63,6 +67,23 @@ def main():
     train_episodes = np.random.choice(range(num_demos - args.validate), num_demos, False)
     dataset.set(train_episodes)
 
+    if args.step > 1:
+        extra_dataset = Dataset(os.path.join('data', f"{args.task}-{args.extra_suffix}"), max_load=args.max_load,
+                                demo_times=args.extra_demo_times)
+        # Limit random data sampling to fixed set.
+        extra_num_demos = int(args.extra_num_demos)
+
+        # Given `num_demos`, only sample up to that point, and not w/replacement.
+        extra_train_episodes = np.random.choice(range(extra_num_demos - args.validate), extra_num_demos, False)
+        extra_dataset.set(extra_train_episodes)
+    else:
+        extra_dataset = None
+
+    if args.multi_gpu:
+        strategy = tf.distribute.MirroredStrategy()
+    else:
+        strategy = None
+
     agent = agents.names[args.agent](name,
                                      args.task,
                                      use_goal_image=args.use_goal_image,
@@ -72,14 +93,18 @@ def main():
                                      out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,
-                                     step=args.step
+                                     step=args.step,
+                                     strategy=strategy
                                      )
 
     while agent.total_iter < args.num_iters:
         if args.model == 'critic':
             # Train critic.
             tf.keras.backend.set_learning_phase(1)
-            agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
+            if args.multi_gpu:
+                agent.train_critic_multi_gpu(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
+            else:
+                agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch, extra_dataset=extra_dataset)
             tf.keras.backend.set_learning_phase(0)
         if args.model == 'aff':
             # Train aff.

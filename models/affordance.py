@@ -18,7 +18,7 @@ class Affordance:
     so the label is just sized at (320,160,1).
     """
 
-    def __init__(self, input_shape, preprocess, unet=1, out_logits=1, learning_rate=1e-4):
+    def __init__(self, input_shape, preprocess, unet=1, out_logits=1, learning_rate=1e-4, strategy=None):
         self.preprocess = preprocess
         self.out_logits = out_logits
 
@@ -28,20 +28,35 @@ class Affordance:
         # Initialize fully convolutional Residual Network with 43 layers and
         # 8-stride (3 2x2 max pools and 3 2x bilinear upsampling)
         # strategy = tf.distribute.MirroredStrategy()
-        # with strategy.scope():
-        if self.unet:
-            in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
-            self.conv_seq = tf.keras.Sequential([
-                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                       input_shape=(320, 320, 256 + 512)),
-                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256)),
-            ])
-            self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
-        else:
-            d_in, d_out = ResNet43_8s(input_shape, 1)
-            self.model = tf.keras.models.Model(inputs=[d_in], outputs=[d_out])
+        if strategy is not None:
+            with strategy.scope():
+                if self.unet:
+                    in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
+                    self.conv_seq = tf.keras.Sequential([
+                        tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                               input_shape=(320, 320, 256 + 512)),
+                        tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256)),
+                    ])
+                    self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
+                else:
+                    d_in, d_out = ResNet43_8s(input_shape, 1)
+                    self.model = tf.keras.models.Model(inputs=[d_in], outputs=[d_out])
 
-        self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+                self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        else:
+            if self.unet:
+                in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
+                self.conv_seq = tf.keras.Sequential([
+                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                           input_shape=(320, 320, 256 + 512)),
+                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256)),
+                ])
+                self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
+            else:
+                d_in, d_out = ResNet43_8s(input_shape, 1)
+                self.model = tf.keras.models.Model(inputs=[d_in], outputs=[d_out])
+
+            self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self.metric = tf.keras.metrics.Mean(name='attention_loss')
 
     def forward(self, in_img, apply_softmax=True):

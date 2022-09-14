@@ -3,11 +3,12 @@ CUDA_VISIBLE_DEVICES=1 python ./softgym/train.py \
   --task cloth-flatten \
   --agent aff_critic \
   --num_demos 7000 \
+  --extra_num_demos 6000 \
   --num_iters 300000 \
   --out_logits 1 \
   --step 2 \
   --demo_times 10 \
-  --exp_name 0913-01-tryseven-step2-many_model-no_mix \
+  --exp_name 0913-01-tryseven-step2-many_model-mix_1:1 \
   --suffix tryseven-step2 \
   --max_load 3000 \
   --batch 3 \
