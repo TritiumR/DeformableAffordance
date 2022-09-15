@@ -386,13 +386,12 @@ class Critic_MLP:
                 for idx in range(len_q):
                     # ipdb.set_trace()
                     if loss is None:
-                        loss = tf.keras.losses.MAE(reward[idx], QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :])
+                        loss = tf.keras.losses.MAE(reward[idx], QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
                     else:
                         loss = loss + tf.keras.losses.MAE(reward[idx],
-                                                          QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :])
+                                                          QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
                     # print(QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1]])
                     # print("reward:", reward[idx])
-            loss = loss / len_q
             loss = tf.reduce_mean(loss)
             grad = tape.gradient(loss, self.model.trainable_variables)
             self.optim.apply_gradients(zip(grad, self.model.trainable_variables))

@@ -146,10 +146,13 @@ class AffCritic:
             for bh in range(batch):
                 curr_obs = None
                 if self.step > 1:
-                    if bh % 2 == 0:
-                        obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                    if extra_dataset is not None:
+                        if bh % 2 == 0:
+                            obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                        else:
+                            obs, act, metric, step, not_on_cloth = extra_dataset.sample_index(need_next=False)
                     else:
-                        obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
+                        obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
                 else:
                     obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
 

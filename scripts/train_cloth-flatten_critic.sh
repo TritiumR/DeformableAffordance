@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=1 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=2 python ./softgym/train.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
@@ -8,10 +8,14 @@ CUDA_VISIBLE_DEVICES=1 python ./softgym/train.py \
   --out_logits 1 \
   --step 2 \
   --demo_times 10 \
-  --exp_name 0913-01-tryseven-step2-many_model-mix_1:1 \
+  --extra_demo_times 5 \
+  --exp_name 0915-03-tryseven-step2-many_model-mix_1:1 \
   --suffix tryseven-step2 \
+  --extra_suffix tryseven-step1 \
   --max_load 3000 \
-  --batch 3 \
+  --batch 5 \
+  --learning_rate 5e-4 \
   --model critic \
-  --load_next_dir checkpoints/cloth-flatten-Aff_Critic-7500-0909-02-tryseven-aff-not_on_cloth_zero-step-1/attention-ckpt-300000.h5
+  --load_next_dir checkpoints/cloth-flatten-Aff_Critic-7500-0909-02-tryseven-aff-not_on_cloth_zero-step-1/attention-ckpt-300000.h5 \
+  --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-7500-0907-02-tryseven-not_on_cloth_zero-step-1/critic-ckpt-300000.h5
 
