@@ -33,7 +33,7 @@ class RopeConfigurationEnv(RopeFlattenEnv):
             else:
                 max_particles = 160
                 obs_dim = max_particles * 3
-                self.particle_obs_dim = obs_dim * 2 # include both current particle position and goal particle position
+                self.particle_obs_dim = obs_dim * 2  # include both current particle position and goal particle position
             if self.action_mode in ['picker']:
                 obs_dim += self.num_picker * 3
             else:
@@ -72,7 +72,7 @@ class RopeConfigurationEnv(RopeFlattenEnv):
         
         for idx, cached_config in enumerate(cached_configs):
             # goal_character = self.goal_characters[np.random.choice(len(self.goal_characters))]
-            goal_character = 'S'
+            goal_character = 'U'
             cached_config['goal_character'] = goal_character
             cached_config['goal_character_pos'] = self.goal_characters_position[goal_character]
             cached_config['goal_character_img'] = self.goal_characters_image[goal_character]
@@ -140,10 +140,10 @@ class RopeConfigurationEnv(RopeFlattenEnv):
             goal_c_pos =  self.goal_characters_position[c]
             self.set_scene(default_config)
             all_positions = pyflex.get_positions().reshape([-1, 4])
-            all_positions = goal_c_pos.copy() # ignore the first a few cloth particles
+            all_positions = goal_c_pos.copy()  # ignore the first a few cloth particles
             pyflex.set_positions(all_positions)
             self.goal_state.append(self.get_state())
-            self.update_camera('default_camera', default_config['camera_params']['default_camera']) # why we need to do this?
+            self.update_camera('default_camera', default_config['camera_params']['default_camera'])  # why we need to do this?
             self.action_tool.reset([0., -1., 0.]) # hide picker
             # goal_c_img = self.get_image(self.camera_height, self.camera_width)
 

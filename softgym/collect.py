@@ -34,7 +34,7 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            env.set_state(env.goal_state[0])
+            env.set_state(env.goal_state[4])
             full_distance = env.compute_reward()
         pyflex.step()
 
@@ -243,7 +243,7 @@ def run_jobs(process_id, args, env_kwargs):
             else:
                 if_save = max_recover - 0.1 >= crump_percent or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
-            if_save = max_recover >= -0.06 and max_recover - 0.02 >= crump_distance or another_pick == 0
+            if_save = max_recover >= -0.055 and max_recover - 0.01 >= crump_distance or another_pick == 0
 
         if if_save:
             data = {}

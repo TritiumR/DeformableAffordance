@@ -1,9 +1,9 @@
 #!/bin/bash
-for ((i=2;i<=7;i++))
+for ((i=3;i<=7;i++))
 do
   CUDA_VISIBLE_DEVICES=$i python softgym/collect.py \
   --env_name RopeConfiguration \
-  --path ./data/rope-configuration-tryone-step1-S \
+  --path ./data/rope-configuration-tryone-step1-U \
   --process_num 2 \
   --data_num 500 \
   --data_type 10 \

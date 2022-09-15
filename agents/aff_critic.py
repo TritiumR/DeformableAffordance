@@ -231,89 +231,95 @@ class AffCritic:
         self.save_critic()
 
     def train_critic_multi_gpu(self, dataset, num_iter, writer, batch=1):
-        for i in range(num_iter):
-            # for batch training
-            input_batch = []
-            p0_batch = []
-            p1_list_batch = []
-            step_batch = []
-            reward_batch = []
+        # for epoch training
+        input_batch = []
+        p0_batch = []
+        p1_list_batch = []
+        step_batch = []
+        reward_batch = []
 
-            flag = 0
+        flag = 0
+
+        for bh in range(2000):
             curr_obs = None
-
-            for bh in range(batch):
-                if self.step > 1:
+            if self.step > 1:
+                if extra_dataset is not None:
+                    if bh % 2 == 0:
+                        obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                    else:
+                        obs, act, metric, step, not_on_cloth = extra_dataset.sample_index(need_next=False)
+                else:
                     obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
-                else:
-                    obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
+            else:
+                obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
 
-                step_batch.append(step)
+            step_batch.append(step)
 
-                if self.use_goal_image:
-                    input_image = np.concatenate((obs, goal), axis=2)
-                else:
-                    input_image = obs.copy()
+            if self.use_goal_image:
+                input_image = np.concatenate((obs, goal), axis=2)
+            else:
+                input_image = obs.copy()
 
-                p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
-                p1_list = []
-                for point in act:
-                    p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
-                    p1_list.append(p1)
+            p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
+            p1_list = []
+            for point in act:
+                p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
+                p1_list.append(p1)
 
-                # pick_area = obs[max(0, p0[0] - 4): min(self.input_shape[0], p0[0] + 4),
-                #                 max(0, p0[1] - 4): min(self.input_shape[0], p0[1] + 4),
-                #                 :3]
-                # if np.sum(pick_area) == 0:
-                #     print('not on cloth')
-                #     m_len = len(metric)
-                #     reward = np.zeros(m_len)
-                # else:
-                #     reward = self.compute_reward(self.task, metric, self.step)
-                # reward_batch.append(reward.copy())
+            # pick_area = obs[max(0, p0[0] - 4): min(self.input_shape[0], p0[0] + 4),
+            #                 max(0, p0[1] - 4): min(self.input_shape[0], p0[1] + 4),
+            #                 :3]
+            # if np.sum(pick_area) == 0:
+            #     print('not on cloth')
+            #     m_len = len(metric)
+            #     reward = np.zeros(m_len)
+            # else:
+            #     reward = self.compute_reward(self.task, metric, self.step)
+            # reward_batch.append(reward.copy())
 
-                if not_on_cloth[0] == 1:
-                    print('not on cloth')
-                    m_len = len(metric)
-                    reward = np.zeros(m_len)
-                else:
-                    reward = self.compute_reward(self.task, metric, self.step, curr_obs)
-                reward_batch.append(reward.copy())
+            if not_on_cloth[0] == 1:
+                print('not on cloth')
+                m_len = len(metric)
+                reward = np.zeros(m_len)
+            else:
+                reward = self.compute_reward(self.task, metric, self.step, curr_obs)
+            reward_batch.append(reward.copy())
 
-                # Do data augmentation (perturb rotation and translation).
-                pixels_list = [p0]
-                pixels_list.extend(p1_list)
-                input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
-                if input_image_perturb is None:
-                    flag = 1
-                    input_image = self.preprocess(input_image)
-                    input_batch.append(input_image.copy())
-                else:
-                    p0 = pixels[0]
-                    p1_list = pixels[1:]
-                    input_image_perturb = self.preprocess(input_image_perturb)
-                    input_batch.append(input_image_perturb.copy())
+            # Do data augmentation (perturb rotation and translation).
+            pixels_list = [p0]
+            pixels_list.extend(p1_list)
+            input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
+            if input_image_perturb is None:
+                flag = 1
+                input_image = self.preprocess(input_image)
+                input_batch.append(input_image.copy())
+            else:
+                p0 = pixels[0]
+                p1_list = pixels[1:]
+                input_image_perturb = self.preprocess(input_image_perturb)
+                input_batch.append(input_image_perturb.copy())
 
-                p0_batch.append(p0)
-                p1_list_batch.append(p1_list.copy())
+            p0_batch.append(p0)
+            p1_list_batch.append(p1_list.copy())
 
-            if flag == 1:
-                print("no perturb")
+        if flag == 1:
+            print("no perturb")
 
-            with self.strategy.scope():
-                BUFFER_SIZE = len(input_batch)
-                # input_batch = tf.convert_to_tensor(input_batch, dtype=tf.float32)
-                # p0_batch = tf.convert_to_tensor(p0_batch, dtype=tf.float32)
-                # reward_batch = tf.convert_to_tensor(reward_batch, dtype=tf.float32)
-                # p1_list_batch = tf.convert_to_tensor(p1_list_batch, dtype=tf.float32)
-                # step_batch = tf.convert_to_tensor(step_batch, dtype=tf.float32)
+        with self.strategy.scope():
+            BUFFER_SIZE = len(input_batch)
+            # input_batch = tf.convert_to_tensor(input_batch, dtype=tf.float32)
+            # p0_batch = tf.convert_to_tensor(p0_batch, dtype=tf.float32)
+            # reward_batch = tf.convert_to_tensor(reward_batch, dtype=tf.float32)
+            # p1_list_batch = tf.convert_to_tensor(p1_list_batch, dtype=tf.float32)
+            # step_batch = tf.convert_to_tensor(step_batch, dtype=tf.float32)
 
-                train_dataset = tf.data.Dataset.from_tensor_slices((input_batch, p0_batch,
-                                                                    p1_list_batch, reward_batch,
-                                                                    step_batch)).shuffle(BUFFER_SIZE).batch(batch)
+            train_dataset = tf.data.Dataset.from_tensor_slices((input_batch, p0_batch,
+                                                                p1_list_batch, reward_batch,
+                                                                step_batch)).shuffle(BUFFER_SIZE).batch(batch)
 
-                train_dist_dataset = self.strategy.experimental_distribute_dataset(train_dataset)
+            train_dist_dataset = self.strategy.experimental_distribute_dataset(train_dataset)
 
+            for i in range(num_iter):
                 # Compute Transport training loss.
                 if self.out_logits == 1:
                     for dist_input in train_dist_dataset:

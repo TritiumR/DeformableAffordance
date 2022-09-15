@@ -39,6 +39,8 @@ class Dataset:
                         self.episode_id += [self.num_episodes] * num_samples
 
         self._cache = dict()
+        # print("num_episodes", self.num_episodes)
+        # print("episode_id", self.episode_id[0], self.episode_id[1], self.episode_id[2], self.episode_id[3], self.episode_id[4])
 
     @property
     def num_episodes(self):
