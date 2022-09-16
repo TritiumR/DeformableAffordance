@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--batch',          default=1, type=int)
     parser.add_argument('--model', default='critic', type=str)
     parser.add_argument('--multi_gpu', action='store_true')
+    parser.add_argument('--no_perturb', action='store_true')
     args = parser.parse_args()
 
     dataset = Dataset(os.path.join('data', f"{args.task}-{args.suffix}"), max_load=args.max_load,
@@ -67,7 +68,7 @@ def main():
     train_episodes = np.random.choice(range(num_demos - args.validate), num_demos, False)
     dataset.set(train_episodes)
 
-    if args.step > 1:
+    if args.extra_suffix != '':
         extra_dataset = Dataset(os.path.join('data', f"{args.task}-{args.extra_suffix}"), max_load=args.max_load,
                                 demo_times=args.extra_demo_times)
         # Limit random data sampling to fixed set.
@@ -104,7 +105,7 @@ def main():
             if args.multi_gpu:
                 agent.train_critic_multi_gpu(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
             else:
-                agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch, extra_dataset=extra_dataset)
+                agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb)
             tf.keras.backend.set_learning_phase(0)
         if args.model == 'aff':
             # Train aff.

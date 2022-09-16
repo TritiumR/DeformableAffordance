@@ -1,0 +1,14 @@
+CUDA_VISIBLE_DEVICES=4 python ./softgym/test.py \
+  --env_name RopeConfiguration \
+  --task rope-configuration \
+  --agent aff_critic \
+  --num_demos 6000 \
+  --out_logits 1 \
+  --exp_name 0916-06-S-tryone-aff_critic-expert-softmax \
+  --suffix tryone \
+  --process_num 1 \
+  --num_test 20 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-6000-0915-02-tryone-step1-S-step-1/critic-ckpt-285000.h5 \
+  --expert_pick \
+  --save_video_dir './test_video/' \
+  --headless 1

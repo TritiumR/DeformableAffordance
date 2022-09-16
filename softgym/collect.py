@@ -34,8 +34,8 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            env.set_state(env.goal_state[4])
-            full_distance = env.compute_reward()
+            env.set_state(env.goal_state[0])
+            full_distance = -env.compute_reward()
         pyflex.step()
 
         for step_i in range(args.step):
@@ -107,7 +107,7 @@ def run_jobs(process_id, args, env_kwargs):
             crump_percent = crump_area / full_covered_area
             # print("percent: ", crump_percent)
         elif args.env_name == 'RopeConfiguration':
-            crump_distance = env.compute_reward()
+            crump_distance = -env.compute_reward()
 
         env.action_tool.hide()
         # super(super(env.action_tool)).step([0., 1., 0., 0])
@@ -130,7 +130,10 @@ def run_jobs(process_id, args, env_kwargs):
         metric_data = []
         curr_data = []
         not_on_cloth_data = []
-        max_recover = float('-inf')
+        if args.env_name == 'ClothFlatten':
+            max_recover = float('-inf')
+        elif args.env_name == 'RopeConfiguration':
+            min_distance = float('inf')
 
         another_pick = random.randint(0, 40)
         if another_pick == 0:
@@ -172,7 +175,7 @@ def run_jobs(process_id, args, env_kwargs):
                     metric_data.append([crump_percent, recovered_percent])
                 elif args.env_name == 'RopeConfiguration':
                     curr_obs, curr_depth = pyflex.render()
-                    recovered_distance = env.compute_reward()
+                    recovered_distance = -env.compute_reward()
                     metric_data.append([crump_distance, recovered_distance])
                 if env.action_tool.not_on_cloth:
                     not_on_cloth_data.append(1)
@@ -204,7 +207,7 @@ def run_jobs(process_id, args, env_kwargs):
                     metric_data.append([crump_percent, recovered_percent])
                 elif args.env_name == 'RopeConfiguration':
                     curr_obs, curr_depth = pyflex.render()
-                    recovered_distance = env.compute_reward()
+                    recovered_distance = -env.compute_reward()
                     metric_data.append([crump_distance, recovered_distance])
 
                 if args.step > 1:
@@ -229,13 +232,13 @@ def run_jobs(process_id, args, env_kwargs):
                 if recovered_percent > max_recover:
                     max_recover = recovered_percent
             elif args.env_name == 'RopeConfiguration':
-                if recovered_distance > max_recover:
-                    max_recover = recovered_distance
+                if recovered_distance < min_distance:
+                    min_distance = recovered_distance
 
         if args.env_name == 'ClothFlatten':
             print("metric: ", max_recover, crump_percent)
         elif args.env_name == 'RopeConfiguration':
-            print("metric: ", max_recover, crump_distance)
+            print("metric: ", min_distance, crump_distance)
 
         if args.env_name == 'ClothFlatten':
             if args.step == 1:
@@ -243,7 +246,7 @@ def run_jobs(process_id, args, env_kwargs):
             else:
                 if_save = max_recover - 0.1 >= crump_percent or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
-            if_save = max_recover >= -0.055 and max_recover - 0.01 >= crump_distance or another_pick == 0
+            if_save = (min_distance <= 0.055 and crump_distance - 0.01 >= min_distance) or another_pick == 0
 
         if if_save:
             data = {}

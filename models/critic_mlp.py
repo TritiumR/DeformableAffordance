@@ -217,6 +217,7 @@ class Critic_MLP:
 
         return output
 
+    @tf.function
     def forward_batch_multi_gpu(self, in_img_batch, p0_batch):
         """Forward pass with batch.
 
@@ -433,8 +434,7 @@ class Critic_MLP:
 
         # print("loss111: ", loss.eval())
         self.metric(loss)
-        print("self.metric: ", self.metric.result())
-        return np.array(self.metric.result())
+        return loss
 
     # def train_phy_batch(self, in_img_batch, p0_batch, p1_list_batch, distances_batch, nxt_distances_batch, cvx_batch, nxt_cvx_batch, ep_batch, ep_len_batch, is_validate=False, task='cable-ring'):
     #     if is_validate:

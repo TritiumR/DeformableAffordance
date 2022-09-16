@@ -83,31 +83,49 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
             p0 = (i * 20, j * 20)
             action = agent.act(obs.copy(), p0=p0)
             _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
-            gt_area = env._get_current_covered_area(pyflex.get_positions())
-            gt_percent = gt_area / full_covered_area
-            gt_aff[i][j] = gt_percent
+            if args.env_name == 'ClothFlatten':
+                gt_area = env._get_current_covered_area(pyflex.get_positions())
+                gt_percent = gt_area / full_covered_area
+                gt_aff[i][j] = gt_percent
+            elif args.env_name == 'RopeConfiguration':
+                gt_distance = env.compute_reward()
+                gt_aff[i][j] = gt_distance
             output = agent.critic_model.forward(obs.copy(), p0)
             critic_score = output[:, :, :, 0]
             vis_aff[i][j] = np.max(critic_score)
 
-    score = int(np.max(vis_aff) * 2)
-    gt_score = int(np.max(gt_aff) * 100)
-
     vis_aff = cv2.resize(vis_aff, (320, 320))
     gt_aff = cv2.resize(gt_aff, (320, 320))
 
-    vis_aff = vis_aff - np.min(vis_aff)
-    vis_aff = 255 * vis_aff / np.max(vis_aff)
-    vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
+    if args.env_name == 'ClothFlatten':
+        score = int(np.max(vis_aff) * 2)
+        gt_score = int(np.max(gt_aff) * 100)
 
-    gt_aff = gt_aff - np.min(gt_aff)
-    gt_aff = 255 * gt_aff / np.max(gt_aff)
+        vis_aff = vis_aff - np.min(vis_aff)
+        vis_aff = 255 * vis_aff / np.max(vis_aff)
+
+        gt_aff = gt_aff - np.min(gt_aff)
+        gt_aff = 255 * gt_aff / np.max(gt_aff)
+    elif args.env_name == 'RopeConfiguration':
+        score = int(np.max(vis_aff) * 2)
+        gt_score = int(np.max(gt_aff) * 100)
+
+        vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
+        vis_aff = vis_aff - np.min(vis_aff)
+        vis_aff = 255 * vis_aff / np.max(vis_aff)
+
+        gt_aff = np.exp(gt_aff) / np.sum(np.exp(gt_aff))
+        gt_aff = gt_aff - np.min(gt_aff)
+        gt_aff = 255 * gt_aff / np.max(gt_aff)
+
+
+    vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
     gt_aff = cv2.applyColorMap(np.uint8(gt_aff), cv2.COLORMAP_JET)
 
     vis_img = np.concatenate((cv2.cvtColor(obs, cv2.COLOR_BGR2RGB), gt_aff, vis_aff), axis=1)
 
-    cv2.imwrite(f'./visual/9_9-7500-aff_max-{gt_score}-{score}.jpg', vis_img)
-    print("save to" + f'./visual/9_9-7500-aff_max-{gt_score}-{score}.jpg')
+    cv2.imwrite(f'./visual/{args.exp_name}-aff_max-{gt_score}-{score}.jpg', vis_img)
+    print("save to" + f'./visual/{args.exp_name}-aff_max-{gt_score}-{score}.jpg')
 
 
 def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
@@ -118,17 +136,6 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
         for v in range(max(0, p0_pixel[1] - 2), min(320, p0_pixel[1] + 2)):
             obs_img[u][v] = (255, 0, 0)
 
-    output = agent.critic_model.forward(obs.copy(), p0_pixel)
-    critic_score = output[:, :, :, 0]
-    argmax = np.argmax(critic_score)
-    argmax = np.unravel_index(argmax, shape=critic_score.shape)
-    p1_pixel = argmax[1:3]
-
-    vis_critic = np.float32(critic_score[0])
-    vis_critic = vis_critic - np.min(vis_critic)
-    vis_critic = 255 * vis_critic / np.max(vis_critic)
-    vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
-
     gt_img = np.zeros((16, 16))
     for i in range(16):
         for j in range(16):
@@ -136,15 +143,44 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
             p1 = ((i - 8) / 8, (j - 8) / 8)
             action = np.array([p0[0], p0[1], p1[1], p1[0]])
             _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
-            gt_area = env._get_current_covered_area(pyflex.get_positions())
-            gt_percent = gt_area / full_covered_area
-            gt_img[i][j] = gt_percent
+            if args.env_name == 'ClothFlatten':
+                gt_area = env._get_current_covered_area(pyflex.get_positions())
+                gt_percent = gt_area / full_covered_area
+                gt_img[i][j] = gt_percent
+            elif args.env_name == 'RopeConfiguration':
+                gt_distance = env.compute_reward()
+                gt_img[i][j] = gt_distance * 100
 
     gt_img = cv2.resize(gt_img, (320, 320))
 
-    vis_gt = gt_img - np.min(gt_img)
-    vis_gt = 255 * vis_gt / np.max(vis_gt)
-    vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
+    output = agent.critic_model.forward(obs.copy(), p0_pixel)
+    critic_score = output[:, :, :, 0]
+    argmax = np.argmax(critic_score)
+    argmax = np.unravel_index(argmax, shape=critic_score.shape)
+    p1_pixel = argmax[1:3]
+
+    vis_critic = np.float32(critic_score[0])
+
+    if args.env_name == 'ClothFlatten':
+        vis_critic = vis_critic - np.min(vis_critic)
+        vis_critic = 255 * vis_critic / np.max(vis_critic)
+        vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
+
+        vis_gt = gt_img - np.min(gt_img)
+        vis_gt = 255 * vis_gt / np.max(vis_gt)
+        vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
+    elif args.env_name == 'RopeConfiguration':
+        vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
+        vis_critic = vis_critic - np.min(vis_critic)
+        vis_critic = 255 * vis_critic / np.max(vis_critic)
+        vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
+
+        vis_gt = np.exp(gt_img) / np.sum(np.exp(gt_img))
+        vis_gt = vis_gt - np.min(vis_gt)
+        vis_gt = 255 * vis_gt / np.max(vis_gt)
+        vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
+
+
 
     for u in range(max(0, p1_pixel[0] - 2), min(320, p1_pixel[0] + 2)):
         for v in range(max(0, p1_pixel[1] - 2), min(320, p1_pixel[1] + 2)):
@@ -152,8 +188,8 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
 
     vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/9_9-7500-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
-    print("save to" + f'./visual/9_9-7500-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
+    cv2.imwrite(f'./visual/{args.exp_name}-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
+    print("save to" + f'./visual/{args.exp_name}-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
 
 
 def run_jobs(process_id, args, env_kwargs):
@@ -179,42 +215,102 @@ def run_jobs(process_id, args, env_kwargs):
     env.reset()
 
     test_id = 0
-
+    full_covered_area = None
     while (test_id < args.num_test):
-        # from flat configuration
-        full_covered_area = env._set_to_flatten()
+        if args.env_name == 'ClothFlatten':
+            # from flat configuration
+            full_covered_area = env._set_to_flatten()
+        elif args.env_name == 'RopeConfiguration':
+            # from goal configuration
+            env.set_state(env.goal_state[0])
+            full_distance = env.compute_reward()
         pyflex.step()
 
-        prev_obs, _ = pyflex.render_cloth()
-        prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
+        for step_i in range(args.step):
+            if args.env_name == 'ClothFlatten':
+                prev_obs, prev_depth = pyflex.render_cloth()
+            elif args.env_name == 'RopeConfiguration':
+                prev_obs, prev_depth = pyflex.render()
+            prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
+            prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+            mask = np.where(prev_depth > 0.8, 0.0, 255.)
 
-        # crumple the cloth by grabbing corner
-        mask = prev_obs[10:, :, 0]
-        indexs = np.transpose(np.where(mask == 255))
-        corner_id = random.randint(0, 3)
-        # print(corner_id)
-        top, left = indexs.min(axis=0)
-        bottom, right = indexs.max(axis=0)
+            # crumple the cloth by grabbing corner
+            if args.env_name == 'ClothFlatten':
+                if step_i == 1:
+                    mask = prev_obs[10:, :, 0]
+                    indexs = np.transpose(np.where(mask == 255))
+                    corner_id = random.randint(0, 3)
+                    # print(corner_id)
+                    top, left = indexs.min(axis=0)
+                    bottom, right = indexs.max(axis=0)
 
-        corners = [[top + 30, left + 20],
-                   [top + 30, right - 20],
-                   [bottom + (-10), right - 20],
-                   [bottom + (-10), left + 20]]
-        u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
-        v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
-        action = env.action_space.sample()
-        action[0] = u1
-        action[1] = v1
+                    corners = [[top + 10, left],
+                               [top + 10, right],
+                               [bottom + 10, right],
+                               [bottom + 10, left]]
+                    u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+                    v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+                else:
+                    indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
+                    index = random.choice(indexs)
+                    u1 = (index[1]) * 2.0 / env.camera_height - 1
+                    v1 = (index[0]) * 2.0 / env.camera_height - 1
 
-        _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
-        crump_area = env._get_current_covered_area(pyflex.get_positions())
-        crump_percent = crump_area / full_covered_area
-        if crump_percent >= 0.8:
-            continue
+                action = env.action_space.sample()
+                action[0] = u1
+                action[1] = v1
+
+            elif args.env_name == 'RopeConfiguration':
+                if step_i == 1:
+                    indexs = np.transpose(np.nonzero(mask[:, :, 0]))
+                    corner_id = random.randint(0, 3)
+                    # print(corner_id)
+                    top, left = indexs.min(axis=0)
+                    bottom, right = indexs.max(axis=0)
+
+                    corners = [[top, left],
+                               [top, right],
+                               [bottom, right],
+                               [bottom, left]]
+                    u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
+                    v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+                else:
+                    indexs = np.transpose(np.nonzero(mask[:, :, 0]))
+                    index = random.choice(indexs)
+                    u1 = (index[1]) * 2.0 / env.camera_height - 1
+                    v1 = (index[0]) * 2.0 / env.camera_height - 1
+
+                u2 = random.uniform(-0.5, 0.5)
+                v2 = random.uniform(-0.5, 0.5)
+                action = np.array([u1, v1, u2, v2])
+
+            _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
+
+        if args.env_name == 'ClothFlatten':
+            crump_area = env._get_current_covered_area(pyflex.get_positions())
+            crump_percent = crump_area / full_covered_area
+            if crump_percent >= 0.8:
+                continue
+            print("crump percent: ", crump_percent)
+        elif args.env_name == 'RopeConfiguration':
+            crump_distance = env.compute_reward()
+            if crump_distance >= -0.06:
+                continue
+            print("crump distance: ", crump_distance)
+
+        env.action_tool.hide()
+        # super(super(env.action_tool)).step([0., 1., 0., 0])
+
         env.start_record()
-        print("crump percent: ", crump_percent)
-        crump_obs, crump_depth = pyflex.render_cloth()
+
+        if args.env_name == 'ClothFlatten':
+            crump_obs, crump_depth = pyflex.render_cloth()
+        elif args.env_name == 'RopeConfiguration':
+            crump_obs, crump_depth = pyflex.render()
+
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
+        # show_obs(crump_obs)
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
@@ -231,18 +327,52 @@ def run_jobs(process_id, args, env_kwargs):
             action = agent.act(crump_obs.copy())
 
         _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
-        covered_area = env._get_current_covered_area(pyflex.get_positions())
-        covered_percent = covered_area / full_covered_area
-        print("curr percent: ", covered_percent)
 
-        if covered_percent >= 0.75:
-            if covered_percent - crump_percent >= 0.05:
-                result = 'success'
-            else:
-                result = 'mid'
+        if args.env_name == 'ClothFlatten':
+            curr_area = env._get_current_covered_area(pyflex.get_positions())
+            curr_percent = curr_area / full_covered_area
+            print("curr percent: ", curr_percent)
+        elif args.env_name == 'RopeConfiguration':
+            curr_distance = env.compute_reward()
+            print("curr distance: ", curr_distance)
+
+        if args.step == 1:
+            if args.env_name == 'ClothFlatten':
+                if curr_percent >= 0.75:
+                    if curr_percent - crump_percent >= 0.05:
+                        result = 'success'
+                    else:
+                        result = 'mid'
+                else:
+                    result = 'fail'
+            elif args.env_name == 'RopeConfiguration':
+                if curr_distance >= -0.06:
+                    if curr_distance - crump_distance >= 0.01:
+                        result = 'success'
+                    else:
+                        result = 'mid'
+                else:
+                    result = 'fail'
+
         else:
-            result = 'fail'
+            if args.env_name == 'ClothFlatten':
+                if curr_percent >= 0.50:
+                    if curr_percent - crump_percent >= 0.05:
+                        result = 'success'
+                    else:
+                        result = 'mid'
+                else:
+                    result = 'fail'
+            elif args.env_name == 'RopeConfiguration':
+                if curr_distance >= -0.06:
+                    if curr_distance - crump_distance >= 0.01:
+                        result = 'success'
+                    else:
+                        result = 'mid'
+                else:
+                    result = 'fail'
 
+        env.action_tool.hide()
         if args.save_video_dir is not None:
             path_name = os.path.join(args.save_video_dir, name + args.exp_name)
             if not os.path.exists(path_name):
@@ -256,7 +386,7 @@ def run_jobs(process_id, args, env_kwargs):
 
         # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
         # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        visualize_aff_critic(crump_obs.copy(), agent)
+        # visualize_aff_critic(crump_obs.copy(), agent)
 
 
 def main():
@@ -268,6 +398,7 @@ def main():
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--task', type=str, default='cloth-flatten')
+    parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--agent', default='aff_critic')
     parser.add_argument('--num_test', type=int, default=1, help='How many test do you need for inferring')
     parser.add_argument('--process_num', type=int, default=1, help='How many process do you need')

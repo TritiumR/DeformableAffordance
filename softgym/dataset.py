@@ -121,8 +121,6 @@ class Dataset:
 
             data = cached_load(iepisode, i)
             obs = data['obs']
-            if need_next:
-                curr_obs = data['curr_obs']
 
             action.append(data['action'])
             metric.append(data['area'])

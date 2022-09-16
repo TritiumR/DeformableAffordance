@@ -50,22 +50,28 @@ class AffCritic:
         reward = []
 
         if curr_obs is None:
-            for i in range(0, m_len):
-                curr_percent = metric[i][1] * 50
-                reward.append(curr_percent)
+            if self.task == 'cloth-flatten':
+                for i in range(0, m_len):
+                    curr_percent = metric[i][1] * 50
+                    reward.append(curr_percent)
+            elif self.task == 'rope-configuration':
+                for i in range(0, m_len):
+                    curr_distance = metric[i][1] * 100
+                    reward.append(curr_distance)
+            # print('reward: ', reward)
         else:
             for i in range(0, m_len):
-                attention = self.next_model.forward(curr_obs[i].copy())
+                attention = self.attention_model.forward(curr_obs[i].copy())
 
-                # img_obs = obs[:, :, :3]
+                gt_state = np.max(attention) * 0.5
+
+                # img_obs = curr_obs[i][:, :, :3]
                 # vis_aff = attention[0] - np.min(attention[0])
                 # vis_aff = 255 * vis_aff / np.max(vis_aff)
                 # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
                 # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
-
-                gt_state = np.max(attention)
-
-                # cv2.imwrite(f'./test-{gt_state}.jpg', vis_img)
+                #
+                # cv2.imwrite(f'./visual/test-{gt_state}.jpg', vis_img)
 
                 # print('gt_state: ', gt_state)
                 curr_percent = metric[i][1] * 50
@@ -107,7 +113,7 @@ class AffCritic:
 
             p_len = len(p_list)
             aff_score = critic_map.max(axis=1).max(axis=1)
-            # print("aff_score: ", aff_score)
+            print("aff_score: ", aff_score)
 
             with tf.GradientTape() as tape:
                 loss = None
@@ -132,7 +138,7 @@ class AffCritic:
         self.total_iter += num_iter
         self.save_aff()
 
-    def train_critic(self, dataset, num_iter, writer, batch=1, extra_dataset=None):
+    def train_critic(self, dataset, num_iter, writer, batch=1, extra_dataset=None, no_perturb=False):
         for i in range(num_iter):
             # for batch training
             input_batch = []
@@ -188,22 +194,27 @@ class AffCritic:
                     reward = self.compute_reward(self.task, metric, self.step, curr_obs)
                 reward_batch.append(reward.copy())
 
-                # Do data augmentation (perturb rotation and translation).
-                pixels_list = [p0]
-                pixels_list.extend(p1_list)
-                input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
-                if input_image_perturb is None:
-                    flag = 1
+                if no_perturb:
                     input_batch.append(input_image.copy())
+                    p0_batch.append(p0)
+                    p1_list_batch.append(p1_list.copy())
                 else:
-                    p0 = pixels[0]
-                    p1_list = pixels[1:]
-                    input_batch.append(input_image_perturb.copy())
+                    # Do data augmentation (perturb rotation and translation).
+                    pixels_list = [p0]
+                    pixels_list.extend(p1_list)
+                    input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
+                    if input_image_perturb is None:
+                        flag = 1
+                        input_batch.append(input_image.copy())
+                    else:
+                        p0 = pixels[0]
+                        p1_list = pixels[1:]
+                        input_batch.append(input_image_perturb.copy())
 
-                p0_batch.append(p0)
-                p1_list_batch.append(p1_list.copy())
+                    p0_batch.append(p0)
+                    p1_list_batch.append(p1_list.copy())
 
-            if flag == 1:
+            if flag == 1 and not no_perturb:
                 print("no perturb")
 
             # Compute Transport training loss.
@@ -240,7 +251,7 @@ class AffCritic:
 
         flag = 0
 
-        for bh in range(2000):
+        for bh in range(200):
             curr_obs = None
             if self.step > 1:
                 if extra_dataset is not None:
@@ -307,6 +318,8 @@ class AffCritic:
 
         with self.strategy.scope():
             BUFFER_SIZE = len(input_batch)
+            print("BUFFER_SIZE", BUFFER_SIZE)
+            print("batch", batch)
             # input_batch = tf.convert_to_tensor(input_batch, dtype=tf.float32)
             # p0_batch = tf.convert_to_tensor(p0_batch, dtype=tf.float32)
             # reward_batch = tf.convert_to_tensor(reward_batch, dtype=tf.float32)
@@ -419,6 +432,7 @@ class AffCritic:
             else:
                 img_aff = obs.copy()
                 attention = self.attention_model.forward(img_aff)
+                # print("state: ", np.max(attention))
 
             # depth = obs[:, :, -1:]
             # mask = np.where(depth == 0, 0, 1)
