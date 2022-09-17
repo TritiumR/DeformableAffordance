@@ -56,7 +56,7 @@ class AffCritic:
                     reward.append(curr_percent)
             elif self.task == 'rope-configuration':
                 for i in range(0, m_len):
-                    curr_distance = metric[i][1] * 100
+                    curr_distance = metric[i][1] * -100
                     reward.append(curr_distance)
             # print('reward: ', reward)
         else:

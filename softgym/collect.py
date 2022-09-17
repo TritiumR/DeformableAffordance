@@ -39,6 +39,7 @@ def run_jobs(process_id, args, env_kwargs):
         pyflex.step()
 
         for step_i in range(args.step):
+            print("step_i: ", step_i)
             if args.env_name == 'ClothFlatten':
                 prev_obs, prev_depth = pyflex.render_cloth()
             elif args.env_name == 'RopeConfiguration':
@@ -52,7 +53,7 @@ def run_jobs(process_id, args, env_kwargs):
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
-                if step_i == 1:
+                if step_i == 0:
                     mask = prev_obs[10:, :, 0]
                     indexs = np.transpose(np.where(mask == 255))
                     corner_id = random.randint(0, 3)
@@ -77,7 +78,7 @@ def run_jobs(process_id, args, env_kwargs):
                 action[1] = v1
 
             elif args.env_name == 'RopeConfiguration':
-                if step_i == 1:
+                if step_i == 0:
                     indexs = np.transpose(np.nonzero(mask[:, :, 0]))
                     corner_id = random.randint(0, 3)
                     # print(corner_id)

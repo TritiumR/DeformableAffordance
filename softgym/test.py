@@ -227,6 +227,7 @@ def run_jobs(process_id, args, env_kwargs):
         pyflex.step()
 
         for step_i in range(args.step):
+            print("step_i: ", step_i)
             if args.env_name == 'ClothFlatten':
                 prev_obs, prev_depth = pyflex.render_cloth()
             elif args.env_name == 'RopeConfiguration':
@@ -237,7 +238,7 @@ def run_jobs(process_id, args, env_kwargs):
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
-                if step_i == 1:
+                if step_i == 0:
                     mask = prev_obs[10:, :, 0]
                     indexs = np.transpose(np.where(mask == 255))
                     corner_id = random.randint(0, 3)
@@ -300,7 +301,6 @@ def run_jobs(process_id, args, env_kwargs):
             print("crump distance: ", crump_distance)
 
         env.action_tool.hide()
-        # super(super(env.action_tool)).step([0., 1., 0., 0])
 
         env.start_record()
 
@@ -384,7 +384,7 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
         # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
         # visualize_aff_critic(crump_obs.copy(), agent)
 
