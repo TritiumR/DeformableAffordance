@@ -5,7 +5,7 @@ CUDA_VISIBLE_DEVICES=2 python ./softgym/test.py \
   --num_demos 7000 \
   --step 2 \
   --out_logits 1 \
-  --exp_name 0917-02-tryseven-aff_critic-no_mix \
+  --exp_name 0917-09-tryseven-aff_critic-no_mix \
   --suffix tryseven \
   --process_num 1 \
   --num_test 20 \

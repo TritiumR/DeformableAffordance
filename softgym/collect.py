@@ -39,7 +39,7 @@ def run_jobs(process_id, args, env_kwargs):
         pyflex.step()
 
         for step_i in range(args.step):
-            print("step_i: ", step_i)
+            # print("step_i: ", step_i)
             if args.env_name == 'ClothFlatten':
                 prev_obs, prev_depth = pyflex.render_cloth()
             elif args.env_name == 'RopeConfiguration':
