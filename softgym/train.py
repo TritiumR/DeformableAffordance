@@ -31,6 +31,7 @@ def main():
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--learning_rate',  default=1e-4, type=float)
     parser.add_argument('--out_logits',     default=1, type=int)
+    parser.add_argument('--critic_depth', default=1, type=int)
     parser.add_argument('--demo_times', default=1, type=int)
     parser.add_argument('--extra_demo_times', default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
@@ -95,6 +96,7 @@ def main():
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,
                                      step=args.step,
+                                     critic_depth=args.critic_depth,
                                      strategy=strategy
                                      )
 

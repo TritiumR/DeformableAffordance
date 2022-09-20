@@ -411,12 +411,12 @@ def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=3
 
     x = conv_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'a', strides=(1, 1), short_cut=False)
     x_320_320_64 = identity_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'b', short_cut=False)
-    x_320_320_64 = identity_block(x_320_320_64, 3, [64, 64, 64], stage=2, block=prefix + 'b1', short_cut=False)
+    x_320_320_64 = identity_block(x_320_320_64, 3, [64, 64, 64], stage=2, block=prefix + 'c', short_cut=False)
     print(x_320_320_64.shape)
 
     x_160_160_128 = conv_block(x_320_320_64, 3, [128, 128, 128], stage=3, block=prefix + 'a', strides=(2, 2), short_cut=False)
     x_160_160_128 = identity_block(x_160_160_128, 3, [128, 128, 128], stage=3, block=prefix + 'b', short_cut=False)
-    x_160_160_128 = identity_block(x_160_160_128, 3, [128, 128, 128], stage=2, block=prefix + 'c', short_cut=False)
+    x_160_160_128 = identity_block(x_160_160_128, 3, [128, 128, 128], stage=3, block=prefix + 'c', short_cut=False)
     print(x_160_160_128.shape)
 
     x_80_80_256 = conv_block(x_160_160_128, 3, [256, 256, 256], stage=4, block=prefix + 'a', strides=(2, 2))
@@ -429,9 +429,9 @@ def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=3
     x_40_40_512 = identity_block(x_40_40_512, 3, [512, 512, 512], stage=5, block=prefix + 'c')
     print(x_40_40_512.shape)
 
-    x_20_20_512 = conv_block(x_40_40_512, 3, [512, 512, 512], stage=17, block=prefix + 'a', strides=(2, 2))
-    x_20_20_512 = identity_block(x_20_20_512, 3, [512, 512, 512], stage=17, block=prefix + 'b')
-    x_20_20_512 = identity_block(x_20_20_512, 3, [512, 512, 512], stage=17, block=prefix + 'c')
+    x_20_20_512 = conv_block(x_40_40_512, 3, [512, 512, 512], stage=6, block=prefix + 'a', strides=(2, 2))
+    x_20_20_512 = identity_block(x_20_20_512, 3, [512, 512, 512], stage=6, block=prefix + 'b')
+    x_20_20_512 = identity_block(x_20_20_512, 3, [512, 512, 512], stage=6, block=prefix + 'c')
     print(x_20_20_512.shape)
 
     global_feat = tf.nn.avg_pool(x_20_20_512, ksize=(1, 20, 20, 1), strides=(1, 1, 1, 1), padding="VALID", data_format="NHWC")
@@ -439,8 +439,8 @@ def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=3
     x_40_40_512_U = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_0')(x_20_20_512)
     print(x_40_40_512_U.shape)
 
-    x_40_40_256_U = conv_block(x_40_40_512_U, 3, [256, 256, 256], stage=6, block=prefix + 'a', strides=(1, 1))
-    x_40_40_256_U = identity_block(x_40_40_256_U, 3, [256, 256, 256], stage=6, block=prefix + 'b')
+    x_40_40_256_U = conv_block(x_40_40_512_U, 3, [256, 256, 256], stage=7, block=prefix + 'a', strides=(1, 1))
+    x_40_40_256_U = identity_block(x_40_40_256_U, 3, [256, 256, 256], stage=7, block=prefix + 'b')
     print(x_40_40_256_U.shape)
 
     x_80_80_256_U = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_1')(x_40_40_256_U)
@@ -448,9 +448,9 @@ def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=3
 
     x = tf.concat([x_80_80_256_U, x_80_80_256], axis=-1)
 
-    x = conv_block(x, 3, [256, 256, 256], stage=7, block=prefix + 'a', strides=(1, 1), short_cut=False)
-    x = identity_block(x, 3, [256, 256, 256], stage=7, block=prefix + 'b', short_cut=False)
-    x = identity_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'c', short_cut=False)
+    x = conv_block(x, 3, [256, 256, 256], stage=8, block=prefix + 'a', strides=(1, 1), short_cut=False)
+    x = identity_block(x, 3, [256, 256, 256], stage=8, block=prefix + 'b', short_cut=False)
+    x = identity_block(x, 3, [128, 128, 128], stage=8, block=prefix + 'c', short_cut=False)
     print(x.shape)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_2')(x)
@@ -458,22 +458,22 @@ def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=3
 
     x = tf.concat([x, x_160_160_128], axis=-1)
 
-    x = conv_block(x, 3, [128, 128, 128], stage=8, block=prefix + 'a', strides=(1, 1), short_cut=False)
-    x = identity_block(x, 3, [128, 128, 128], stage=8, block=prefix + 'b', short_cut=False)
-    x = identity_block(x, 3, [64, 64, 64], stage=8, block=prefix + 'c', short_cut=False)
+    x = conv_block(x, 3, [128, 128, 128], stage=9, block=prefix + 'a', strides=(1, 1), short_cut=False)
+    x = identity_block(x, 3, [128, 128, 128], stage=9, block=prefix + 'b', short_cut=False)
+    x = identity_block(x, 3, [64, 64, 64], stage=9, block=prefix + 'c', short_cut=False)
     print(x.shape)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_3')(x)
     print(x.shape)
     x = tf.concat([x, x_320_320_64], axis=-1)
 
-    x = conv_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'a', strides=(1, 1), short_cut=False)
-    x = conv_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'b', strides=(1, 1), short_cut=False)
-    x = identity_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'c', short_cut=False)
+    x = conv_block(x, 3, [128, 128, 128], stage=10, block=prefix + 'a', strides=(1, 1), short_cut=False)
+    x = conv_block(x, 3, [128, 128, 128], stage=10, block=prefix + 'b', strides=(1, 1), short_cut=False)
+    x = identity_block(x, 3, [128, 128, 128], stage=10, block=prefix + 'c', short_cut=False)
 
-    x = conv_block(x, 3, [output_dim, output_dim, output_dim], stage=9, block=prefix + 'a', strides=(1, 1), activation=False, short_cut=False)
-    x = identity_block(x, 3, [output_dim, output_dim, output_dim], stage=9, block=prefix + 'b', activation=False, short_cut=False)
-    output = identity_block(x, 3, [output_dim, output_dim, output_dim], stage=9, block=prefix + 'b1', activation=False, short_cut=False)
+    x = conv_block(x, 3, [output_dim, output_dim, output_dim], stage=11, block=prefix + 'a', strides=(1, 1), activation=False, short_cut=False)
+    x = identity_block(x, 3, [output_dim, output_dim, output_dim], stage=11, block=prefix + 'b', activation=False, short_cut=False)
+    output = identity_block(x, 3, [output_dim, output_dim, output_dim], stage=11, block=prefix + 'c', activation=False, short_cut=False)
     print(output.shape)
 
     return input_data, output, global_feat

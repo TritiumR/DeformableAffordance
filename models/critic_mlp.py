@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import tensorflow.experimental.numpy as tnp
 tnp.experimental_enable_numpy_behavior()
 
-from models import ResNet43_8s, ResNet61_8s, ResNet53_8s, ResNet36_4s, UNet43_8s
+from models import UNet61_8s, UNet43_8s
 import random
 
 import ipdb
@@ -45,7 +45,7 @@ class Critic_MLP:
     """
 
     def __init__(self, input_shape, preprocess, use_goal_image=False, out_logits=1, unet=1,
-                 learning_rate=1e-4, without_global=False, strategy=None):
+                 learning_rate=1e-4, depth=1, without_global=False, strategy=None):
         self.preprocess = preprocess
         self.use_goal_image = use_goal_image
 
@@ -65,7 +65,10 @@ class Critic_MLP:
             with strategy.scope():
             # 2 fully convolutional ResNets [43 layers and stride 8]
                 if self.unet:
-                    in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
+                    if depth == 1:
+                        in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
+                    elif depth == 2:
+                        in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_')
                     self.model = tf.keras.Model(inputs=[in0], outputs=[out0, global_feat])
                     if self.without_global:
                         self.conv_seq = tf.keras.Sequential([
@@ -91,7 +94,10 @@ class Critic_MLP:
 
         else:
             if self.unet:
-                in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
+                if depth == 1:
+                    in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
+                elif depth == 2:
+                    in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_')
                 self.model = tf.keras.Model(inputs=[in0], outputs=[out0, global_feat])
                 if self.without_global:
                     self.conv_seq = tf.keras.Sequential([
@@ -373,7 +379,7 @@ class Critic_MLP:
         return output
 
     def train_batch(self, in_img_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=False):
-        if is_validate:
+        if validate:
             self.validate_metric.reset_states()
         else:
             self.metric.reset_states()
@@ -421,7 +427,7 @@ class Critic_MLP:
                     # print(QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1]])
                     # print("reward:", reward[idx])
             loss = tf.reduce_mean(loss)
-        if is_validate:
+        if validate:
             self.validate_metric(loss)
         else:
             self.metric(loss)

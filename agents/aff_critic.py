@@ -71,7 +71,7 @@ class AffCritic:
             for i in range(0, m_len):
                 attention = self.attention_model.forward(curr_obs[i].copy())
 
-                gt_state = np.max(attention) * 0.5
+                gt_state = np.max(attention)
 
                 # img_obs = curr_obs[i][:, :, :3]
                 # vis_aff = attention[0] - np.min(attention[0])
@@ -223,7 +223,7 @@ class AffCritic:
 
             # Compute Transport training loss.
             if self.out_logits == 1:
-                loss1 = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch)
+                loss1 = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=False)
                 with writer.as_default():
                     tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
                 print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss1:.4f}')
@@ -635,7 +635,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
 
     def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
-                 learning_rate=1e-4, strategy=None):
+                 learning_rate=1e-4, critic_depth=1, strategy=None):
         super().__init__(name, task, use_goal_image=use_goal_image, out_logits=out_logits,
                          critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
                          strategy=strategy)
@@ -651,6 +651,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        out_logits=self.out_logits,
                                        learning_rate=learning_rate,
                                        without_global=without_global,
+                                       depth=critic_depth,
                                        strategy=strategy
                                        )
 

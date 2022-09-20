@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from models import ResNet43_8s, ResNet36_4s, ResNet53_8s, ResNet61_8s, UNet43_8s
+from models import ResNet43_8s, ResNet36_4s, ResNet53_8s, UNet43_8s
 
 import ipdb
 

@@ -83,16 +83,17 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
             p0 = (i * 20, j * 20)
             action = agent.act(obs.copy(), p0=p0)
             _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
+            output = agent.critic_model.forward(obs.copy(), p0)
+            critic_score = output[:, :, :, 0]
             if args.env_name == 'ClothFlatten':
                 gt_area = env._get_current_covered_area(pyflex.get_positions())
                 gt_percent = gt_area / full_covered_area
                 gt_aff[i][j] = gt_percent
+                vis_aff[i][j] = np.max(critic_score)
             elif args.env_name == 'RopeConfiguration':
                 gt_distance = env.compute_reward()
                 gt_aff[i][j] = gt_distance
-            output = agent.critic_model.forward(obs.copy(), p0)
-            critic_score = output[:, :, :, 0]
-            vis_aff[i][j] = np.max(critic_score)
+                vis_aff[i][j] = np.min(critic_score)
 
     vis_aff = cv2.resize(vis_aff, (320, 320))
     gt_aff = cv2.resize(gt_aff, (320, 320))
@@ -107,9 +108,10 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
         gt_aff = gt_aff - np.min(gt_aff)
         gt_aff = 255 * gt_aff / np.max(gt_aff)
     elif args.env_name == 'RopeConfiguration':
-        score = int(np.max(vis_aff) * 2)
-        gt_score = int(np.max(gt_aff) * 100)
+        score = int(np.min(vis_aff))
+        gt_score = -int(np.max(gt_aff) * 100)
 
+        vis_aff = -vis_aff
         vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
         vis_aff = vis_aff - np.min(vis_aff)
         vis_aff = 255 * vis_aff / np.max(vis_aff)
@@ -170,6 +172,7 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
         vis_gt = 255 * vis_gt / np.max(vis_gt)
         vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
     elif args.env_name == 'RopeConfiguration':
+        vis_critic = (-vis_critic)
         vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
         vis_critic = vis_critic - np.min(vis_critic)
         vis_critic = 255 * vis_critic / np.max(vis_critic)
@@ -222,7 +225,7 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            env.set_state(env.goal_state[0])
+            env.set_state(env.goal_state[4])
             full_distance = env.compute_reward()
         pyflex.step()
 
@@ -302,11 +305,10 @@ def run_jobs(process_id, args, env_kwargs):
                 continue
             print("crump distance: ", crump_distance)
 
-        # env.action_tool.hide()
-
         if args.env_name == 'ClothFlatten':
             crump_obs, crump_depth = pyflex.render_cloth()
         elif args.env_name == 'RopeConfiguration':
+            env.action_tool.hide()
             crump_obs, crump_depth = pyflex.render()
 
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
@@ -384,8 +386,8 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
         # visualize_aff_critic(crump_obs.copy(), agent)
 
 
