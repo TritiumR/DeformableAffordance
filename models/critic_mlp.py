@@ -372,9 +372,35 @@ class Critic_MLP:
 
         return output
 
-    def train_batch(self, in_img_batch, p0_batch, p1_list_batch, reward_batch, step_batch):
-        self.metric.reset_states()
-        with tf.GradientTape() as tape:
+    def train_batch(self, in_img_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=False):
+        if is_validate:
+            self.validate_metric.reset_states()
+        else:
+            self.metric.reset_states()
+        if not validate:
+            with tf.GradientTape() as tape:
+                QQ_cur = self.forward_batch(in_img_batch, p0_batch)
+                loss = None
+                batch_len = len(in_img_batch)
+
+                for i in range(batch_len):
+                    reward = reward_batch[i].copy()
+                    # print("reward", reward)
+                    p1_list = p1_list_batch[i].copy()
+                    len_q = len(p1_list)
+                    for idx in range(len_q):
+                        # ipdb.set_trace()
+                        if loss is None:
+                            loss = tf.keras.losses.MAE(reward[idx], QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
+                        else:
+                            loss = loss + tf.keras.losses.MAE(reward[idx],
+                                                              QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
+                        # print(QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1]])
+                        # print("reward:", reward[idx])
+                loss = tf.reduce_mean(loss)
+                grad = tape.gradient(loss, self.model.trainable_variables)
+                self.optim.apply_gradients(zip(grad, self.model.trainable_variables))
+        else:
             QQ_cur = self.forward_batch(in_img_batch, p0_batch)
             loss = None
             batch_len = len(in_img_batch)
@@ -387,17 +413,18 @@ class Critic_MLP:
                 for idx in range(len_q):
                     # ipdb.set_trace()
                     if loss is None:
-                        loss = tf.keras.losses.MAE(reward[idx], QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
+                        loss = tf.keras.losses.MAE(reward[idx],
+                                                   QQ_cur[i:i + 1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
                     else:
                         loss = loss + tf.keras.losses.MAE(reward[idx],
-                                                          QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
+                                                          QQ_cur[i:i + 1, p1_list[idx][0], p1_list[idx][1], :]) / len_q
                     # print(QQ_cur[i:i+1, p1_list[idx][0], p1_list[idx][1]])
                     # print("reward:", reward[idx])
             loss = tf.reduce_mean(loss)
-            grad = tape.gradient(loss, self.model.trainable_variables)
-            self.optim.apply_gradients(zip(grad, self.model.trainable_variables))
-
-        self.metric(loss)
+        if is_validate:
+            self.validate_metric(loss)
+        else:
+            self.metric(loss)
         return np.float32(loss)
 
     @tf.function
