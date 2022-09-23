@@ -213,7 +213,7 @@ class PickerPickPlace(Picker):
             return
         delta = (end_pos - curr_pos) / num_step
         norm_delta = np.linalg.norm(delta)
-        for i in range(int(min(num_step, 300))):  # The maximum number of steps allowed for one pick and place
+        for i in range(int(min(num_step, 500))):  # The maximum number of steps allowed for one pick and place
             curr_pos = np.array(pyflex.get_shape_states()).reshape(-1, 14)[:, :3]
             dist = np.linalg.norm(end_pos - curr_pos, axis=1)
             if np.alltrue(dist < norm_delta):
@@ -225,6 +225,8 @@ class PickerPickPlace(Picker):
                 self.env.video_frames.append(self.env.render(mode='rgb_array'))
             if np.alltrue(dist < self.delta_move):
                 break
+        # if (i == 499):
+        #     print(i, action)
         return total_steps
 
     def get_model_action(self, action, picker_pos):
@@ -432,7 +434,7 @@ class PickAndPlace(PickerQPG):
         return self.total_steps
 
     def hide(self):
-        hide_place = np.array([0., 1.1, 0., 0])
+        hide_place = np.array([1., 0.5, 1., 0])
         PickerPickPlace.step(self, hide_place)
 
 

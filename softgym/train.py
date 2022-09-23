@@ -112,7 +112,7 @@ def main():
         if args.model == 'aff':
             # Train aff.
             tf.keras.backend.set_learning_phase(1)
-            agent.train_aff(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer)
+            agent.train_aff(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
             tf.keras.backend.set_learning_phase(0)
 
 

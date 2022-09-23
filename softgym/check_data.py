@@ -5,7 +5,7 @@ import random
 import cv2
 import numpy as np
 import copy
-from models import Aff
+from models import Affordance
 
 def load(path, iepisode, step):
     field_path = path
@@ -49,7 +49,7 @@ if __name__ == '__main__':
             curr_obs = data['curr_obs']
             if len(curr_obs):
                 if args.need_aff:
-                    aff_model = Aff(input_shape=(320, 320, 4), preprocess=preprocess, learning_rate=0)
+                    aff_model = Affordance(input_shape=(320, 320, 4), preprocess=preprocess, learning_rate=0)
                     aff_model.load(args.load_aff_dir)
                 curr_obs = data['curr_obs']
                 for i in range(5):

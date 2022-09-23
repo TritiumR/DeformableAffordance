@@ -19,18 +19,21 @@ import random
 import pickle
 
 
-def visualize_aff_critic(obs, agent):
+def visualize_aff_critic(obs, agent, args):
     img_aff = obs.copy()
     attention = agent.attention_model.forward(img_aff)
 
     # depth = obs[:, :, -1:].copy()
     # mask = np.where(depth == 0, 0, 1)
     # state_map = np.where(depth == 0, 0, attention)
-    state_score = int(np.max(attention) * 2)
-    attention = attention - np.min(attention)
-    # attention = attention * mask
+    if args.env_name == 'ClothFlatten':
+        state_score = int(np.max(attention) * 2)
 
-    # state_score = int(np.max(state_map) * 2)
+    elif args.env_name == 'RopeConfiguration':
+        state_score = int(np.min(attention) * 10)
+        attention = -attention
+
+    attention = attention - np.min(attention)
     argmax = np.argmax(attention)
     argmax = np.unravel_index(argmax, shape=attention.shape)
 
@@ -40,8 +43,13 @@ def visualize_aff_critic(obs, agent):
     img_critic = obs.copy()
     critic = agent.critic_model.forward(img_critic, p0_pixel)
 
-    argmax = np.argmax(critic)
-    argmax = np.unravel_index(argmax, shape=critic.shape)
+    if args.env_name == 'ClothFlatten':
+        argmax = np.argmax(critic)
+        argmax = np.unravel_index(argmax, shape=critic.shape)
+
+    elif args.env_name == 'RopeConfiguration':
+        argmax = np.argmin(critic)
+        argmax = np.unravel_index(argmax, shape=critic.shape)
 
     p1_pixel = argmax[1:3]
     print(p1_pixel)
@@ -49,8 +57,12 @@ def visualize_aff_critic(obs, agent):
     vis_aff = np.array(attention[0])
     vis_critic = np.array(critic[0])
 
+    if args.env_name == 'RopeConfiguration':
+        vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
+        vis_critic = -vis_critic
+        vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
+
     vis_aff = vis_aff - np.min(vis_aff)
-    # vis_aff = vis_aff * mask
     vis_aff = 255 * vis_aff / np.max(vis_aff)
     vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
 
@@ -70,8 +82,8 @@ def visualize_aff_critic(obs, agent):
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/fifth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
-    print("save to" + f'./visual/fifth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
+    cv2.imwrite(f'./visual/{args.env_name}-first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
+    print("save to" + f'./visual/{args.env_name}-first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
 
 
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
@@ -212,6 +224,7 @@ def run_jobs(process_id, args, env_kwargs):
                                      expert_pick=args.expert_pick,
                                      critic_pick=args.critic_pick,
                                      random_pick=args.random_pick,
+                                     critic_depth=args.critic_depth
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -225,7 +238,16 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            env.set_state(env.goal_state[4])
+            if args.shape == 'S':
+                env.set_state(env.goal_state[0])
+            elif args.shape == 'O':
+                env.set_state(env.goal_state[1])
+            elif args.shape == 'M':
+                env.set_state(env.goal_state[2])
+            elif args.shape == 'C':
+                env.set_state(env.goal_state[3])
+            elif args.shape == 'U':
+                env.set_state(env.goal_state[4])
             full_distance = env.compute_reward()
         pyflex.step()
 
@@ -386,9 +408,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        # visualize_aff_critic(crump_obs.copy(), agent)
+        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_aff_critic(crump_obs.copy(), agent, args)
 
 
 def main():
@@ -400,8 +422,10 @@ def main():
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--task', type=str, default='cloth-flatten')
+    parser.add_argument('--shape', type=str, default='S')
     parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--agent', default='aff_critic')
+    parser.add_argument('--critic_depth', default=1, type=int)
     parser.add_argument('--num_test', type=int, default=1, help='How many test do you need for inferring')
     parser.add_argument('--process_num', type=int, default=1, help='How many process do you need')
     parser.add_argument('--save_video_dir', type=str, default=None, help='Path to the saved video')
@@ -425,6 +449,7 @@ def main():
     env_kwargs['num_variations'] = args.num_variations
     env_kwargs['render'] = True
     env_kwargs['headless'] = args.headless
+    env_kwargs['goal_shape'] = args.shape
 
     if not env_kwargs['use_cached_states']:
         print('Waiting to generate environment variations. May take 1 minute for each variation...')

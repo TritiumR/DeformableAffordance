@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import tensorflow.experimental.numpy as tnp
 tnp.experimental_enable_numpy_behavior()
 
-from models import UNet61_8s, UNet43_8s
+from models import UNet61_8s, UNet43_8s, UNet47_8s
 import random
 
 import ipdb
@@ -69,6 +69,8 @@ class Critic_MLP:
                         in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
                     elif depth == 2:
                         in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_')
+                    elif depth == 3:
+                        in0, out0, global_feat = UNet47_8s(input_shape, 256, prefix='critic_s0_d3_')
                     self.model = tf.keras.Model(inputs=[in0], outputs=[out0, global_feat])
                     if self.without_global:
                         self.conv_seq = tf.keras.Sequential([
@@ -98,6 +100,8 @@ class Critic_MLP:
                     in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
                 elif depth == 2:
                     in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_')
+                elif depth == 3:
+                    in0, out0, global_feat = UNet47_8s(input_shape, 256, prefix='critic_s0_d3_')
                 self.model = tf.keras.Model(inputs=[in0], outputs=[out0, global_feat])
                 if self.without_global:
                     self.conv_seq = tf.keras.Sequential([

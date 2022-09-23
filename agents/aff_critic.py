@@ -68,31 +68,48 @@ class AffCritic:
                     curr_distance = metric[i][1] * (-100)
                     reward.append(curr_distance)
         else:
+            # l_img = np.concatenate((
+            #     cv2.cvtColor(obs, cv2.COLOR_BGR2RGB),
+            #     cv2.cvtColor(curr_obs[0], cv2.COLOR_BGR2RGB),
+            #     cv2.cvtColor(curr_obs[1], cv2.COLOR_BGR2RGB)),
+            #     axis=1)
+            # r_img = np.concatenate((
+            #     cv2.cvtColor(curr_obs[2], cv2.COLOR_BGR2RGB),
+            #     cv2.cvtColor(curr_obs[3], cv2.COLOR_BGR2RGB),
+            #     cv2.cvtColor(curr_obs[4], cv2.COLOR_BGR2RGB)),
+            #     axis=1)
+            # img = np.concatenate((l_img, r_img), axis=0)
+            #
+            # score_list = ''
+
             for i in range(0, m_len):
                 attention = self.attention_model.forward(curr_obs[i].copy())
 
                 gt_state = np.max(attention)
+
+                # if (i < 5):
+                #     score_list += f'-{int(gt_state * 2)}'
 
                 # img_obs = curr_obs[i][:, :, :3]
                 # vis_aff = attention[0] - np.min(attention[0])
                 # vis_aff = 255 * vis_aff / np.max(vis_aff)
                 # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
                 # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
-                #
-                # cv2.imwrite(f'./visual/test-{gt_state}.jpg', vis_img)
 
                 # print('gt_state: ', gt_state)
                 curr_percent = metric[i][1] * 50
                 # print("curr: ", curr_percent)
                 reward_i = (curr_percent + gt_state) / 2
                 reward.append(reward_i)
+            # cv2.imwrite(f'./visual/state-{score_list}.jpg', img)
+            # print("save img")
         return reward
 
-    def train_aff(self, dataset, num_iter, writer):
+    def train_aff(self, dataset, num_iter, writer, batch):
         for i in range(num_iter):
             obs, act, _, _, not_on_cloth = dataset.sample_index(need_next=False)
 
-            a_len = len(act)
+            a_len = batch
 
             if self.use_goal_image:
                 input_image = np.concatenate((obs, goal), axis=2)
@@ -109,7 +126,7 @@ class AffCritic:
                 print('no perturb')
 
             p_list = [p0]
-            for i in range(a_len):
+            for p_i in range(a_len):
                 # sample_x = max(min(np.random.normal(loc=p0[0], scale=0.12), self.input_shape[0] - 1), 0)
                 # sample_y = max(min(np.random.normal(loc=p0[1], scale=0.12), self.input_shape[0] - 1), 0)
                 u = random.randint(0, 319)
@@ -120,8 +137,11 @@ class AffCritic:
             critic_map = critic_map.numpy()
 
             p_len = len(p_list)
-            aff_score = critic_map.max(axis=1).max(axis=1)
-            print("aff_score: ", aff_score)
+            if self.task == 'colth-flatten':
+                aff_score = critic_map.max(axis=1).max(axis=1)
+            elif self.task == 'rope-configuration':
+                aff_score = critic_map.min(axis=1).min(axis=1)
+            # print("aff_score: ", aff_score)
 
             with tf.GradientTape() as tape:
                 loss = None
