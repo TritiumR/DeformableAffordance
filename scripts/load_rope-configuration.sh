@@ -1,14 +1,15 @@
-CUDA_VISIBLE_DEVICES=6 python ./softgym/test.py \
+CUDA_VISIBLE_DEVICES=3 python ./softgym/test.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
+  --shape S \
   --agent aff_critic \
-  --num_demos 5000 \
+  --num_demos 6000 \
   --out_logits 1 \
-  --exp_name 0920-09-U-trytwo-aff_critic-expert-softmax \
+  --exp_name 0923-01-S-trytwo-aff_critic \
   --suffix trytwo \
   --process_num 1 \
   --num_test 20 \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-5000-0919-02-trytwo-step1-U-step-1/critic-ckpt-210000.h5 \
-  --expert_pick \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-5000-0919-02-trytwo-step1-U-step-1/critic-ckpt-300000.h5 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-6000-0922-02-trytwo-aff-not_on_cloth_zero-step-1/attention-ckpt-300000.h5 \
   --save_video_dir './test_video/' \
   --headless 1

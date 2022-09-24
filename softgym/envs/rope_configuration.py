@@ -72,7 +72,7 @@ class RopeConfigurationEnv(RopeFlattenEnv):
         
         for idx, cached_config in enumerate(cached_configs):
             # goal_character = self.goal_characters[np.random.choice(len(self.goal_characters))]
-            goal_character = 'U'
+            goal_character = 'S'
             cached_config['goal_character'] = goal_character
             cached_config['goal_character_pos'] = self.goal_characters_position[goal_character]
             cached_config['goal_character_img'] = self.goal_characters_image[goal_character]

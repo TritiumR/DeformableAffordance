@@ -30,6 +30,8 @@ def main():
     parser.add_argument('--num_iters', type=int, default=1, help='How many iterations do you need for training')
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--learning_rate',  default=1e-4, type=float)
+    parser.add_argument('--batch_normalize', action='store_true')
+    parser.add_argument('--layer_normalize', action='store_true')
     parser.add_argument('--out_logits',     default=1, type=int)
     parser.add_argument('--critic_depth', default=1, type=int)
     parser.add_argument('--demo_times', default=1, type=int)
@@ -44,6 +46,7 @@ def main():
     parser.add_argument('--max_load',       default=-1, type=int)
     parser.add_argument('--batch',          default=1, type=int)
     parser.add_argument('--model', default='critic', type=str)
+    parser.add_argument('--only_state', action='store_true')
     parser.add_argument('--multi_gpu', action='store_true')
     parser.add_argument('--no_perturb', action='store_true')
     args = parser.parse_args()
@@ -97,8 +100,16 @@ def main():
                                      without_global=args.without_global,
                                      step=args.step,
                                      critic_depth=args.critic_depth,
+                                     batch_normalize=args.batch_normalize,
+                                     layer_normalize=args.layer_normalize,
                                      strategy=strategy
                                      )
+
+    # agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"))
+    if args.model == 'critic':
+        agent.train_critic(dataset, num_iter=1000, writer=train_summary_writer,
+                           batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
+                           only_state=args.only_state)
 
     while agent.total_iter < args.num_iters:
         if args.model == 'critic':
@@ -107,7 +118,8 @@ def main():
             if args.multi_gpu:
                 agent.train_critic_multi_gpu(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
             else:
-                agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb)
+                agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer,
+                                   batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb, only_state=args.only_state)
             tf.keras.backend.set_learning_phase(0)
         if args.model == 'aff':
             # Train aff.

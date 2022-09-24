@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import pickle
 
 import cv2
 import numpy as np
@@ -44,8 +45,10 @@ class AffCritic:
         self.out_logits = out_logits
         self.use_goal_image = use_goal_image
         self.strategy = strategy
+        self.obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
+        self.obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
 
-    def compute_reward(self, metric, not_on_cloth, curr_obs=None):
+    def compute_reward(self, metric, not_on_cloth, curr_obs=None, only_state=False):
         m_len = len(metric)
         reward = []
 
@@ -99,7 +102,10 @@ class AffCritic:
                 # print('gt_state: ', gt_state)
                 curr_percent = metric[i][1] * 50
                 # print("curr: ", curr_percent)
-                reward_i = (curr_percent + gt_state) / 2
+                if only_state:
+                    reward_i = gt_state
+                else:
+                    reward_i = (curr_percent + gt_state) / 2
                 reward.append(reward_i)
             # cv2.imwrite(f'./visual/state-{score_list}.jpg', img)
             # print("save img")
@@ -166,7 +172,7 @@ class AffCritic:
         self.total_iter += num_iter
         self.save_aff()
 
-    def train_critic(self, dataset, num_iter, writer, batch=1, extra_dataset=None, no_perturb=False):
+    def train_critic(self, dataset, num_iter, writer, batch=1, extra_dataset=None, no_perturb=False, only_state=False):
         for i in range(num_iter):
             # for batch training
             input_batch = []
@@ -203,18 +209,7 @@ class AffCritic:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
-                # pick_area = obs[max(0, p0[0] - 4): min(self.input_shape[0], p0[0] + 4),
-                #                 max(0, p0[1] - 4): min(self.input_shape[0], p0[1] + 4),
-                #                 :3]
-                # if np.sum(pick_area) == 0:
-                #     print('not on cloth')
-                #     m_len = len(metric)
-                #     reward = np.zeros(m_len)
-                # else:
-                #     reward = self.compute_reward(self.task, metric, self.step)
-                # reward_batch.append(reward.copy())
-
-                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs)
+                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state)
                 # print('reward: ', reward)
                 reward_batch.append(reward.copy())
 
@@ -567,15 +562,34 @@ class AffCritic:
     # Helper Functions
     #-------------------------------------------------------------------------
 
+    def get_mean_and_std(self, path):
+        print("computing mean and std...")
+        dirs = os.listdir(path)
+
+        mean = np.zeros(self.input_shape[2])
+        std = np.zeros(self.input_shape[2])
+
+        for fname in dirs:
+            data = pickle.load(open(os.path.join(path, fname), 'rb'))
+            obs = np.array(data['obs'])
+            for d in range(self.input_shape[2]):
+                mean[d] += obs[:, :, d].mean() / 255
+                std[d] += obs[:, :, d].std() / 255
+
+        mean /= len(dirs)
+        std /= len(dirs)
+
+        self.obs_mean = mean
+        self.obs_std = std
+
+        print("mean: ", self.obs_mean)
+        print("std: ", self.obs_std)
+
     def preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        color_mean = 0.18877631
-        depth_mean = 0.00509261
-        color_std = 0.07276466
-        depth_std = 0.00903967
-        image[:, :, :3] = (image[:, :, :3] / 255 - color_mean) / color_std
-        image[:, :, 3:] = (image[:, :, 3:] - depth_mean) / depth_std
+        for d in range(self.input_shape[2]):
+            image[:, :, d] = (image[:, :, d] / 255 - self.obs_mean[d]) / self.obs_std[d]
         return image
 
     def load(self, num_iter):
@@ -655,7 +669,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
 
     def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
-                 learning_rate=1e-4, critic_depth=1, strategy=None):
+                 learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, strategy=None):
         super().__init__(name, task, use_goal_image=use_goal_image, out_logits=out_logits,
                          critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
                          strategy=strategy)
@@ -672,6 +686,8 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        learning_rate=learning_rate,
                                        without_global=without_global,
                                        depth=critic_depth,
+                                       batch_normalize=batch_normalize,
+                                       layer_normalize=layer_normalize,
                                        strategy=strategy
                                        )
 

@@ -45,7 +45,8 @@ class Critic_MLP:
     """
 
     def __init__(self, input_shape, preprocess, use_goal_image=False, out_logits=1, unet=1,
-                 learning_rate=1e-4, depth=1, without_global=False, strategy=None):
+                 learning_rate=1e-4, depth=1, batch_normalize=False, layer_normalize=False, without_global=False,
+                 strategy=None):
         self.preprocess = preprocess
         self.use_goal_image = use_goal_image
 
@@ -66,19 +67,43 @@ class Critic_MLP:
             # 2 fully convolutional ResNets [43 layers and stride 8]
                 if self.unet:
                     if depth == 1:
-                        in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
+                        in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_',
+                                                           include_batchnorm=batch_normalize, include_layernorm=layer_normalize)
                     elif depth == 2:
-                        in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_')
+                        in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_',
+                                                           include_batchnorm=batch_normalize, include_layernorm=layer_normalize)
                     elif depth == 3:
-                        in0, out0, global_feat = UNet47_8s(input_shape, 256, prefix='critic_s0_d3_')
+                        in0, out0, global_feat = UNet47_8s(input_shape, 256, prefix='critic_s0_d3_',
+                                                           include_batchnorm=batch_normalize, include_layernorm=layer_normalize)
                     self.model = tf.keras.Model(inputs=[in0], outputs=[out0, global_feat])
                     if self.without_global:
-                        self.conv_seq = tf.keras.Sequential([
-                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                                   input_shape=(320, 320, 256 + 256), name='critic_1'),  # last dimension -512
-                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
-                                                   name='critic_2'),
-                        ])
+                        if batch_normalize:
+                            self.conv_seq = tf.keras.Sequential([
+                                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                       input_shape=(320, 320, 256 + 256), name='critic_1'),
+                                tf.keras.layers.BatchNormalization(axis=-1, name='critic_normalize'),
+                                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                       input_shape=(320, 320, 256),
+                                                       name='critic_2'),
+                            ])
+                        else:
+                            if batch_normalize:
+                                self.conv_seq = tf.keras.Sequential([
+                                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                           input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                                    tf.keras.layers.BatchNormalization(axis=-1, name='critic_normalize'),
+                                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                           input_shape=(320, 320, 256),
+                                                           name='critic_2'),
+                                ])
+                            else:
+                                self.conv_seq = tf.keras.Sequential([
+                                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                           input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                           input_shape=(320, 320, 256),
+                                                           name='critic_2'),
+                                ])
                     else:
                         self.conv_seq = tf.keras.Sequential([
                             tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
@@ -97,29 +122,50 @@ class Critic_MLP:
         else:
             if self.unet:
                 if depth == 1:
-                    in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_')
+                    in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='critic_s0_d1_',
+                                                       include_batchnorm=batch_normalize, include_layernorm=layer_normalize)
                 elif depth == 2:
-                    in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_')
+                    in0, out0, global_feat = UNet61_8s(input_shape, 256, prefix='critic_s0_d2_',
+                                                       include_batchnorm=batch_normalize, include_layernorm=layer_normalize)
                 elif depth == 3:
-                    in0, out0, global_feat = UNet47_8s(input_shape, 256, prefix='critic_s0_d3_')
+                    in0, out0, global_feat = UNet47_8s(input_shape, 256, prefix='critic_s0_d3_',
+                                                       include_batchnorm=batch_normalize, include_layernorm=layer_normalize)
                 self.model = tf.keras.Model(inputs=[in0], outputs=[out0, global_feat])
                 if self.without_global:
-                    self.conv_seq = tf.keras.Sequential([
-                        tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                               input_shape=(320, 320, 256 + 256), name='critic_1'),
-                        # last dimension -512
-                        tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
-                                               name='critic_2'),
-                    ])
+                    if batch_normalize:
+                        self.conv_seq = tf.keras.Sequential([
+                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                   input_shape=(320, 320, 256 + 256), name='critic_1'),
+                            tf.keras.layers.BatchNormalization(axis=-1, name='critic_normalize'),
+                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
+                                                   name='critic_2'),
+                        ])
+                    else:
+                        self.conv_seq = tf.keras.Sequential([
+                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                   input_shape=(320, 320, 256 + 256), name='critic_1'),
+                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
+                                                   name='critic_2'),
+                        ])
                 else:
-                    self.conv_seq = tf.keras.Sequential([
-                        tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                               input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
-                        tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
-                                               name='critic_2'),
-                    ])
+                    if batch_normalize:
+                        self.conv_seq = tf.keras.Sequential([
+                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                   input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                            tf.keras.layers.BatchNormalization(axis=-1, name='critic_normalize'),
+                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
+                                                   name='critic_2'),
+                        ])
+                    else:
+                        self.conv_seq = tf.keras.Sequential([
+                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                   input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
+                                                   name='critic_2'),
+                        ])
             else:
-                in0, out0 = ResNet43_8s(input_shape, 256, prefix='s0_d1_')
+                in0, out0 = ResNet43_8s(input_shape, 256, prefix='s0_d1_',
+                                        include_batchnorm=batch_normalize, include_layernorm=layer_normalize)
                 self.model = tf.keras.Model(inputs=[in0], outputs=[out0])
                 self.conv_seq = tf.keras.Sequential([
                     tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
@@ -191,12 +237,12 @@ class Critic_MLP:
         batch_len = len(in_img_batch)
         in_tensor_batch = []
         for i in range(batch_len):
-            input_data = self.preprocess(in_img_batch[i])                     # (384,224,6)
+            input_data = self.preprocess(in_img_batch[i])                     # (320,320,4)
             input_shape = (1,) + input_data.shape
-            input_data = input_data.reshape(input_shape)                    # (1,384,224,6)
-            in_tensor = tf.convert_to_tensor(input_data, dtype=tf.float32)  # (1,384,224,6)
+            input_data = input_data.reshape(input_shape)                    # (1,320,320,4)
+            in_tensor = tf.convert_to_tensor(input_data, dtype=tf.float32)  # (1,320,320,4)
             in_tensor_batch.append(in_tensor)
-        in_tensor = tf.concat(in_tensor_batch, axis=0)                      # (batch,384,224,6)
+        in_tensor = tf.concat(in_tensor_batch, axis=0)                      # (batch,320,320,4)
 
         # Pass `in_tensor` twice, get crop from `kernel_before_crop` (not `input_data`).
         if self.unet:

@@ -34,7 +34,16 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            env.set_state(env.goal_state[0])
+            if args.shape == 'S':
+                env.set_state(env.goal_state[0])
+            elif args.shape == 'O':
+                env.set_state(env.goal_state[1])
+            elif args.shape == 'M':
+                env.set_state(env.goal_state[2])
+            elif args.shape == 'C':
+                env.set_state(env.goal_state[3])
+            elif args.shape == 'U':
+                env.set_state(env.goal_state[4])
             full_distance = -env.compute_reward()
         pyflex.step()
 
@@ -47,9 +56,9 @@ def run_jobs(process_id, args, env_kwargs):
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
             # print(np.min(prev_depth), np.max(prev_depth))
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            mask = np.where(prev_depth > 0.8, 0.0, 255.)
+            mask = np.where(prev_obs == (0, 255, 255), (255, 255, 255), (0, 0, 0))
             # print(mask.shape)
-            # cv2.imwrite(f'./visual/test-mask.jpg', mask)
+            cv2.imwrite(f'./visual/test-mask-{step_i}.jpg', mask)
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
@@ -78,30 +87,22 @@ def run_jobs(process_id, args, env_kwargs):
                 action[1] = v1
 
             elif args.env_name == 'RopeConfiguration':
-                if step_i == 0:
-                    indexs = np.transpose(np.nonzero(mask[:, :, 0]))
-                    corner_id = random.randint(0, 3)
-                    # print(corner_id)
-                    top, left = indexs.min(axis=0)
-                    bottom, right = indexs.max(axis=0)
+                indexs = np.transpose(np.nonzero(mask[:, :, 0]))
+                if (len(indexs) == 0):
+                    break
+                index = random.choice(indexs)
+                u1 = (index[1]) * 2.0 / env.camera_height - 1
+                v1 = (index[0]) * 2.0 / env.camera_height - 1
 
-                    corners = [[top, left],
-                               [top, right],
-                               [bottom, right],
-                               [bottom, left]]
-                    u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
-                    v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
-                else:
-                    indexs = np.transpose(np.nonzero(mask[:, :, 0]))
-                    index = random.choice(indexs)
-                    u1 = (index[1]) * 2.0 / env.camera_height - 1
-                    v1 = (index[0]) * 2.0 / env.camera_height - 1
-
-                u2 = random.uniform(-0.5, 0.5)
-                v2 = random.uniform(-0.5, 0.5)
+                bound = (step_i + 1) * 0.2
+                u2 = random.uniform(-bound, bound)
+                v2 = random.uniform(-bound, bound)
                 action = np.array([u1, v1, u2, v2])
 
             _, _, _, info = env.step(action, record_continuous_video=args.render, img_size=args.img_size)
+            if env.action_tool.not_on_cloth:
+                print(f'{step_i} not on cloth')
+            env.action_tool.hide()
 
         if args.env_name == 'ClothFlatten':
             crump_area = env._get_current_covered_area(pyflex.get_positions())
@@ -247,7 +248,10 @@ def run_jobs(process_id, args, env_kwargs):
             else:
                 if_save = max_recover - 0.15 >= crump_percent or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
-            if_save = (min_distance <= 0.055 and crump_distance - 0.01 >= min_distance) or another_pick == 0
+            if args.step == 1:
+                if_save = (min_distance < 0.055 and crump_distance - 0.01 >= min_distance) or another_pick == 0
+            else:
+                if_save = min_distance <= 0.065 and crump_distance - 0.03 >= min_distance or another_pick == 0
 
         if if_save:
             data = {}
@@ -298,6 +302,7 @@ def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
     # ['PassWater', 'PourWater', 'PourWaterAmount', 'RopeFlatten', 'ClothFold', 'ClothFlatten', 'ClothDrop', 'ClothFoldCrumpled', 'ClothFoldDrop', 'RopeConfiguration']
     parser.add_argument('--env_name', type=str, default='ClothDrop')
+    parser.add_argument('--shape', type=str, default='S')
     parser.add_argument('--path', type=str, default='./data/')
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
