@@ -86,29 +86,50 @@ class Critic_MLP:
                                                        input_shape=(320, 320, 256),
                                                        name='critic_2'),
                             ])
+                        elif layer_normalize:
+                            self.conv_seq = tf.keras.Sequential([
+                                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                       input_shape=(320, 320, 256 + 256), name='critic_1'),
+                                tf.keras.layers.LayerNormalization(axis=-1, name='critic_normalize'),
+                                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                       input_shape=(320, 320, 256),
+                                                       name='critic_2'),
+                            ])
                         else:
-                            if batch_normalize:
-                                self.conv_seq = tf.keras.Sequential([
-                                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                                           input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
-                                    tf.keras.layers.BatchNormalization(axis=-1, name='critic_normalize'),
-                                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
-                                                           input_shape=(320, 320, 256),
-                                                           name='critic_2'),
-                                ])
-                            else:
-                                self.conv_seq = tf.keras.Sequential([
-                                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                                           input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
-                                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
-                                                           input_shape=(320, 320, 256),
-                                                           name='critic_2'),
-                                ])
+                            self.conv_seq = tf.keras.Sequential([
+                                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                       input_shape=(320, 320, 256 + 256), name='critic_1'),
+                                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                       input_shape=(320, 320, 256),
+                                                       name='critic_2'),
+                            ])
                     else:
-                        self.conv_seq = tf.keras.Sequential([
-                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu', input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
-                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256), name='critic_2'),
-                        ])
+                        if batch_normalize:
+                            self.conv_seq = tf.keras.Sequential([
+                                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                       input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                                tf.keras.layers.BatchNormalization(axis=-1, name='critic_normalize'),
+                                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                       input_shape=(320, 320, 256),
+                                                       name='critic_2'),
+                            ])
+                        elif layer_normalize:
+                            self.conv_seq = tf.keras.Sequential([
+                                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                       input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                                tf.keras.layers.LayerNormalization(axis=-1, name='critic_normalize'),
+                                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                       input_shape=(320, 320, 256),
+                                                       name='critic_2'),
+                            ])
+                        else:
+                            self.conv_seq = tf.keras.Sequential([
+                                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                       input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1,
+                                                       input_shape=(320, 320, 256),
+                                                       name='critic_2'),
+                            ])
                 else:
                     in0, out0 = ResNet43_8s(input_shape, 256, prefix='s0_d1_')
                     self.model = tf.keras.Model(inputs=[in0], outputs=[out0])
@@ -140,6 +161,14 @@ class Critic_MLP:
                             tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
                                                    name='critic_2'),
                         ])
+                    elif layer_normalize:
+                        self.conv_seq = tf.keras.Sequential([
+                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                   input_shape=(320, 320, 256 + 256), name='critic_1'),
+                            tf.keras.layers.LayerNormalization(axis=-1, name='critic_normalize'),
+                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
+                                                   name='critic_2'),
+                        ])
                     else:
                         self.conv_seq = tf.keras.Sequential([
                             tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
@@ -153,6 +182,14 @@ class Critic_MLP:
                             tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
                                                    input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
                             tf.keras.layers.BatchNormalization(axis=-1, name='critic_normalize'),
+                            tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
+                                                   name='critic_2'),
+                        ])
+                    elif layer_normalize:
+                        self.conv_seq = tf.keras.Sequential([
+                            tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                                   input_shape=(320, 320, 256 + 256 + 512), name='critic_1'),
+                            tf.keras.layers.LayerNormalization(axis=-1, name='critic_normalize'),
                             tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256),
                                                    name='critic_2'),
                         ])

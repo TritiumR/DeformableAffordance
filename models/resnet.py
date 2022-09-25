@@ -16,7 +16,8 @@ if not tf.executing_eagerly():
     tf.compat.v1.enable_eager_execution()
 
 
-def identity_block(input_tensor, kernel_size, filters, stage, block, activation=True, include_batchnorm=False, short_cut=True):
+def identity_block(input_tensor, kernel_size, filters, stage, block, activation=True, include_batchnorm=False,
+                   include_layernorm=False, short_cut=True):
     """The identity block is the block that has no conv layer at shortcut.
 
     # Arguments
@@ -31,7 +32,7 @@ def identity_block(input_tensor, kernel_size, filters, stage, block, activation=
         Output tensor for the block.
     """
     filters1, filters2, filters3 = filters
-    batchnorm_axis = -1
+    norm_axis = -1
     conv_name_base = 'res' + str(stage) + block + '_branch'
     bn_name_base = 'bn' + str(stage) + block + '_branch'
 
@@ -40,7 +41,10 @@ def identity_block(input_tensor, kernel_size, filters, stage, block, activation=
                                kernel_initializer='glorot_uniform',
                                name=conv_name_base + '2a')(input_tensor)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=bn_name_base + '2a')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=bn_name_base + '2a')(x)
+    elif include_layernorm:
+        x = tf.keras.layers.LayerNormalization(axis=norm_axis, name=bn_name_base + '2aa')(x)
+
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(filters2, kernel_size,
@@ -49,7 +53,9 @@ def identity_block(input_tensor, kernel_size, filters, stage, block, activation=
                                kernel_initializer='glorot_uniform',
                                name=conv_name_base + '2b')(x)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=bn_name_base + '2b')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=bn_name_base + '2b')(x)
+    elif include_layernorm:
+        x = tf.keras.layers.LayerNormalization(axis=norm_axis, name=bn_name_base + '2bb')(x)
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(filters3, (1, 1),
@@ -57,7 +63,9 @@ def identity_block(input_tensor, kernel_size, filters, stage, block, activation=
                                kernel_initializer='glorot_uniform',
                                name=conv_name_base + '2c')(x)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=bn_name_base + '2c')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=bn_name_base + '2c')(x)
+    elif include_layernorm:
+        x = tf.keras.layers.LayerNormalization(axis=norm_axis, name=bn_name_base + '2cc')(x)
 
     if short_cut:
         x = tf.keras.layers.add([x, input_tensor])
@@ -67,7 +75,8 @@ def identity_block(input_tensor, kernel_size, filters, stage, block, activation=
     return x
 
 
-def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2), activation=True, include_batchnorm=False, short_cut=True):
+def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2), activation=True,
+               include_batchnorm=False, include_layernorm=False, short_cut=True):
     """A block that has a conv layer at shortcut.
 
     # Arguments
@@ -87,7 +96,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),
     And the shortcut should have strides=(2, 2) as well
     """
     filters1, filters2, filters3 = filters
-    batchnorm_axis = -1
+    norm_axis = -1
     conv_name_base = 'res' + str(stage) + block + '_branch'
     bn_name_base = 'bn' + str(stage) + block + '_branch'
 
@@ -96,7 +105,10 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),
                                kernel_initializer='glorot_uniform',
                                name=conv_name_base + '2a')(input_tensor)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=bn_name_base + '2a')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=bn_name_base + '2a')(x)
+    elif include_layernorm:
+        x = tf.keras.layers.LayerNormalization(axis=norm_axis, name=bn_name_base + '2aa')(x)
+
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(filters2, kernel_size, padding='same',
@@ -104,7 +116,10 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),
                                kernel_initializer='glorot_uniform',
                                name=conv_name_base + '2b')(x)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=bn_name_base + '2b')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=bn_name_base + '2b')(x)
+    elif include_layernorm:
+        x = tf.keras.layers.LayerNormalization(axis=norm_axis, name=bn_name_base + '2bb')(x)
+
     x = tf.keras.layers.ReLU()(x)
 
     x = tf.keras.layers.Conv2D(filters3, (1, 1),
@@ -112,7 +127,9 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),
                                dilation_rate=(1, 1),
                                name=conv_name_base + '2c')(x)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=bn_name_base + '2c')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=bn_name_base + '2c')(x)
+    elif include_layernorm:
+        x = tf.keras.layers.LayerNormalization(axis=norm_axis, name=bn_name_base + '2cc')(x)
 
     if short_cut:
         shortcut = tf.keras.layers.Conv2D(filters3, (1, 1), strides=strides,
@@ -120,7 +137,9 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),
                                           kernel_initializer='glorot_uniform',
                                           name=conv_name_base + '1')(input_tensor)
         if include_batchnorm:
-            shortcut = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=bn_name_base + '1')(shortcut)
+            shortcut = tf.keras.layers.BatchNormalization(axis=norm_axis, name=bn_name_base + '1')(shortcut)
+        elif include_layernorm:
+            shortcut = tf.keras.layers.LayerNormalization(axis=norm_axis, name=bn_name_base + '1')(shortcut)
 
         x = tf.keras.layers.add([x, shortcut])
 
@@ -129,7 +148,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),
     return x
 
 
-def ResNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-1, prefix='', cutoff_early=False):
+def ResNet43_8s(input_shape, output_dim, include_batchnorm=False, include_layernorm=False, norm_axis=-1, prefix='', cutoff_early=False):
     """produces an hourglass FCN network, adapted to CoRL submission size.
 
     Regarding shapes, look at: https://www.tensorflow.org/api_docs/python/tf/keras/Input [excludes batch size]
@@ -186,38 +205,38 @@ def ResNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis
 
     x = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), padding='same', kernel_initializer='glorot_uniform', name=prefix + 'conv1')(input_data)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=prefix + 'bn_conv1')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=prefix + 'bn_conv1')(x)
     x = tf.keras.layers.ReLU()(x)
 
     if cutoff_early:
-        x = conv_block(x, 5, [64, 64, output_dim], stage=2, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-        x = identity_block(x, 5, [64, 64, output_dim], stage=2, block=prefix + 'b', include_batchnorm=include_batchnorm)
+        x = conv_block(x, 5, [64, 64, output_dim], stage=2, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+        x = identity_block(x, 5, [64, 64, output_dim], stage=2, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
         return input_data, x
 
-    x = conv_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
 
-    x = conv_block(x, 3, [128, 128, 128], stage=3, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [128, 128, 128], stage=3, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [128, 128, 128], stage=3, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [128, 128, 128], stage=3, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
 
-    x = conv_block(x, 3, [256, 256, 256], stage=4, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [256, 256, 256], stage=4, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [256, 256, 256], stage=4, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [256, 256, 256], stage=4, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
 
-    x = conv_block(x, 3, [512, 512, 512], stage=5, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [512, 512, 512], stage=5, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [512, 512, 512], stage=5, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [512, 512, 512], stage=5, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
 
-    x = conv_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_1')(x)
 
-    x = conv_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_2')(x)
 
-    x = conv_block(x, 3, [64, 64, 64], stage=8, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [64, 64, 64], stage=8, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [64, 64, 64], stage=8, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [64, 64, 64], stage=8, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_3')(x)
 
@@ -227,7 +246,7 @@ def ResNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis
     return input_data, output
 
 
-def UNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-1, prefix='', cutoff_early=False):
+def UNet43_8s(input_shape, output_dim, include_batchnorm=False, include_layernorm=False, norm_axis=-1, prefix='', cutoff_early=False):
     """produces an hourglass FCN network, adapted to CoRL submission size.
 
     Regarding shapes, look at: https://www.tensorflow.org/api_docs/python/tf/keras/Input [excludes batch size]
@@ -285,28 +304,28 @@ def UNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
 
     x = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), padding='same', kernel_initializer='glorot_uniform', name=prefix + 'conv1')(input_data)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=prefix + 'bn_conv1')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=prefix + 'bn_conv1')(x)
     x = tf.keras.layers.ReLU()(x)
     print(x.shape)
 
-    x = conv_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x_320_160_64 = identity_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x_320_160_64 = identity_block(x, 3, [64, 64, 64], stage=2, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
-    x = conv_block(x_320_160_64, 3, [128, 128, 128], stage=3, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm)
-    x_160_80_128 = identity_block(x, 3, [128, 128, 128], stage=3, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x_320_160_64, 3, [128, 128, 128], stage=3, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x_160_80_128 = identity_block(x, 3, [128, 128, 128], stage=3, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
-    x = conv_block(x_160_80_128, 3, [256, 256, 256], stage=4, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm)
-    x_80_40_256 = identity_block(x, 3, [256, 256, 256], stage=4, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x_160_80_128, 3, [256, 256, 256], stage=4, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x_80_40_256 = identity_block(x, 3, [256, 256, 256], stage=4, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x_80_40_256.shape)
 
-    x = conv_block(x_80_40_256, 3, [512, 512, 512], stage=5, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [512, 512, 512], stage=5, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x_80_40_256, 3, [512, 512, 512], stage=5, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [512, 512, 512], stage=5, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
-    x = conv_block(x, 3, [512, 512, 512], stage=17, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [512, 512, 512], stage=17, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [512, 512, 512], stage=17, block=prefix + 'a', strides=(2, 2), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [512, 512, 512], stage=17, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
     global_feat = tf.nn.avg_pool(x, ksize=(1, 20, 20, 1), strides=(1, 1, 1, 1), padding="VALID", data_format="NHWC")
@@ -314,8 +333,8 @@ def UNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_0')(x)
     print(x.shape)
 
-    x = conv_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [256, 256, 256], stage=6, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_1')(x)
@@ -323,8 +342,8 @@ def UNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
 
     x = tf.concat([x, x_80_40_256], axis=-1)
 
-    x = conv_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [128, 128, 128], stage=7, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_2')(x)
@@ -332,8 +351,8 @@ def UNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
 
     x = tf.concat([x, x_160_80_128], axis=-1)
 
-    x = conv_block(x, 3, [256, 256, 256], stage=8, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm)
-    x = identity_block(x, 3, [256, 256, 256], stage=8, block=prefix + 'b', include_batchnorm=include_batchnorm)
+    x = conv_block(x, 3, [256, 256, 256], stage=8, block=prefix + 'a', strides=(1, 1), include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
+    x = identity_block(x, 3, [256, 256, 256], stage=8, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_3')(x)
@@ -347,7 +366,7 @@ def UNet43_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
     return input_data, output, global_feat
 
 
-def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-1, prefix=''):
+def UNet61_8s(input_shape, output_dim, include_batchnorm=False, include_layernorm=False, norm_axis=-1, prefix=''):
     """produces an hourglass FCN network, adapted to CoRL submission size.
 
     Regarding shapes, look at: https://www.tensorflow.org/api_docs/python/tf/keras/Input [excludes batch size]
@@ -405,7 +424,7 @@ def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
 
     x = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), padding='same', kernel_initializer='glorot_uniform', name=prefix + 'conv1')(input_data)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=prefix + 'bn_conv1')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=prefix + 'bn_conv1')(x)
     x = tf.keras.layers.ReLU()(x)
     print(x.shape)
 
@@ -479,7 +498,7 @@ def UNet61_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
     return input_data, output, global_feat
 
 
-def UNet47_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-1, prefix=''):
+def UNet47_8s(input_shape, output_dim, include_batchnorm=False, include_layernorm=False, norm_axis=-1, prefix=''):
     """produces an hourglass FCN network, adapted to CoRL submission size.
 
     Regarding shapes, look at: https://www.tensorflow.org/api_docs/python/tf/keras/Input [excludes batch size]
@@ -537,7 +556,7 @@ def UNet47_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
 
     x = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), padding='same', kernel_initializer='glorot_uniform', name=prefix + 'conv1')(input_data)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=prefix + 'bn_conv1')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=prefix + 'bn_conv1')(x)
     x = tf.keras.layers.ReLU()(x)
     print(x.shape)
 
@@ -606,7 +625,7 @@ def UNet47_8s(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-
     return input_data, output, global_feat
 
 
-def UNet43_8s_aff(input_shape, output_dim, include_batchnorm=False, batchnorm_axis=-1, prefix='', cutoff_early=False):
+def UNet43_8s_aff(input_shape, output_dim, include_batchnorm=False, include_layernorm=False, norm_axis=-1, prefix='', cutoff_early=False):
     """produces an hourglass FCN network, adapted to CoRL submission size.
 
     Regarding shapes, look at: https://www.tensorflow.org/api_docs/python/tf/keras/Input [excludes batch size]
@@ -664,7 +683,7 @@ def UNet43_8s_aff(input_shape, output_dim, include_batchnorm=False, batchnorm_ax
 
     x = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), padding='same', kernel_initializer='glorot_uniform', name=prefix + 'conv1')(input_data)
     if include_batchnorm:
-        x = tf.keras.layers.BatchNormalization(axis=batchnorm_axis, name=prefix + 'bn_conv1')(x)
+        x = tf.keras.layers.BatchNormalization(axis=norm_axis, name=prefix + 'bn_conv1')(x)
     x = tf.keras.layers.ReLU()(x)
     print(x.shape)
 

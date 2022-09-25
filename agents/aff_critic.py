@@ -237,25 +237,10 @@ class AffCritic:
                 print("no perturb")
 
             # Compute Transport training loss.
-            if self.out_logits == 1:
-                loss1 = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=False)
-                with writer.as_default():
-                    tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
-                print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss1:.4f}')
-            else:
-                if batch == 1:
-                    loss1, loss_max_dis, loss_avg_dis, loss_cvx = self.critic_model.train_phy(
-                        input_image_batch[0], p0_batch[0], p1_list_batch[0], distance_batch[0], nxt_distances_batch[0],
-                        cvx_batch[0], nxt_cvx_batch[0], ep_batch[0], ep_len_batch[0])
-                else:
-                    loss1, loss_max_dis, loss_avg_dis, loss_cvx = self.critic_model.train_phy_batch(input_batch, p0_batch, p1_list_batch, distance_batch, nxt_distances_batch, cvx_batch, nxt_cvx_batch, ep_batch, ep_len_batch, False, self.task)
-                with writer.as_default():
-                    tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
-                    tf.summary.scalar('max_dis_loss', float(loss_max_dis), step=self.total_iter+i)
-                    tf.summary.scalar('avg_dis_loss', float(loss_avg_dis), step=self.total_iter+i)
-                    tf.summary.scalar('cvx_loss', float(loss_cvx), step=self.total_iter+i)
-
-                print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss1:.4f} Max_Dis Loss: {loss_max_dis:.4f} Avg_Dis Loss: {loss_avg_dis:.4f} CVX Loss: {loss_cvx:.4f}')
+            loss = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=False)
+            with writer.as_default():
+                tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
+            print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss:.4f}')
 
         self.total_iter += num_iter
         self.save_critic()
@@ -585,11 +570,24 @@ class AffCritic:
         print("mean: ", self.obs_mean)
         print("std: ", self.obs_std)
 
+        self.save_mean_std()
+
     def preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
         for d in range(self.input_shape[2]):
             image[:, :, d] = (image[:, :, d] / 255 - self.obs_mean[d]) / self.obs_std[d]
+        return image
+
+    def aff_preprocess(self, image_in):
+        image = copy.deepcopy(image_in)
+        """Pre-process images (subtract mean, divide by std)."""
+        color_mean = 0.18877631
+        depth_mean = 0.00509261
+        color_std = 0.07276466
+        depth_std = 0.00903967
+        image[:, :, :3] = (image[:, :, :3] / 255 - color_mean) / color_std
+        image[:, :, 3:] = (image[:, :, 3:] - depth_mean) / depth_std
         return image
 
     def load(self, num_iter):
@@ -618,6 +616,16 @@ class AffCritic:
         critic_fname = os.path.join(self.models_dir, critic_fname)
         self.attention_model.save(attention_fname)
         self.critic_model.save(critic_fname)
+
+    def save_mean_std(self):
+        """Save models."""
+        if not os.path.exists(self.models_dir):
+            os.makedirs(self.models_dir)
+        data = {}
+        data['mean'] = self.obs_mean
+        data['std'] = self.obs_std
+        fname = 'mean_std.pkl'
+        pickle.dump(data, open(os.path.join(self.models_dir, fname), 'wb'))
 
     def save_critic(self):
         """Save models."""
@@ -667,7 +675,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     turned to 36 for Andy's paper) and to crop to get kernels _before_ the query.
     """
 
-    def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
+    def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx', load_mean_std_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
                  learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, strategy=None):
         super().__init__(name, task, use_goal_image=use_goal_image, out_logits=out_logits,
@@ -675,7 +683,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                          strategy=strategy)
 
         self.attention_model = Affordance(input_shape=self.input_shape,
-                                          preprocess=self.preprocess,
+                                          preprocess=self.aff_preprocess,
                                           learning_rate=learning_rate,
                                           strategy=strategy
                                           )
@@ -690,7 +698,13 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        layer_normalize=layer_normalize,
                                        strategy=strategy
                                        )
-
+        if load_mean_std_dir != 'xxx':
+            fname = 'mean_std.pkl'
+            mean_std = pickle.load(open(os.path.join(load_mean_std_dir, fname), 'rb'))
+            self.mean = mean_std['mean']
+            self.std = mean_std['std']
+            print("mean: ", self.mean)
+            print('srd: ', self.std)
         if load_next_dir != 'xxx':
             self.next_model = Affordance(input_shape=self.input_shape,
                                          preprocess=self.preprocess,
