@@ -219,6 +219,7 @@ def run_jobs(process_id, args, env_kwargs):
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
+                                     load_mean_std_dir=args.load_mean_std_dir,
                                      out_logits=args.out_logits,
                                      without_global=args.without_global,
                                      expert_pick=args.expert_pick,
@@ -408,9 +409,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        visualize_aff_critic(crump_obs.copy(), agent, args)
+        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        # visualize_aff_critic(crump_obs.copy(), agent, args)
 
 
 def main():
@@ -435,6 +436,7 @@ def main():
     parser.add_argument('--suffix', default='')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
+    parser.add_argument('--load_mean_std_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
