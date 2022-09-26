@@ -332,11 +332,13 @@ class PickerQPG(PickerPickPlace):
         st_high = np.array([x, 0.2, z, 0])
         st = np.array([x, y, z, 0])
         en = st + np.array([dx, dy, dz, 1])
+        en_high = np.array([x + dx, 0.2, z + dz, 0])
         # print('st:', st)
         if self.full:
             self.total_steps += super().step(st_high)
             self.total_steps += super().step(st)
             self.total_steps += super().step(en)
+            self.total_steps += super().step(en_high)
             en[3] = 0  # Drop cloth
             # Unpick all particles
             _, particle_pos = self._get_pos()

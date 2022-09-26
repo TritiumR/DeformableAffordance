@@ -29,7 +29,7 @@ class ClothFlattenEnv(ClothEnv):
             config = deepcopy(default_config)
             self.update_camera(config['camera_name'], config['camera_params'][config['camera_name']])
             if vary_cloth_size:
-                cloth_dimx, cloth_dimy = 35, 35
+                cloth_dimx, cloth_dimy = 40, 40
                 config['ClothSize'] = [cloth_dimx, cloth_dimy]
             else:
                 cloth_dimx, cloth_dimy = config['ClothSize']

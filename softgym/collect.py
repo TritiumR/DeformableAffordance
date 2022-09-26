@@ -82,9 +82,9 @@ def run_jobs(process_id, args, env_kwargs):
                     u1 = (index[1]) * 2.0 / 720 - 1
                     v1 = (index[0]) * 2.0 / 720 - 1
 
-                action = env.action_space.sample()
-                action[0] = u1
-                action[1] = v1
+                u2 = random.uniform(-0.8, 0.8)
+                v2 = random.uniform(-0.8, 0.8)
+                action = np.array([u1, v1, u2, v2])
 
             elif args.env_name == 'RopeConfiguration':
                 indexs = np.transpose(np.nonzero(mask[:, :, 0]))
@@ -122,7 +122,7 @@ def run_jobs(process_id, args, env_kwargs):
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
-        crump_obs = cv2.resize(crump_obs, (320, 320), interpolation=cv2.INTER_AREA)
+        crump_obs = cv2.resize(crump_obs, (160, 160), interpolation=cv2.INTER_AREA)
 
         state_crump = env.get_state()
 
@@ -163,8 +163,6 @@ def run_jobs(process_id, args, env_kwargs):
             # take reverse action
             if id == 0:
                 reverse_action = np.array([action[2], action[3], action[0], action[1]])
-                reverse_action[2] = 0.4 * id - 1
-                reverse_action[3] = 0.2 * id - 0.5
                 # print("reverse_action", reverse_action)
                 action_data.append(reverse_action.copy())
                 _, _, _, info = env.step(reverse_action, record_continuous_video=args.render, img_size=args.img_size)
@@ -191,7 +189,7 @@ def run_jobs(process_id, args, env_kwargs):
                     curr_depth[curr_depth > 5] = 0
                     curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
                     curr_obs = np.concatenate([curr_obs, curr_depth], 2)
-                    curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
+                    curr_obs = cv2.resize(curr_obs, (160, 160), interpolation=cv2.INTER_AREA)
                     curr_data.append(curr_obs.copy())
 
             # take random action
@@ -199,8 +197,10 @@ def run_jobs(process_id, args, env_kwargs):
                 random_action = env.action_space.sample()
                 random_action[0] = reverse_action[0]
                 random_action[1] = reverse_action[1]
-                random_action[2] = 0.4 * id - 1
-                random_action[3] = 0.2 * id - 0.5
+                u2 = random.uniform(-0.8, 0.8)
+                v2 = random.uniform(-0.8, 0.8)
+                random_action[2] = u2
+                random_action[3] = v2
                 action_data.append(random_action.copy())
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
                 if args.env_name == 'RopeConfiguration':
@@ -221,7 +221,7 @@ def run_jobs(process_id, args, env_kwargs):
                     curr_depth[curr_depth > 5] = 0
                     curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
                     curr_obs = np.concatenate([curr_obs, curr_depth], 2)
-                    curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
+                    curr_obs = cv2.resize(curr_obs, (160, 160), interpolation=cv2.INTER_AREA)
                     curr_data.append(curr_obs.copy())
 
             # curr_obs, curr_depth = pyflex.render_cloth()
@@ -248,7 +248,7 @@ def run_jobs(process_id, args, env_kwargs):
 
         if args.env_name == 'ClothFlatten':
             if args.step == 1:
-                if_save = (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent) or another_pick == 0
+                if_save = (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent and crump_percent <= 0.8) or another_pick == 0
             else:
                 if_save = max_recover - 0.15 >= crump_percent or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
@@ -257,21 +257,20 @@ def run_jobs(process_id, args, env_kwargs):
             else:
                 if_save = min_distance <= 0.065 and crump_distance - 0.03 >= min_distance or another_pick == 0
 
-        if_save = True
         if if_save:
             data = {}
             data['obs'] = np.array(crump_obs).copy()
             data['curr_obs'] = curr_data
             # data['curr'] = np.array(curr_data).copy()
-            assert data['obs'].shape == (320, 320, 4)
+            assert data['obs'].shape == (160, 160, 4)
             data['area'] = metric_data
             data['action'] = action_data
             data['not_on_cloth'] = not_on_cloth_data
             dump(args.path, data, process_id, args.curr_data, data_id, args.data_num, args.step)
             data_id += 1
 
-        if args.save_video_dir is not None:
-            save_name = os.path.join(args.save_video_dir, args.env_name + f'{process_id}-{data_id}.gif')
+        if if_save and args.save_video_dir is not None:
+            save_name = os.path.join(args.save_video_dir, args.env_name + f'{process_id}-{data_id}-{args.step}.gif')
             save_numpy_as_gif(np.array(env.video_frames), save_name)
             print('Video generated and save to {}'.format(save_name))
         env.end_record()
