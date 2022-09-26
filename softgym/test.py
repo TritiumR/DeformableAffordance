@@ -343,13 +343,13 @@ def run_jobs(process_id, args, env_kwargs):
 
         state_crump = env.get_state()
 
-        reverse_p0 = (action[2], action[3])
-
         if args.expert_pick or args.critic_pick:
             reverse_p0_pixel = (int((action[3] + 1.) * 160), int((action[2] + 1.) * 160))
             action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
         else:
             action = agent.act(crump_obs.copy())
+
+        reverse_p0 = (action[0], action[1])
 
         _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
 
@@ -409,8 +409,8 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
         # visualize_aff_critic(crump_obs.copy(), agent, args)
 
 

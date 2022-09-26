@@ -43,7 +43,7 @@ class ClothEnv(FlexEnv):
             self.action_tool = PickAndPlace((self.camera_height, self.camera_height), cam_pos, cam_angle,
                                              picker_threshold=picker_threshold,
                                              num_picker=num_picker, particle_radius=particle_radius, env=self,
-                                             picker_low=(-1.0, 0., -1.0), picker_high=(1.0, 0.3, 1.0)
+                                             picker_low=(-0.5, 0., -0.5), picker_high=(0.5, 0.3, 0.5)
                                              )
             self.action_space = self.action_tool.action_space
         if observation_mode in ['key_point', 'point_cloud']:
@@ -101,11 +101,11 @@ class ClothEnv(FlexEnv):
         if self.action_mode in ['sawyer', 'franka']:
             cam_pos, cam_angle = np.array([0.0, 1.62576, 1.04091]), np.array([0.0, -0.844739, 0])
         else:
-            cam_pos, cam_angle = np.array([-0.0, 1.0, 0.0]), np.array([0, -90 / 180. * np.pi, 0.])
+            cam_pos, cam_angle = np.array([-0.0, 0.5, 0.0]), np.array([0, -90 / 180. * np.pi, 0.])
         config = {
             'ClothPos': [-1.6, 2.0, -0.8],
             'ClothSize': [int(0.6 / particle_radius), int(0.368 / particle_radius)],
-            'ClothStiff': [1.5, 1.5, 1.5],  # Stretch, Bend and Shear
+            'ClothStiff': [0.6, 1., 0.9],  # Stretch, Bend and Shear
             'camera_name': 'default_camera',
             'camera_params': {'default_camera':
                                   {'pos': cam_pos,
