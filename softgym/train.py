@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--task', type=str, default='cloth-flatten')
     parser.add_argument('--agent', default='aff_critic')
+    parser.add_argument('--image_size', default=320, type=int)
     parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--extra_num_demos', type=int, default=1, help='How many data do you need for training')
@@ -91,6 +92,7 @@ def main():
 
     agent = agents.names[args.agent](name,
                                      args.task,
+                                     image_size=args.image_size,
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
@@ -105,7 +107,7 @@ def main():
                                      strategy=strategy
                                      )
 
-    # agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"))
+    agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"))
 
     if args.model == 'critic':
         agent.train_critic(dataset, num_iter=1000, writer=train_summary_writer,

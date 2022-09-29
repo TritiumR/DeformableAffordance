@@ -250,7 +250,7 @@ def run_jobs(process_id, args, env_kwargs):
             if args.step == 1:
                 if_save = (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent and crump_percent <= 0.8) or another_pick == 0
             else:
-                if_save = max_recover - 0.15 >= crump_percent or another_pick == 0
+                if_save = (max_recover - 0.15 >= crump_percent and crump_percent <= 0.6) or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
             if args.step == 1:
                 if_save = (min_distance < 0.055 and crump_distance - 0.01 >= min_distance) or another_pick == 0

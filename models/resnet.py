@@ -328,7 +328,7 @@ def UNet43_8s(input_shape, output_dim, include_batchnorm=False, include_layernor
     x = identity_block(x, 3, [512, 512, 512], stage=17, block=prefix + 'b', include_batchnorm=include_batchnorm, include_layernorm=include_layernorm)
     print(x.shape)
 
-    global_feat = tf.nn.avg_pool(x, ksize=(1, 20, 20, 1), strides=(1, 1, 1, 1), padding="VALID", data_format="NHWC")
+    global_feat = tf.nn.avg_pool(x, ksize=(1, x.shape[1], x.shape[2], 1), strides=(1, 1, 1, 1), padding="VALID", data_format="NHWC")
 
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear', name=prefix + 'upsample_0')(x)
     print(x.shape)

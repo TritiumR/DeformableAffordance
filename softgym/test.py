@@ -278,13 +278,13 @@ def run_jobs(process_id, args, env_kwargs):
                                [top + 10, right],
                                [bottom + 10, right],
                                [bottom + 10, left]]
-                    u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
-                    v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+                    u1 = (corners[corner_id][1]) * 2.0 / 720 - 1
+                    v1 = (corners[corner_id][0]) * 2.0 / 720 - 1
                 else:
                     indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
                     index = random.choice(indexs)
-                    u1 = (index[1]) * 2.0 / env.camera_height - 1
-                    v1 = (index[0]) * 2.0 / env.camera_height - 1
+                    u1 = (index[1]) * 2.0 / 720 - 1
+                    v1 = (index[0]) * 2.0 / 720 - 1
 
                 action = env.action_space.sample()
                 action[0] = u1
@@ -302,13 +302,13 @@ def run_jobs(process_id, args, env_kwargs):
                                [top, right],
                                [bottom, right],
                                [bottom, left]]
-                    u1 = (corners[corner_id][1]) * 2.0 / env.camera_height - 1
-                    v1 = (corners[corner_id][0]) * 2.0 / env.camera_height - 1
+                    u1 = (corners[corner_id][1]) * 2.0 / 720 - 1
+                    v1 = (corners[corner_id][0]) * 2.0 / 720 - 1
                 else:
                     indexs = np.transpose(np.nonzero(mask[:, :, 0]))
                     index = random.choice(indexs)
-                    u1 = (index[1]) * 2.0 / env.camera_height - 1
-                    v1 = (index[0]) * 2.0 / env.camera_height - 1
+                    u1 = (index[1]) * 2.0 / 720 - 1
+                    v1 = (index[0]) * 2.0 / 720 - 1
 
                 u2 = random.uniform(-0.5, 0.5)
                 v2 = random.uniform(-0.5, 0.5)
@@ -396,8 +396,8 @@ def run_jobs(process_id, args, env_kwargs):
                         result = 'mid'
                 else:
                     result = 'fail'
-
-        env.action_tool.hide()
+        if args.env_name == 'RopeConfiguration':
+            env.action_tool.hide()
         if args.save_video_dir is not None:
             path_name = os.path.join(args.save_video_dir, name + args.exp_name)
             if not os.path.exists(path_name):
@@ -409,7 +409,7 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
         # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
         # visualize_aff_critic(crump_obs.copy(), agent, args)
 

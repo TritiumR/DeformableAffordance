@@ -24,17 +24,18 @@ import ipdb
 
 
 class AffCritic:
-    def __init__(self, name, task, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
+    def __init__(self, name, task, image_size=320, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
                  out_logits=1, step=1, strategy=None):
         """Creates Transporter agent with attention and transport modules."""
         self.name = name
         self.task = task
+        self.image_size = image_size
         self.step = step
         self.total_iter = 0
         if use_goal_image:
-            self.input_shape = (320, 320, 8)
+            self.input_shape = (image_size, image_size, 8)
         else:
-            self.input_shape = (320, 320, 4)
+            self.input_shape = (image_size, image_size, 4)
         self.models_dir = os.path.join('checkpoints', self.name + f'-step-{self.step}')
 
         self.expert_pick = expert_pick
@@ -135,8 +136,8 @@ class AffCritic:
             for p_i in range(a_len):
                 # sample_x = max(min(np.random.normal(loc=p0[0], scale=0.12), self.input_shape[0] - 1), 0)
                 # sample_y = max(min(np.random.normal(loc=p0[1], scale=0.12), self.input_shape[0] - 1), 0)
-                u = random.randint(0, 319)
-                v = random.randint(0, 319)
+                u = random.randint(0, self.image_size - 1)
+                v = random.randint(0, self.image_size - 1)
                 p_list.append((u, v))
 
             critic_map = self.critic_model.forward_with_plist(input_image.copy(), p_list)
@@ -675,15 +676,15 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     turned to 36 for Andy's paper) and to crop to get kernels _before_ the query.
     """
 
-    def __init__(self, name, task, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx', load_mean_std_dir='xxx',
+    def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx', load_mean_std_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
                  learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, strategy=None):
-        super().__init__(name, task, use_goal_image=use_goal_image, out_logits=out_logits,
+        super().__init__(name, task, image_size=image_size, use_goal_image=use_goal_image, out_logits=out_logits,
                          critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
                          strategy=strategy)
 
         self.attention_model = Affordance(input_shape=self.input_shape,
-                                          preprocess=self.aff_preprocess,
+                                          preprocess=self.preprocess,
                                           learning_rate=learning_rate,
                                           strategy=strategy
                                           )
@@ -705,6 +706,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
             self.std = mean_std['std']
             print("mean: ", self.mean)
             print('srd: ', self.std)
+
         if load_next_dir != 'xxx':
             self.next_model = Affordance(input_shape=self.input_shape,
                                          preprocess=self.preprocess,
