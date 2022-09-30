@@ -92,7 +92,7 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
     for i in range(16):
         for j in range(16):
             env.set_state(state_crump)
-            p0 = (i * 20, j * 20)
+            p0 = (i * 10, j * 10)
             action = agent.act(obs.copy(), p0=p0)
             _, _, _, _ = env.step(action, record_continuous_video=False, img_size=args.img_size)
             output = agent.critic_model.forward(obs.copy(), p0)

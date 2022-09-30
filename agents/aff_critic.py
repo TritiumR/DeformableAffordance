@@ -144,7 +144,7 @@ class AffCritic:
             critic_map = critic_map.numpy()
 
             p_len = len(p_list)
-            if self.task == 'colth-flatten':
+            if self.task == 'cloth-flatten':
                 aff_score = critic_map.max(axis=1).max(axis=1)
             elif self.task == 'rope-configuration':
                 aff_score = critic_map.min(axis=1).min(axis=1)
@@ -162,6 +162,7 @@ class AffCritic:
                     else:
                         loss = loss + tf.keras.losses.MAE(gt, output)
                 loss = tf.reduce_mean(loss)
+                loss = loss / p_len
             grad = tape.gradient(loss, self.attention_model.model.trainable_variables)
             self.attention_model.optim.apply_gradients(zip(grad, self.attention_model.model.trainable_variables))
             self.attention_model.metric(loss)

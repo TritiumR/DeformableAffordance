@@ -34,8 +34,8 @@ class Affordance:
                     in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
                     self.conv_seq = tf.keras.Sequential([
                         tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                               input_shape=(320, 320, 256 + 512)),
-                        tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256)),
+                                               input_shape=(input_shape[0], input_shape[1], 256 + 512)),
+                        tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(input_shape[0], input_shape[1], 256)),
                     ])
                     self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
                 else:
@@ -48,8 +48,8 @@ class Affordance:
                 in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
                 self.conv_seq = tf.keras.Sequential([
                     tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                           input_shape=(320, 320, 256 + 512)),
-                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(320, 320, 256)),
+                                           input_shape=(input_shape[0], input_shape[1], 256 + 512)),
+                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(input_shape[0], input_shape[1], 256)),
                 ])
                 self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
             else:
@@ -73,7 +73,7 @@ class Affordance:
 
         if self.unet:
             feat, global_feat = self.model([in_tensor])
-            global_feat = tf.tile(global_feat, [1, 320, 320, 1])
+            global_feat = tf.tile(global_feat, [1, feat.shape[1], feat.shape[2], 1])
             all_feat = tf.concat([feat, global_feat], axis=-1)
             logits = self.conv_seq(all_feat)
         else:
