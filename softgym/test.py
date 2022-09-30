@@ -72,12 +72,12 @@ def visualize_aff_critic(obs, agent, args):
 
     img_obs = obs[:, :, :3]
 
-    for u in range(max(0, p0_pixel[0] - 4), min(320, p0_pixel[0] + 4)):
-        for v in range(max(0, p0_pixel[1] - 4), min(320, p0_pixel[1] + 4)):
+    for u in range(max(0, p0_pixel[0] - 4), min(args.image_size, p0_pixel[0] + 4)):
+        for v in range(max(0, p0_pixel[1] - 4), min(args.image_size, p0_pixel[1] + 4)):
             img_obs[u][v] = (255, 0, 0)
 
-    for u in range(max(0, p1_pixel[0] - 4), min(320, p1_pixel[0] + 4)):
-        for v in range(max(0, p1_pixel[1] - 4), min(320, p1_pixel[1] + 4)):
+    for u in range(max(0, p1_pixel[0] - 4), min(args.image_size, p1_pixel[0] + 4)):
+        for v in range(max(0, p1_pixel[1] - 4), min(args.image_size, p1_pixel[1] + 4)):
             img_obs[u][v] = (255, 255, 255)
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
@@ -107,8 +107,8 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
                 gt_aff[i][j] = gt_distance
                 vis_aff[i][j] = np.min(critic_score)
 
-    vis_aff = cv2.resize(vis_aff, (320, 320))
-    gt_aff = cv2.resize(gt_aff, (320, 320))
+    vis_aff = cv2.resize(vis_aff, (args.image_size, args.image_size))
+    gt_aff = cv2.resize(gt_aff, (args.image_size, args.image_size))
 
     if args.env_name == 'ClothFlatten':
         score = int(np.max(vis_aff) * 2)
@@ -144,10 +144,10 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
 
 def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
     obs_img = obs[:, :, :3].copy()
-    p0_pixel = (int((p0[1] + 1.) * 160), int((p0[0] + 1.) * 160))
+    p0_pixel = (int((p0[1] + 1.) / 2 * args.image_size), int((p0[0] + 1.) / 2 * args.image_size))
 
-    for u in range(max(0, p0_pixel[0] - 2), min(320, p0_pixel[0] + 2)):
-        for v in range(max(0, p0_pixel[1] - 2), min(320, p0_pixel[1] + 2)):
+    for u in range(max(0, p0_pixel[0] - 2), min(args.image_size, p0_pixel[0] + 2)):
+        for v in range(max(0, p0_pixel[1] - 2), min(args.image_size, p0_pixel[1] + 2)):
             obs_img[u][v] = (255, 0, 0)
 
     gt_img = np.zeros((16, 16))
@@ -165,7 +165,7 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
                 gt_distance = env.compute_reward()
                 gt_img[i][j] = gt_distance * 100
 
-    gt_img = cv2.resize(gt_img, (320, 320))
+    gt_img = cv2.resize(gt_img, (args.image_size, args.image_size))
 
     output = agent.critic_model.forward(obs.copy(), p0_pixel)
     critic_score = output[:, :, :, 0]
@@ -195,10 +195,8 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
         vis_gt = 255 * vis_gt / np.max(vis_gt)
         vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
 
-
-
-    for u in range(max(0, p1_pixel[0] - 2), min(320, p1_pixel[0] + 2)):
-        for v in range(max(0, p1_pixel[1] - 2), min(320, p1_pixel[1] + 2)):
+    for u in range(max(0, p1_pixel[0] - 2), min(args.image_size, p1_pixel[0] + 2)):
+        for v in range(max(0, p1_pixel[1] - 2), min(args.image_size, p1_pixel[1] + 2)):
             obs_img[u][v] = (255, 255, 255)
 
     vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic), axis=1)
@@ -216,6 +214,7 @@ def run_jobs(process_id, args, env_kwargs):
 
     agent = agents.names[args.agent](name,
                                      args.task,
+                                     image_size=args.image_size,
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
@@ -339,12 +338,12 @@ def run_jobs(process_id, args, env_kwargs):
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
-        crump_obs = cv2.resize(crump_obs, (320, 320), interpolation=cv2.INTER_AREA)
+        crump_obs = cv2.resize(crump_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
 
         state_crump = env.get_state()
 
         if args.expert_pick or args.critic_pick:
-            reverse_p0_pixel = (int((action[3] + 1.) * 160), int((action[2] + 1.) * 160))
+            reverse_p0_pixel = (int((action[3] + 1.) / 2 * args.image_size), int((action[2] + 1.) / 2 * args.image_size))
             action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
         else:
             action = agent.act(crump_obs.copy())
@@ -419,6 +418,7 @@ def main():
     # ['PassWater', 'PourWater', 'PourWaterAmount', 'RopeFlatten', 'ClothFold', 'ClothFlatten', 'ClothDrop', 'ClothFoldCrumpled', 'ClothFoldDrop', 'RopeConfiguration']
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--img_size', type=int, default=720, help='Size of the recorded videos')
+    parser.add_argument('--image_size', type=int, default=320, help='Size of input observation')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
