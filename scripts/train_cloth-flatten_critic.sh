@@ -1,19 +1,21 @@
-CUDA_VISIBLE_DEVICES=0 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=4 python ./softgym/train.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
-  --num_demos 6000 \
+  --num_demos 10000 \
   --num_iters 300000 \
   --out_logits 1 \
-  --step 1 \
+  --step 2 \
   --demo_times 10 \
-  --exp_name 0928-04-trynine \
-  --suffix trynine-step1 \
-  --max_load 2000 \
+  --exp_name 1001-08-trynine-only_gt \
+  --suffix trynine-step2 \
+  --max_load 3000 \
   --batch 20 \
   --critic_depth 1 \
-  --learning_rate 1e-3 \
+  --learning_rate 5e-4 \
   --model critic \
   --image_size 160 \
-  --batch_normalize \
+  --only_gt \
+  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-6000-0930-06-trynine-aff-step-1/attention-ckpt-200000.h5 \
+  --load_aff_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-6000-0930-06-trynine-aff-step-1/
 

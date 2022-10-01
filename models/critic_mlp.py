@@ -230,45 +230,25 @@ class Critic_MLP:
 
         return output
 
-    def forward_aff_gt(self, in_img, p0):
-        """Forward pass.
-
-            in_img: (320,160,6)
-            p: integer pixels on in_img, e.g., [158, 30]
-            self.padding: [[32,32],[32,32],0,0]], with shape (3,2)
-
-        How does the cross-convolution work? We get the output from BOTH
-        streams of the network. Then, the output for one stream is the set of
-        convolutional kernels for the other. Call tf.nn.convolution. That's
-        it, and the entire operation is differentiable, so that gradients
-        will apply to both of the two Transport FCN streams.
-        """
-        # ipdb.set_trace()
-        input_data = self.preprocess(in_img)                        # (384,224,6)
-        input_shape = (1,) + input_data.shape
-        input_data = input_data.reshape(input_shape)                    # (1,384,224,6)
-        in_tensor = tf.convert_to_tensor(input_data, dtype=tf.float32)  # (1,384,224,6)
-
-        # Pass `in_tensor` twice, get crop from `kernel_before_crop` (not `input_data`).
-        if self.unet:
-            feat, global_feat = self.model([in_tensor])
-            global_feat = tf.tile(global_feat, [1, feat.shape[1], feat.shape[2], 1])
-            select_feat = feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :]
-            select_feat = tf.tile(select_feat, [1, feat.shape[1], feat.shape[2], 1])
-            # ipdb.set_trace()
-            # print(f'input img {in_img.shape} feat {in_img.shape} select_feat {select_feat.shape} p0 {p0}')
-            all_feat = tf.concat([feat, select_feat, global_feat], axis=-1)
-        else:
-            feat = self.model([in_tensor])
-            select_feat = feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :]
-            select_feat = tf.tile(select_feat, [1, feat.shape[1], feat.shape[2], 1])
+    def forward_with_plist(self, in_img, plist):
+        len_p = len(plist)
+        feat, global_feat = self.forward_with_feat(in_img)
+        global_feat = tf.tile(global_feat, [len_p, feat.shape[1], feat.shape[2], 1])
+        select_feat_list = []
+        for idx_p0 in range(len_p):
+            p0 = plist[idx_p0]
+            select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, feat.shape[1], feat.shape[2], 1])
+            select_feat_list.append(select_feat)
+        select_feat = tf.concat(select_feat_list, axis=0)
+        feat = tf.tile(feat, [len_p, 1, 1, 1])
+        if self.without_global:
             all_feat = tf.concat([feat, select_feat], axis=-1)
+        else:
+            all_feat = tf.concat([feat, select_feat, global_feat], axis=-1)
+
         output = self.conv_seq(all_feat)
 
-        max_dis, avg_dis, convex = output[:, :, :, 0], output[:, :, :, 1], output[:, :, :, 2]
-        critic_score = convex * self.cvx_weight - max_dis * self.max_weight - avg_dis * self.avg_weight
-
-        return critic_score
+        return output
 
     def forward_with_feat(self, in_img):
         # ipdb.set_trace()

@@ -147,7 +147,7 @@ class Picker(ActionToolBase):
                     if idx_dists.shape[0] > 0:
                         pick_id, pick_dist = None, None
                         # print("num_pick: ", idx_dists.shape[0])
-                        for j in range(idx_dists.shape[0]):
+                        for j in range(1):
                             if idx_dists[j, 0] not in self.picked_particles and (pick_id is None or idx_dists[j, 1] < pick_dist):
                                 pick_id = idx_dists[j, 0]
                                 pick_dist = idx_dists[j, 1]

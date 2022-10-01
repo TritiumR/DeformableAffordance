@@ -81,6 +81,32 @@ class Affordance:
 
         return logits
 
+    def forward_batch(self, in_img_batch, apply_softmax=True):
+        """Forward pass.
+
+        in_img.shape: (160, 160, 4)
+        input_data.shape: (160, 160, 4), then (None, 320, 320, 6)
+        """
+        batch_len = len(in_img_batch)
+        in_tensor_batch = []
+        for i in range(batch_len):
+            input_data = self.preprocess(in_img_batch[i])  # (160,160,4)
+            input_shape = (1,) + input_data.shape
+            input_data = input_data.reshape(input_shape)  # (1,160,160,4)
+            in_tensor = tf.convert_to_tensor(input_data, dtype=tf.float32)  # (1,160,160,4)
+            in_tensor_batch.append(in_tensor)
+        in_tensor = tf.concat(in_tensor_batch, axis=0)  # (batch,160,160,4)
+
+        if self.unet:
+            feat, global_feat = self.model([in_tensor])
+            global_feat = tf.tile(global_feat, [1, feat.shape[1], feat.shape[2], 1])
+            all_feat = tf.concat([feat, global_feat], axis=-1)
+            logits = self.conv_seq(all_feat)
+        else:
+            logits = self.model(in_tensor)
+
+        return logits
+
     def train(self, in_img, p, gt):
         self.metric.reset_states()
         with tf.GradientTape() as tape:

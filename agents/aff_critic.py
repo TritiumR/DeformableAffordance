@@ -46,10 +46,12 @@ class AffCritic:
         self.out_logits = out_logits
         self.use_goal_image = use_goal_image
         self.strategy = strategy
-        self.obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
-        self.obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
+        self.critic_obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
+        self.critic_obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
+        self.aff_obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
+        self.aff_obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
 
-    def compute_reward(self, metric, not_on_cloth, curr_obs=None, only_state=False):
+    def compute_reward(self, metric, not_on_cloth, curr_obs=None, only_state=False, only_gt=False):
         m_len = len(metric)
         reward = []
 
@@ -85,31 +87,34 @@ class AffCritic:
             # img = np.concatenate((l_img, r_img), axis=0)
             #
             # score_list = ''
+            if only_gt:
+                for i in range(0, m_len):
+                    curr_percent = metric[i][1] * 50
+                    reward.append(curr_percent)
+            else:
+                attention = self.attention_model.forward_batch(curr_obs.copy())
+                for i in range(0, m_len):
+                    gt_state = np.max(attention[i])
 
-            for i in range(0, m_len):
-                attention = self.attention_model.forward(curr_obs[i].copy())
+                    # if (i < 5):
+                    #     score_list += f'-{int(gt_state * 2)}'
 
-                gt_state = np.max(attention)
+                    # img_obs = curr_obs[i][:, :, :3]
+                    # vis_aff = attention[0] - np.min(attention[0])
+                    # vis_aff = 255 * vis_aff / np.max(vis_aff)
+                    # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
+                    # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
 
-                # if (i < 5):
-                #     score_list += f'-{int(gt_state * 2)}'
-
-                # img_obs = curr_obs[i][:, :, :3]
-                # vis_aff = attention[0] - np.min(attention[0])
-                # vis_aff = 255 * vis_aff / np.max(vis_aff)
-                # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
-                # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
-
-                # print('gt_state: ', gt_state)
-                curr_percent = metric[i][1] * 50
-                # print("curr: ", curr_percent)
-                if only_state:
-                    reward_i = gt_state
-                else:
-                    reward_i = (curr_percent + gt_state) / 2
-                reward.append(reward_i)
-            # cv2.imwrite(f'./visual/state-{score_list}.jpg', img)
-            # print("save img")
+                    # print('gt_state: ', gt_state)
+                    curr_percent = metric[i][1] * 50
+                    # print("curr: ", curr_percent)
+                    if only_state:
+                        reward_i = gt_state
+                    else:
+                        reward_i = (curr_percent + gt_state) / 2
+                    reward.append(reward_i)
+                # cv2.imwrite(f'./visual/state-{score_list}.jpg', img)
+                # print("save img")
         return reward
 
     def train_aff(self, dataset, num_iter, writer, batch):
@@ -174,7 +179,7 @@ class AffCritic:
         self.total_iter += num_iter
         self.save_aff()
 
-    def train_critic(self, dataset, num_iter, writer, batch=1, extra_dataset=None, no_perturb=False, only_state=False):
+    def train_critic(self, dataset, num_iter, writer, batch=1, extra_dataset=None, no_perturb=False, only_state=False, only_gt=False):
         for i in range(num_iter):
             # for batch training
             input_batch = []
@@ -211,7 +216,7 @@ class AffCritic:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
-                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state)
+                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state, only_gt)
                 # print('reward: ', reward)
                 reward_batch.append(reward.copy())
 
@@ -549,7 +554,7 @@ class AffCritic:
     # Helper Functions
     #-------------------------------------------------------------------------
 
-    def get_mean_and_std(self, path):
+    def get_mean_and_std(self, path, mode):
         print("computing mean and std...")
         dirs = os.listdir(path)
 
@@ -566,22 +571,33 @@ class AffCritic:
         mean /= len(dirs)
         std /= len(dirs)
 
-        self.obs_mean = mean
-        self.obs_std = std
+        print("mean: ", mean)
+        print("std: ", std)
 
-        print("mean: ", self.obs_mean)
-        print("std: ", self.obs_std)
+        if mode == 'critic':
+            self.critic_obs_mean = mean
+            self.critic_obs_std = std
+        elif mode == 'aff':
+            self.aff_obs_mean = mean
+            self.aff_obs_std = std
 
-        self.save_mean_std()
+        self.save_mean_std(mode)
 
-    def preprocess(self, image_in):
+    def critic_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
         for d in range(self.input_shape[2]):
-            image[:, :, d] = (image[:, :, d] / 255 - self.obs_mean[d]) / self.obs_std[d]
+            image[:, :, d] = (image[:, :, d] / 255 - self.critic_obs_mean[d]) / self.critic_obs_std[d]
         return image
 
     def aff_preprocess(self, image_in):
+        image = copy.deepcopy(image_in)
+        """Pre-process images (subtract mean, divide by std)."""
+        for d in range(self.input_shape[2]):
+            image[:, :, d] = (image[:, :, d] / 255 - self.aff_obs_mean[d]) / self.aff_obs_std[d]
+        return image
+
+    def ori_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
         color_mean = 0.18877631
@@ -619,14 +635,18 @@ class AffCritic:
         self.attention_model.save(attention_fname)
         self.critic_model.save(critic_fname)
 
-    def save_mean_std(self):
+    def save_mean_std(self, mode):
         """Save models."""
         if not os.path.exists(self.models_dir):
             os.makedirs(self.models_dir)
         data = {}
-        data['mean'] = self.obs_mean
-        data['std'] = self.obs_std
-        fname = 'mean_std.pkl'
+        if mode == 'critic':
+            data['mean'] = self.critic_obs_mean
+            data['std'] = self.critic_obs_std
+        elif mode == 'aff':
+            data['mean'] = self.aff_obs_mean
+            data['std'] = self.aff_obs_std
+        fname = mode + 'mean_std.pkl'
         pickle.dump(data, open(os.path.join(self.models_dir, fname), 'wb'))
 
     def save_critic(self):
@@ -677,7 +697,8 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     turned to 36 for Andy's paper) and to crop to get kernels _before_ the query.
     """
 
-    def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx', load_mean_std_dir='xxx',
+    def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
+                 load_critic_mean_std_dir='xxx', load_aff_mean_std_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
                  learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, strategy=None):
         super().__init__(name, task, image_size=image_size, use_goal_image=use_goal_image, out_logits=out_logits,
@@ -685,13 +706,13 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                          strategy=strategy)
 
         self.attention_model = Affordance(input_shape=self.input_shape,
-                                          preprocess=self.preprocess,
+                                          preprocess=self.aff_preprocess,
                                           learning_rate=learning_rate,
                                           strategy=strategy
                                           )
 
         self.critic_model = Critic_MLP(input_shape=self.input_shape,
-                                       preprocess=self.preprocess,
+                                       preprocess=self.critic_preprocess,
                                        out_logits=self.out_logits,
                                        learning_rate=learning_rate,
                                        without_global=without_global,
@@ -700,13 +721,21 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        layer_normalize=layer_normalize,
                                        strategy=strategy
                                        )
-        if load_mean_std_dir != 'xxx':
+        if load_critic_mean_std_dir != 'xxx':
             fname = 'mean_std.pkl'
-            mean_std = pickle.load(open(os.path.join(load_mean_std_dir, fname), 'rb'))
-            self.mean = mean_std['mean']
-            self.std = mean_std['std']
-            print("mean: ", self.mean)
-            print('srd: ', self.std)
+            mean_std = pickle.load(open(os.path.join(load_critic_mean_std_dir, fname), 'rb'))
+            self.critic_mean = mean_std['mean']
+            self.critic_std = mean_std['std']
+            print("mean: ", self.critic_mean)
+            print('srd: ', self.critic_std)
+
+        if load_aff_mean_std_dir != 'xxx':
+            fname = 'mean_std.pkl'
+            mean_std = pickle.load(open(os.path.join(load_aff_mean_std_dir, fname), 'rb'))
+            self.aff_mean = mean_std['mean']
+            self.aff_std = mean_std['std']
+            print("mean: ", self.aff_mean)
+            print('srd: ', self.aff_std)
 
         if load_next_dir != 'xxx':
             self.next_model = Affordance(input_shape=self.input_shape,

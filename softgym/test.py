@@ -82,8 +82,8 @@ def visualize_aff_critic(obs, agent, args):
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/{args.env_name}-first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
-    print("save to" + f'./visual/{args.env_name}-first-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
+    cv2.imwrite(f'./visual/{args.env_name}-sixth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
+    print("save to" + f'./visual/{args.env_name}-sixth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
 
 
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
@@ -285,9 +285,9 @@ def run_jobs(process_id, args, env_kwargs):
                     u1 = (index[1]) * 2.0 / 720 - 1
                     v1 = (index[0]) * 2.0 / 720 - 1
 
-                action = env.action_space.sample()
-                action[0] = u1
-                action[1] = v1
+                u2 = random.uniform(-0.8, 0.8)
+                v2 = random.uniform(-0.8, 0.8)
+                action = np.array([u1, v1, u2, v2])
 
             elif args.env_name == 'RopeConfiguration':
                 if step_i == 1:
@@ -409,7 +409,7 @@ def run_jobs(process_id, args, env_kwargs):
         test_id += 1
 
         visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
         # visualize_aff_critic(crump_obs.copy(), agent, args)
 
 
@@ -436,7 +436,8 @@ def main():
     parser.add_argument('--suffix', default='')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
-    parser.add_argument('--load_mean_std_dir', default='xxx')
+    parser.add_argument('--load_critic_mean_std_dir', default='xxx')
+    parser.add_argument('--load_aff_mean_std_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')

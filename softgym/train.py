@@ -43,11 +43,14 @@ def main():
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
     parser.add_argument('--load_next_dir', default='xxx')
+    parser.add_argument('--load_critic_mean_std_dir', default='xxx')
+    parser.add_argument('--load_aff_mean_std_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--max_load',       default=-1, type=int)
     parser.add_argument('--batch',          default=1, type=int)
     parser.add_argument('--model', default='critic', type=str)
     parser.add_argument('--only_state', action='store_true')
+    parser.add_argument('--only_gt', action='store_true')
     parser.add_argument('--multi_gpu', action='store_true')
     parser.add_argument('--no_perturb', action='store_true')
     args = parser.parse_args()
@@ -97,6 +100,8 @@ def main():
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
                                      load_next_dir=args.load_next_dir,
+                                     load_critic_mean_std_dir=args.load_critic_mean_std_dir,
+                                     load_aff_mean_std_dir=args.load_aff_mean_std_dir,
                                      out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,
@@ -107,24 +112,27 @@ def main():
                                      strategy=strategy
                                      )
 
-    agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"))
+    # agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"))
 
-    if args.model == 'critic':
-        agent.train_critic(dataset, num_iter=1000, writer=train_summary_writer,
-                           batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
-                           only_state=args.only_state)
+    # if args.model == 'critic':
+    #     agent.train_critic(dataset, num_iter=1000, writer=train_summary_writer,
+    #                        batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
+    #                        only_state=args.only_state)
 
     while agent.total_iter < args.num_iters:
         if args.model == 'critic':
+            agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), 'critic')
             # Train critic.
             tf.keras.backend.set_learning_phase(1)
             if args.multi_gpu:
                 agent.train_critic_multi_gpu(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
             else:
                 agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer,
-                                   batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb, only_state=args.only_state)
+                                   batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
+                                   only_state=args.only_state, only_gt=args.only_gt)
             tf.keras.backend.set_learning_phase(0)
         if args.model == 'aff':
+            agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), 'aff')
             # Train aff.
             tf.keras.backend.set_learning_phase(1)
             agent.train_aff(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)

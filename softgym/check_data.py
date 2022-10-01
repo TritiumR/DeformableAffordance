@@ -11,6 +11,7 @@ def load(path, iepisode, step):
     fname = f'{iepisode:06d}-{step}.pkl'
     return pickle.load(open(os.path.join(field_path, fname), 'rb'))
 
+
 if __name__ == '__main__':
     # Parse command line arguments.
     parser = argparse.ArgumentParser()
@@ -51,7 +52,7 @@ if __name__ == '__main__':
                 p1_pixel = (int((p1[1] + 1.) / 2. * H), int((p1[0] + 1.) / 2. * W))
                 for u in range(max(0, p1_pixel[0] - 2), min(H, p1_pixel[0] + 2)):
                     for v in range(max(0, p1_pixel[1] - 2), min(W, p1_pixel[1] + 2)):
-                        next_img[u][v] = (255, 255, 255)
+                        next_img[u][v] = (0, 255, 0)
                 next_obs.append(next_img.copy())
             l_img = np.concatenate((
                 cv2.cvtColor(crump_obs, cv2.COLOR_BGR2RGB),
