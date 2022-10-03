@@ -722,7 +722,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        strategy=strategy
                                        )
         if load_critic_mean_std_dir != 'xxx':
-            fname = 'mean_std.pkl'
+            fname = 'criticmean_std.pkl'
             mean_std = pickle.load(open(os.path.join(load_critic_mean_std_dir, fname), 'rb'))
             self.critic_mean = mean_std['mean']
             self.critic_std = mean_std['std']
@@ -730,7 +730,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
             print('srd: ', self.critic_std)
 
         if load_aff_mean_std_dir != 'xxx':
-            fname = 'mean_std.pkl'
+            fname = 'affmean_std.pkl'
             mean_std = pickle.load(open(os.path.join(load_aff_mean_std_dir, fname), 'rb'))
             self.aff_mean = mean_std['mean']
             self.aff_std = mean_std['std']

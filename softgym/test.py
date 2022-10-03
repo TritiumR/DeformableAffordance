@@ -142,7 +142,7 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
     print("save to" + f'./visual/{args.exp_name}-aff_max-{gt_score}-{score}.jpg')
 
 
-def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crump):
+def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crump, aff=False):
     obs_img = obs[:, :, :3].copy()
     p0_pixel = (int((p0[1] + 1.) / 2 * args.image_size), int((p0[0] + 1.) / 2 * args.image_size))
 
@@ -151,6 +151,7 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
             obs_img[u][v] = (255, 0, 0)
 
     gt_img = np.zeros((16, 16))
+    potential_img = np.zeros((16, 16))
     for i in range(16):
         for j in range(16):
             env.set_state(state_crump)
@@ -160,6 +161,27 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
             if args.env_name == 'ClothFlatten':
                 gt_area = env._get_current_covered_area(pyflex.get_positions())
                 gt_percent = gt_area / full_covered_area
+
+                if aff:
+                    curr_obs, curr_depth = pyflex.render_cloth()
+                    curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
+                    curr_depth[curr_depth > 5] = 0
+                    curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+                    curr_obs = np.concatenate([curr_obs, curr_depth], 2)
+                    curr_obs = cv2.resize(curr_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
+                    attention = agent.attention_model.forward(curr_obs)
+
+                    potential = np.max(attention)
+
+                    # vis_aff = np.array(attention[0])
+                    # vis_aff = vis_aff - np.min(vis_aff)
+                    # vis_aff = 255 * vis_aff / np.max(vis_aff)
+                    # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
+                    #
+                    # test_img = np.concatenate((cv2.cvtColor(curr_obs[:, :, :-1], cv2.COLOR_BGR2RGB), vis_aff), axis=1)
+                    # cv2.imwrite(f'./visual/{args.exp_name}-curr_obs-potential-{i}-{j}-{potential}.jpg', test_img)
+
+                    potential_img[i][j] = potential
                 gt_img[i][j] = gt_percent
             elif args.env_name == 'RopeConfiguration':
                 gt_distance = env.compute_reward()
@@ -183,6 +205,12 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
         vis_gt = gt_img - np.min(gt_img)
         vis_gt = 255 * vis_gt / np.max(vis_gt)
         vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
+
+        if aff:
+            potential_img = cv2.resize(potential_img, (args.image_size, args.image_size))
+            potential_img = potential_img - np.min(potential_img)
+            potential_img = 255 * potential_img / np.max(potential_img)
+            potential_img = cv2.applyColorMap(np.uint8(potential_img), cv2.COLORMAP_JET)
     elif args.env_name == 'RopeConfiguration':
         vis_critic = (-vis_critic)
         vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
@@ -200,6 +228,8 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
             obs_img[u][v] = (255, 255, 255)
 
     vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic), axis=1)
+    if aff:
+        vis_img = np.concatenate((cv2.cvtColor(obs_img, cv2.COLOR_BGR2RGB), vis_gt, vis_critic, potential_img), axis=1)
 
     cv2.imwrite(f'./visual/{args.exp_name}-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg', vis_img)
     print("save to" + f'./visual/{args.exp_name}-gt_critic-{p0_pixel[0]}-{p0_pixel[1]}.jpg')
@@ -218,7 +248,8 @@ def run_jobs(process_id, args, env_kwargs):
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
-                                     load_mean_std_dir=args.load_mean_std_dir,
+                                     load_critic_mean_std_dir=args.load_critic_mean_std_dir,
+                                     load_aff_mean_std_dir=args.load_aff_mean_std_dir,
                                      out_logits=args.out_logits,
                                      without_global=args.without_global,
                                      expert_pick=args.expert_pick,

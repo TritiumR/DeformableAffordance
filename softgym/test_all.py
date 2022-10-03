@@ -28,9 +28,12 @@ def run_jobs(process_id, args, env_kwargs):
 
     agent = agents.names[args.agent](name,
                                      args.task,
+                                     image_size=args.image_size,
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
+                                     load_critic_mean_std_dir=args.load_critic_mean_std_dir,
+                                     load_aff_mean_std_dir=args.load_aff_mean_std_dir,
                                      out_logits=args.out_logits,
                                      without_global=args.without_global,
                                      expert_pick=args.expert_pick,
@@ -143,10 +146,10 @@ def run_jobs(process_id, args, env_kwargs):
             crump_depth[crump_depth > 5] = 0
             crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
             crump_obs = np.concatenate([crump_obs, crump_depth], 2)
-            crump_obs = cv2.resize(crump_obs, (320, 320), interpolation=cv2.INTER_AREA)
+            crump_obs = cv2.resize(crump_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
 
             if args.expert_pick or args.critic_pick:
-                reverse_p0_pixel = (int((action[3] + 1.) * 160), int((action[2] + 1.) * 160))
+                reverse_p0_pixel = (int((action[3] + 1.) / 2 * args.image_size), int((action[2] + 1.) / 2 * args.image_size))
                 action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
             else:
                 action = agent.act(crump_obs.copy())
@@ -156,11 +159,11 @@ def run_jobs(process_id, args, env_kwargs):
             if args.env_name == 'ClothFlatten':
                 curr_area = env._get_current_covered_area(pyflex.get_positions())
                 curr_percent = curr_area / full_covered_area
-                if curr_percent > max_percent:
-                    max_percent = curr_percent
+                # if curr_percent > max_percent:
+                #     max_percent = curr_percent
+                print("curr percent: ", i, curr_percent)
                 if (curr_percent >= 0.75):
                     break
-                print("curr percent: ", i, curr_percent)
             elif args.env_name == 'RopeConfiguration':
                 curr_distance = env.compute_reward()
                 if curr_distance > max_percent:
@@ -170,8 +173,8 @@ def run_jobs(process_id, args, env_kwargs):
                 print("curr distance: ", i, curr_distance)
 
         if args.env_name == 'ClothFlatten':
-            normalize_score = (max_percent - crump_percent) / (1 - crump_percent)
-            if max_percent >= 0.75:
+            normalize_score = (curr_percent - crump_percent) / (1 - crump_percent)
+            if curr_percent >= 0.75:
                 result = 'success'
             else:
                 result = 'fail'
@@ -183,8 +186,8 @@ def run_jobs(process_id, args, env_kwargs):
             else:
                 result = 'fail'
 
-
-        env.action_tool.hide()
+        if args.env_name == 'RopeConfiguration':
+            env.action_tool.hide()
         if args.save_video_dir is not None:
             path_name = os.path.join(args.save_video_dir, name + args.exp_name)
             if not os.path.exists(path_name):
@@ -201,6 +204,7 @@ def main():
     # ['PassWater', 'PourWater', 'PourWaterAmount', 'RopeFlatten', 'ClothFold', 'ClothFlatten', 'ClothDrop', 'ClothFoldCrumpled', 'ClothFoldDrop', 'RopeConfiguration']
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--img_size', type=int, default=720, help='Size of the recorded videos')
+    parser.add_argument('--image_size', type=int, default=320, help='Size of the input')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
@@ -217,6 +221,8 @@ def main():
     parser.add_argument('--suffix', default='')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
+    parser.add_argument('--load_critic_mean_std_dir', default='xxx')
+    parser.add_argument('--load_aff_mean_std_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
