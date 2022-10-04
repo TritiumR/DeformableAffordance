@@ -141,13 +141,16 @@ class Picker(ActionToolBase):
             if pick_flag[i]:
                 if self.picked_particles[i] is None:  # No particle is currently picked and thus need to select a particle to pick
                     dists = scipy.spatial.distance.cdist(picker_pos[i].reshape((-1, 3)), particle_pos[:, :3].reshape((-1, 3)))
+                    argmin = np.argmin(dists)
                     idx_dists = np.hstack([np.arange(particle_pos.shape[0]).reshape((-1, 1)), dists.reshape((-1, 1))])
                     mask = dists.flatten() <= self.picker_threshold + self.picker_radius + self.particle_radius
-                    idx_dists = idx_dists[mask, :].reshape((-1, 2))
+                    if (len(mask) > 0):
+                        idx_dists = idx_dists[argmin, :].reshape((-1, 2))
+                    else:
+                        idx_dists = idx_dists[mask, :].reshape((-1, 2))
                     if idx_dists.shape[0] > 0:
                         pick_id, pick_dist = None, None
-                        # print("num_pick: ", idx_dists.shape[0])
-                        for j in range(1):
+                        for j in range(idx_dists.shape[0]):
                             if idx_dists[j, 0] not in self.picked_particles and (pick_id is None or idx_dists[j, 1] < pick_dist):
                                 pick_id = idx_dists[j, 0]
                                 pick_dist = idx_dists[j, 1]
@@ -392,7 +395,7 @@ class PickAndPlace(PickerQPG):
         u1 = ((u1 + 1.) * 0.5) * self.image_size[0]
         v1 = ((v1 + 1.) * 0.5) * self.image_size[1]
         x1, y1, z1 = super()._get_world_coor_from_image(u1, v1)
-        y1 += 0.05
+        y1 += 0.07
         # print(x1, z1)
 
         u2, v2 = action[2:]
