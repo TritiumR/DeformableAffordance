@@ -117,11 +117,9 @@ class AffCritic:
                 # print("save img")
         return reward
 
-    def train_aff(self, dataset, num_iter, writer, batch):
+    def train_aff(self, dataset, num_iter, writer, batch, no_perturb=False):
         for i in range(num_iter):
             obs, act, _, _, not_on_cloth = dataset.sample_index(need_next=False)
-
-            a_len = batch
 
             if self.use_goal_image:
                 input_image = np.concatenate((obs, goal), axis=2)
@@ -130,15 +128,16 @@ class AffCritic:
 
             p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
             # Do data augmentation (perturb rotation and translation).
-            input_image_perturb, p0_list = agent_utils.perturb(input_image.copy(), [p0])
-            if input_image_perturb is not None:
-                input_image = input_image_perturb
-                p0 = p0_list[0]
-            else:
-                print('no perturb')
+            if not no_perturb:
+                input_image_perturb, p0_list = agent_utils.perturb(input_image.copy(), [p0])
+                if input_image_perturb is not None:
+                    input_image = input_image_perturb
+                    p0 = p0_list[0]
+                else:
+                    print('no perturb')
 
             p_list = [p0]
-            for p_i in range(a_len):
+            for p_i in range(batch):
                 # sample_x = max(min(np.random.normal(loc=p0[0], scale=0.12), self.input_shape[0] - 1), 0)
                 # sample_y = max(min(np.random.normal(loc=p0[1], scale=0.12), self.input_shape[0] - 1), 0)
                 u = random.randint(0, self.image_size - 1)

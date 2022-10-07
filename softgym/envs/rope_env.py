@@ -29,7 +29,7 @@ class RopeNewEnv(FlexEnv):
             self.action_tool = PickAndPlace((self.camera_height, self.camera_height), cam_pos, cam_angle,
                                              picker_threshold=0.005,
                                              num_picker=num_picker, particle_radius=0.00625, env=self,
-                                             picker_low=(-0.5, 0., -0.5), picker_high=(0.5, 0.1, 0.5)
+                                             picker_low=(-0.3, 0., -0.3), picker_high=(0.3, 0.5, 0.3)
                                              )
             self.action_space = self.action_tool.action_space
 
@@ -64,7 +64,7 @@ class RopeNewEnv(FlexEnv):
             'scale': 0.5,
             'camera_name': 'default_camera',
             'camera_params': {'default_camera':
-                                  {'pos': np.array([0, 0.5, 0]),
+                                  {'pos': np.array([0, 0.3, 0]),
                                    'angle': np.array([0 * np.pi, -90 / 180. * np.pi, 0]),
                                    'width': self.camera_width,
                                    'height': self.camera_height}}

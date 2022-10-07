@@ -148,7 +148,7 @@ def run_jobs(process_id, args, env_kwargs):
             crump_obs = np.concatenate([crump_obs, crump_depth], 2)
             crump_obs = cv2.resize(crump_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
 
-            if args.expert_pick or args.critic_pick:
+            if args.expert_pick:
                 reverse_p0_pixel = (int((action[3] + 1.) / 2 * args.image_size), int((action[2] + 1.) / 2 * args.image_size))
                 action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
             else:
@@ -162,7 +162,7 @@ def run_jobs(process_id, args, env_kwargs):
                 # if curr_percent > max_percent:
                 #     max_percent = curr_percent
                 print("curr percent: ", i, curr_percent)
-                if (curr_percent >= 0.75):
+                if (curr_percent >= 0.8):
                     break
             elif args.env_name == 'RopeConfiguration':
                 curr_distance = env.compute_reward()

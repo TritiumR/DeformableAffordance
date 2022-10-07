@@ -28,7 +28,6 @@ def run_jobs(process_id, args, env_kwargs):
     data_id = 0
 
     while (data_id < args.data_num):
-        # env.start_record()
         if args.env_name == 'ClothFlatten':
             # from flat configuration
             full_covered_area = env._set_to_flatten()
@@ -45,7 +44,6 @@ def run_jobs(process_id, args, env_kwargs):
             elif args.shape == 'U':
                 env.set_state(env.goal_state[4])
             full_distance = -env.compute_reward()
-            print("ori: ", full_distance)
         pyflex.step()
 
         for step_i in range(args.step):
@@ -99,11 +97,10 @@ def run_jobs(process_id, args, env_kwargs):
                 # bound = (step_i + 1) * 0.2
                 # u2 = random.uniform(-bound, bound)
                 # v2 = random.uniform(-bound, bound)
-
-                u2 = max(min(np.random.normal(u1, scale=0.11), 1.), -1.)
-                v2 = max(min(np.random.normal(v1, scale=0.11), 1.), -1.)
-                # print("1: ", u1, v1)
-                # print("2: ", u2, v2)
+                u2 = max(min(np.random.normal(u1, scale=0.3), 1.), -1.)
+                v2 = max(min(np.random.normal(v1, scale=0.3), 1.), -1.)
+                # u2 = random.uniform(-1., 1.)
+                # v2 = random.uniform(-1., 1.)
 
                 action = np.array([u1, v1, u2, v2])
 
@@ -143,28 +140,14 @@ def run_jobs(process_id, args, env_kwargs):
         elif args.env_name == 'RopeConfiguration':
             min_distance = float('inf')
 
-        another_pick = random.randint(0, 40)
+        another_pick = random.randint(0, 50)
         if another_pick == 0:
             another_action = env.action_space.sample()
             action[2] = another_action[0]
             action[3] = another_action[1]
             print('another_pick')
 
-        # p0 = [int((action[3] + 1.) * 160), int((action[2] + 1.) * 160)]
-        # pick_area = crump_obs[max(0, p0[0] - 4): min(320, p0[0] + 4),
-        #                       max(0, p0[1] - 4): min(320, p0[1] + 4),
-        #                       :3].copy()
-        # if np.sum(pick_area) == 0 and another_pick != 0:
-        #     print('not on cloth')
-        #     img, _ = pyflex.render()
-        #     img = img.reshape((720, 720, 4))[::-1, :, :3]
-        #     img = cv2.resize(img, (320, 320), interpolation=cv2.INTER_AREA)
-        #     for u in range(max(0, p0[0] - 4), min(320, p0[0] + 4)):
-        #         for v in range(max(0, p0[1] - 4), min(320, p0[1] + 4)):
-        #             img[u][v] = (255, 0, 0)
-        #     cv2.imwrite(f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg', cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        #     print("save to" + f'./visual/not-on-cloth-{p0[0]}-{p0[1]}.jpg')
-        #     continue
+        # env.start_record()
 
         for id in range(args.data_type):
             env.set_state(state_crump)
@@ -205,10 +188,10 @@ def run_jobs(process_id, args, env_kwargs):
                 random_action = env.action_space.sample()
                 random_action[0] = reverse_action[0]
                 random_action[1] = reverse_action[1]
-                u2 = random.uniform(-0.8, 0.8)
-                v2 = random.uniform(-0.8, 0.8)
-                random_action[2] = u2
-                random_action[3] = v2
+                # u2 = 0.4 * id - 1
+                # v2 = 0.4 * id - 1
+                # random_action[2] = u2
+                # random_action[3] = v2
                 action_data.append(random_action.copy())
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
                 if args.env_name == 'RopeConfiguration':
@@ -261,7 +244,7 @@ def run_jobs(process_id, args, env_kwargs):
                 if_save = (max_recover - 0.15 >= crump_percent and crump_percent <= 0.6) or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
             if args.step == 1:
-                if_save = (min_distance < 0.050 and crump_distance - 0.01 >= min_distance) or another_pick == 0
+                if_save = (min_distance <= 0.053 and crump_distance - 0.008 >= min_distance) or another_pick == 0
             else:
                 if_save = min_distance <= 0.065 and crump_distance - 0.03 >= min_distance or another_pick == 0
 
@@ -277,8 +260,8 @@ def run_jobs(process_id, args, env_kwargs):
             dump(args.path, data, process_id, args.curr_data, data_id, args.data_num, args.step)
             data_id += 1
 
-        if args.save_video_dir is not None:
-            save_name = os.path.join(args.save_video_dir, args.env_name + f'{process_id}-{data_id}-{args.step}.gif')
+        if args.save_video_dir is not None and if_save and another_pick != 0:
+            save_name = os.path.join(args.save_video_dir, args.env_name + f'-{data_id}-{args.step}.gif')
             save_numpy_as_gif(np.array(env.video_frames), save_name)
             print('Video generated and save to {}'.format(save_name))
         # env.end_record()

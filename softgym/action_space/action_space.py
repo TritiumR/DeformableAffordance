@@ -144,7 +144,8 @@ class Picker(ActionToolBase):
                     argmin = np.argmin(dists)
                     idx_dists = np.hstack([np.arange(particle_pos.shape[0]).reshape((-1, 1)), dists.reshape((-1, 1))])
                     mask = dists.flatten() <= self.picker_threshold + self.picker_radius + self.particle_radius
-                    if (len(mask) > 0):
+                    # print(np.sum(mask))
+                    if np.sum(mask) > 0:
                         idx_dists = idx_dists[argmin, :].reshape((-1, 2))
                     else:
                         idx_dists = idx_dists[mask, :].reshape((-1, 2))
@@ -198,7 +199,7 @@ class PickerPickPlace(Picker):
         picker_low, picker_high = list(picker_low), list(picker_high)
         self.action_space = Box(np.array([*picker_low, 0.] * self.num_picker),
                                 np.array([*picker_high, 1.] * self.num_picker), dtype=np.float32)
-        self.delta_move = 0.01
+        self.delta_move = 0.005
         self.env = env
 
     def step(self, action):
@@ -216,7 +217,7 @@ class PickerPickPlace(Picker):
             return
         delta = (end_pos - curr_pos) / num_step
         norm_delta = np.linalg.norm(delta)
-        for i in range(int(min(num_step, 500))):  # The maximum number of steps allowed for one pick and place
+        for i in range(int(min(num_step, 1000))):  # The maximum number of steps allowed for one pick and place
             curr_pos = np.array(pyflex.get_shape_states()).reshape(-1, 14)[:, :3]
             dist = np.linalg.norm(end_pos - curr_pos, axis=1)
             if np.alltrue(dist < norm_delta):
@@ -395,7 +396,7 @@ class PickAndPlace(PickerQPG):
         u1 = ((u1 + 1.) * 0.5) * self.image_size[0]
         v1 = ((v1 + 1.) * 0.5) * self.image_size[1]
         x1, y1, z1 = super()._get_world_coor_from_image(u1, v1)
-        y1 += 0.07
+        y1 += 0.055
         # print(x1, z1)
 
         u2, v2 = action[2:]

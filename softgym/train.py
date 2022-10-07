@@ -135,7 +135,7 @@ def main():
             agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), 'aff')
             # Train aff.
             tf.keras.backend.set_learning_phase(1)
-            agent.train_aff(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
+            agent.train_aff(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch, no_perturb=args.no_perturb)
             tf.keras.backend.set_learning_phase(0)
 
 

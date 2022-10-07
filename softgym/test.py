@@ -82,8 +82,8 @@ def visualize_aff_critic(obs, agent, args):
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 
-    cv2.imwrite(f'./visual/{args.env_name}-sixth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
-    print("save to" + f'./visual/{args.env_name}-sixth-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
+    cv2.imwrite(f'./visual/{args.exp_name}-test-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
+    print("save to" + f'./visual/{args.exp_name}-test-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
 
 
 def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
@@ -114,6 +114,7 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
         score = int(np.max(vis_aff) * 2)
         gt_score = int(np.max(gt_aff) * 100)
 
+        # vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
         vis_aff = vis_aff - np.min(vis_aff)
         vis_aff = 255 * vis_aff / np.max(vis_aff)
 
@@ -198,10 +199,12 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
     vis_critic = np.float32(critic_score[0])
 
     if args.env_name == 'ClothFlatten':
+        # vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
         vis_critic = vis_critic - np.min(vis_critic)
         vis_critic = 255 * vis_critic / np.max(vis_critic)
         vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
 
+        # vis_gt = np.exp(gt_img) / np.sum(np.exp(gt_img))
         vis_gt = gt_img - np.min(gt_img)
         vis_gt = 255 * vis_gt / np.max(vis_gt)
         vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
