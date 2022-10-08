@@ -19,7 +19,7 @@ class RopeNewEnv(FlexEnv):
         self.num_picker = num_picker
 
         if action_mode == 'picker':
-            self.action_tool = Picker(num_picker, picker_radius=picker_radius, picker_threshold=0.005, 
+            self.action_tool = Picker(num_picker, picker_radius=picker_radius, picker_threshold=0.01,
             particle_radius=0.025, picker_low=(-0.35, 0., -0.35), picker_high=(0.35, 0.3, 0.35))
             self.action_space = self.action_tool.action_space
         elif action_mode in ['sawyer', 'franka']:
@@ -27,9 +27,9 @@ class RopeNewEnv(FlexEnv):
         elif action_mode == 'pickandplace':
             cam_pos, cam_angle = self.get_camera_params()
             self.action_tool = PickAndPlace((self.camera_height, self.camera_height), cam_pos, cam_angle,
-                                             picker_threshold=0.005,
+                                             picker_threshold=0.01,
                                              num_picker=num_picker, particle_radius=0.00625, env=self,
-                                             picker_low=(-0.3, 0., -0.3), picker_high=(0.3, 0.5, 0.3)
+                                             picker_low=(-0.35, 0., -0.35), picker_high=(0.35, 0.3, 0.35)
                                              )
             self.action_space = self.action_tool.action_space
 
@@ -64,7 +64,7 @@ class RopeNewEnv(FlexEnv):
             'scale': 0.5,
             'camera_name': 'default_camera',
             'camera_params': {'default_camera':
-                                  {'pos': np.array([0, 0.3, 0]),
+                                  {'pos': np.array([0, 0.35, 0]),
                                    'angle': np.array([0 * np.pi, -90 / 180. * np.pi, 0]),
                                    'width': self.camera_width,
                                    'height': self.camera_height}}

@@ -72,7 +72,7 @@ class AffCritic:
                     reward.append(curr_percent)
             elif self.task == 'rope-configuration':
                 for i in range(0, m_len):
-                    curr_distance = metric[i][1] * (-100)
+                    curr_distance = metric[i][1] * (100)
                     reward.append(curr_distance)
         else:
             # l_img = np.concatenate((
@@ -127,17 +127,17 @@ class AffCritic:
             else:
                 input_image = obs.copy()
 
-            p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
+            # p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
             # Do data augmentation (perturb rotation and translation).
             if not no_perturb:
-                input_image_perturb, p0_list = agent_utils.perturb(input_image.copy(), [p0])
+                input_image_perturb, p0_list = agent_utils.perturb(input_image.copy(), [])
                 if input_image_perturb is not None:
                     input_image = input_image_perturb
-                    p0 = p0_list[0]
+                    # p0 = p0_list[0]
                 else:
                     print('no perturb')
 
-            p_list = [p0]
+            p_list = []
             for p_i in range(batch):
                 # sample_x = max(min(np.random.normal(loc=p0[0], scale=0.12), self.input_shape[0] - 1), 0)
                 # sample_y = max(min(np.random.normal(loc=p0[1], scale=0.12), self.input_shape[0] - 1), 0)
@@ -213,14 +213,16 @@ class AffCritic:
                 else:
                     input_image = obs.copy()
 
-                p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
+                p0 = [min(self.input_shape[0] - 1, int((act[0][1] + 1.) * 0.5 * self.input_shape[0])),
+                      min(self.input_shape[0] - 1, int((act[0][0] + 1.) * 0.5 * self.input_shape[0]))]
                 p1_list = []
                 for point in act:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
+                print(not_on_cloth[0])
                 reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state, only_gt)
-                # print('reward: ', reward)
+                print('reward: ', reward)
                 reward_batch.append(reward.copy())
 
                 if no_perturb:

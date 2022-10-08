@@ -46,18 +46,21 @@ def run_jobs(process_id, args, env_kwargs):
             full_distance = -env.compute_reward()
         pyflex.step()
 
-        for step_i in range(args.step):
+        # env.start_record()
+        step_i = 0
+
+        while step_i < args.step:
             # print("step_i: ", step_i)
             if args.env_name == 'ClothFlatten':
                 prev_obs, prev_depth = pyflex.render_cloth()
             elif args.env_name == 'RopeConfiguration':
                 prev_obs, prev_depth = pyflex.render()
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
-            # print(np.min(prev_depth), np.max(prev_depth))
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            mask = np.where(prev_obs == (0, 255, 255), (255, 255, 255), (0, 0, 0))
+            # print(np.min(prev_depth), np.max(prev_depth))
+            mask = np.where(prev_depth[:, :, 0] < 0.295, 255, 0)
             # print(mask.shape)
-            cv2.imwrite(f'./visual/test-mask-{step_i}.jpg', mask)
+            cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
@@ -87,18 +90,16 @@ def run_jobs(process_id, args, env_kwargs):
                 action = np.array([u1, v1, u2, v2])
 
             elif args.env_name == 'RopeConfiguration':
-                indexs = np.transpose(np.nonzero(mask[:, :, 0]))
-                if (len(indexs) == 0):
-                    break
+                indexs = np.transpose(np.nonzero(mask))
                 index = random.choice(indexs)
-                u1 = (index[1]) * 2.0 / env.camera_height - 1
-                v1 = (index[0]) * 2.0 / env.camera_height - 1
+                u1 = (index[1]) * 2.0 / 720 - 1
+                v1 = (index[0]) * 2.0 / 720 - 1
 
                 # bound = (step_i + 1) * 0.2
                 # u2 = random.uniform(-bound, bound)
                 # v2 = random.uniform(-bound, bound)
-                u2 = max(min(np.random.normal(u1, scale=0.3), 1.), -1.)
-                v2 = max(min(np.random.normal(v1, scale=0.3), 1.), -1.)
+                u2 = max(min(np.random.normal(u1, scale=0.4), 0.999), -1.)
+                v2 = max(min(np.random.normal(v1, scale=0.4), 0.999), -1.)
                 # u2 = random.uniform(-1., 1.)
                 # v2 = random.uniform(-1., 1.)
 
@@ -107,8 +108,10 @@ def run_jobs(process_id, args, env_kwargs):
             _, _, _, info = env.step(action, record_continuous_video=args.render, img_size=args.img_size)
             if env.action_tool.not_on_cloth:
                 print(f'{step_i} not on cloth')
+                continue
             if args.env_name == 'RopeConfiguration':
                 env.action_tool.hide()
+            step_i += 1
 
         if args.env_name == 'ClothFlatten':
             crump_area = env._get_current_covered_area(pyflex.get_positions())
@@ -140,7 +143,7 @@ def run_jobs(process_id, args, env_kwargs):
         elif args.env_name == 'RopeConfiguration':
             min_distance = float('inf')
 
-        another_pick = random.randint(0, 50)
+        another_pick = random.randint(0, 149)
         if another_pick == 0:
             another_action = env.action_space.sample()
             action[2] = another_action[0]
@@ -190,8 +193,6 @@ def run_jobs(process_id, args, env_kwargs):
                 random_action[1] = reverse_action[1]
                 # u2 = 0.4 * id - 1
                 # v2 = 0.4 * id - 1
-                # random_action[2] = u2
-                # random_action[3] = v2
                 action_data.append(random_action.copy())
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
                 if args.env_name == 'RopeConfiguration':
@@ -260,8 +261,8 @@ def run_jobs(process_id, args, env_kwargs):
             dump(args.path, data, process_id, args.curr_data, data_id, args.data_num, args.step)
             data_id += 1
 
-        if args.save_video_dir is not None and if_save and another_pick != 0:
-            save_name = os.path.join(args.save_video_dir, args.env_name + f'-{data_id}-{args.step}.gif')
+        if args.save_video_dir is not None:
+            save_name = os.path.join(args.save_video_dir, args.env_name + f'-{min_distance}-{data_id}-{args.step}.gif')
             save_numpy_as_gif(np.array(env.video_frames), save_name)
             print('Video generated and save to {}'.format(save_name))
         # env.end_record()

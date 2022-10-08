@@ -114,7 +114,8 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
         score = int(np.max(vis_aff) * 2)
         gt_score = int(np.max(gt_aff) * 100)
 
-        # vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
+        if args.exp:
+            vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
         vis_aff = vis_aff - np.min(vis_aff)
         vis_aff = 255 * vis_aff / np.max(vis_aff)
 

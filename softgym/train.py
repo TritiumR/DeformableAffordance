@@ -53,6 +53,7 @@ def main():
     parser.add_argument('--only_gt', action='store_true')
     parser.add_argument('--multi_gpu', action='store_true')
     parser.add_argument('--no_perturb', action='store_true')
+    parser.add_argument('--only_depth', action='store_true')
     args = parser.parse_args()
 
     dataset = Dataset(os.path.join('data', f"{args.task}-{args.suffix}"), max_load=args.max_load,
@@ -109,6 +110,7 @@ def main():
                                      critic_depth=args.critic_depth,
                                      batch_normalize=args.batch_normalize,
                                      layer_normalize=args.layer_normalize,
+                                     only_depth=args.only_depth,
                                      strategy=strategy
                                      )
 
