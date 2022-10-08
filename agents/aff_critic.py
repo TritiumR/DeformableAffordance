@@ -25,7 +25,7 @@ import ipdb
 
 class AffCritic:
     def __init__(self, name, task, image_size=320, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
-                 out_logits=1, step=1, strategy=None):
+                 out_logits=1, step=1, only_depth=False, strategy=None):
         """Creates Transporter agent with attention and transport modules."""
         self.name = name
         self.task = task
@@ -45,6 +45,7 @@ class AffCritic:
 
         self.out_logits = out_logits
         self.use_goal_image = use_goal_image
+        self.only_depth = only_depth
         self.strategy = strategy
         self.critic_obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
         self.critic_obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
@@ -156,7 +157,10 @@ class AffCritic:
 
             with tf.GradientTape() as tape:
                 loss = None
-                aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
+                if self.only_depth:
+                    aff_pred = self.attention_model.forward(input_image[:, :, -1:].copy(), apply_softmax=False)
+                else:
+                    aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
                 for idx_p0 in range(p_len):
                     p0 = p_list[idx_p0]
                     output = aff_pred[:, p0[0], p0[1], :]
@@ -563,9 +567,11 @@ class AffCritic:
         for fname in dirs:
             data = pickle.load(open(os.path.join(path, fname), 'rb'))
             obs = np.array(data['obs'])
-            for d in range(self.input_shape[2]):
+            for d in range(self.input_shape[2] - 1):
                 mean[d] += obs[:, :, d].mean() / 255
                 std[d] += obs[:, :, d].std() / 255
+            mean[-1] += obs[:, :, -1].mean()
+            std[-1] += obs[:, :, -1].std()
 
         mean /= len(dirs)
         std /= len(dirs)
@@ -585,15 +591,23 @@ class AffCritic:
     def critic_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        for d in range(self.input_shape[2]):
+        for d in range(self.input_shape[2] - 1):
             image[:, :, d] = (image[:, :, d] / 255 - self.critic_obs_mean[d]) / self.critic_obs_std[d]
+        image[:, :, -1] = (image[:, :, -1] / - self.critic_obs_mean[-1]) / self.critic_obs_std[-1]
         return image
 
     def aff_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        for d in range(self.input_shape[2]):
+        for d in range(self.input_shape[2] - 1):
             image[:, :, d] = (image[:, :, d] / 255 - self.aff_obs_mean[d]) / self.aff_obs_std[d]
+        image[:, :, -1] = (image[:, :, -1] / - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
+        return image
+
+    def aff_preprocess_only_depth(self, image_in):
+        image = copy.deepcopy(image_in)
+        """Pre-process images (subtract mean, divide by std)."""
+        image[:, :, -1] = (image[:, :, -1] / - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
         return image
 
     def ori_preprocess(self, image_in):
@@ -699,16 +713,23 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
                  load_critic_mean_std_dir='xxx', load_aff_mean_std_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
-                 learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, strategy=None):
+                 learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, only_depth=False, strategy=None):
         super().__init__(name, task, image_size=image_size, use_goal_image=use_goal_image, out_logits=out_logits,
                          critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
-                         strategy=strategy)
+                         only_depth=only_depth, strategy=strategy)
 
-        self.attention_model = Affordance(input_shape=self.input_shape,
-                                          preprocess=self.aff_preprocess,
-                                          learning_rate=learning_rate,
-                                          strategy=strategy
-                                          )
+        if only_depth:
+            self.attention_model = Affordance(input_shape=(image_size, image_size, 1),
+                                              preprocess=self.aff_preprocess_only_depth,
+                                              learning_rate=learning_rate,
+                                              strategy=strategy
+                                              )
+        else:
+            self.attention_model = Affordance(input_shape=self.input_shape,
+                                              preprocess=self.aff_preprocess,
+                                              learning_rate=learning_rate,
+                                              strategy=strategy
+                                              )
 
         self.critic_model = Critic_MLP(input_shape=self.input_shape,
                                        preprocess=self.critic_preprocess,

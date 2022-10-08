@@ -125,7 +125,8 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
         gt_score = -int(np.max(gt_aff) * 100)
 
         vis_aff = -vis_aff
-        vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
+        if args.exp:
+            vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
         vis_aff = vis_aff - np.min(vis_aff)
         vis_aff = 255 * vis_aff / np.max(vis_aff)
 
@@ -199,12 +200,14 @@ def visualize_critic_gt(obs, env, agent, p0, full_covered_area, args, state_crum
     vis_critic = np.float32(critic_score[0])
 
     if args.env_name == 'ClothFlatten':
-        # vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
+        if args.exp:
+            vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
         vis_critic = vis_critic - np.min(vis_critic)
         vis_critic = 255 * vis_critic / np.max(vis_critic)
         vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
 
-        # vis_gt = np.exp(gt_img) / np.sum(np.exp(gt_img))
+        if args.exp:
+            gt_img = np.exp(gt_img) / np.sum(np.exp(gt_img))
         vis_gt = gt_img - np.min(gt_img)
         vis_gt = 255 * vis_gt / np.max(vis_gt)
         vis_gt = cv2.applyColorMap(np.uint8(vis_gt), cv2.COLORMAP_JET)
@@ -467,7 +470,6 @@ def main():
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--out_logits',     default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
-    parser.add_argument('--suffix', default='')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
     parser.add_argument('--load_critic_mean_std_dir', default='xxx')
@@ -476,6 +478,7 @@ def main():
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
     parser.add_argument('--random_pick',    action='store_true')
+    parser.add_argument('--exp', action='store_true')
     args = parser.parse_args()
 
     env_kwargs = env_arg_dict[args.env_name]
