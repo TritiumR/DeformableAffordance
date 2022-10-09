@@ -220,9 +220,8 @@ class AffCritic:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
-                print(not_on_cloth[0])
                 reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state, only_gt)
-                print('reward: ', reward)
+                # print('reward: ', reward)
                 reward_batch.append(reward.copy())
 
                 if no_perturb:
@@ -517,7 +516,10 @@ class AffCritic:
                 input_only = input_image[:, :, :maxdim].copy()
                 attention = self.attention_model.forward(input_only)
             else:
-                img_aff = obs.copy()
+                if self.only_depth:
+                    img_aff = obs[:, :, -1:].copy()
+                else:
+                    img_aff = obs.copy()
                 attention = self.attention_model.forward(img_aff)
                 # print("state: ", np.max(attention))
 
@@ -593,9 +595,9 @@ class AffCritic:
     def critic_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        for d in range(self.input_shape[2] - 1):
+        for d in range(self.input_shape[2]):
             image[:, :, d] = (image[:, :, d] / 255 - self.critic_obs_mean[d]) / self.critic_obs_std[d]
-        image[:, :, -1] = (image[:, :, -1] / - self.critic_obs_mean[-1]) / self.critic_obs_std[-1]
+        # image[:, :, -1] = (image[:, :, -1] / - self.critic_obs_mean[-1]) / self.critic_obs_std[-1]
         return image
 
     def aff_preprocess(self, image_in):

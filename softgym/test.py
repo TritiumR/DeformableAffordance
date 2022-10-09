@@ -20,7 +20,10 @@ import pickle
 
 
 def visualize_aff_critic(obs, agent, args):
-    img_aff = obs.copy()
+    if args.only_depth:
+        img_aff = obs[:, :, -1:].copy()
+    else:
+        img_aff = obs.copy()
     attention = agent.attention_model.forward(img_aff)
 
     # depth = obs[:, :, -1:].copy()
@@ -262,7 +265,8 @@ def run_jobs(process_id, args, env_kwargs):
                                      expert_pick=args.expert_pick,
                                      critic_pick=args.critic_pick,
                                      random_pick=args.random_pick,
-                                     critic_depth=args.critic_depth
+                                     critic_depth=args.critic_depth,
+                                     only_depth=args.only_depth
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -446,9 +450,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        # visualize_aff_critic(crump_obs.copy(), agent, args)
+        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        visualize_aff_critic(crump_obs.copy(), agent, args)
 
 
 def main():
@@ -479,6 +483,7 @@ def main():
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
     parser.add_argument('--random_pick',    action='store_true')
+    parser.add_argument('--only_depth', action='store_true')
     parser.add_argument('--exp', action='store_true')
     args = parser.parse_args()
 

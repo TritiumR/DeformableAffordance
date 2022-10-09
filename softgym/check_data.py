@@ -34,6 +34,12 @@ if __name__ == '__main__':
     if args.render_demo:
         next_obs = []
         crump_obs = data['obs'][:, :, :-1]
+        crump_depth = data['obs'][:, :, -1:]
+        crump_depth = (crump_depth - 0.1) / 0.2
+        crump_depth = crump_depth - np.min(crump_depth)
+        crump_depth = 255 * crump_depth / np.max(crump_depth)
+        crump_depth = cv2.applyColorMap(np.uint8(crump_depth), cv2.COLORMAP_BONE)
+
         W, H = np.array(crump_obs).shape[:2]
         print("W H = ", W, H)
         p0 = (action[0][0], action[0][1])
@@ -66,7 +72,10 @@ if __name__ == '__main__':
                 axis=1)
             img = np.concatenate((l_img, r_img), axis=0)
         else:
-            img = cv2.cvtColor(crump_obs, cv2.COLOR_BGR2RGB)
+            img = np.concatenate((
+                cv2.cvtColor(crump_obs, cv2.COLOR_BGR2RGB),
+                crump_depth),
+                axis=1)
 
         print(f"saved {args.save_path}{args.iepisode}-{step}.jpg")
         cv2.imwrite(f'{args.save_path}{args.iepisode}-{step}.jpg', img)
