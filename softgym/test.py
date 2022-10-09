@@ -122,6 +122,8 @@ def visualize_aff_state(obs, env, agent, full_covered_area, args, state_crump):
         vis_aff = vis_aff - np.min(vis_aff)
         vis_aff = 255 * vis_aff / np.max(vis_aff)
 
+        if args.exp:
+            gt_aff = np.exp(gt_aff) / np.sum(np.exp(gt_aff))
         gt_aff = gt_aff - np.min(gt_aff)
         gt_aff = 255 * gt_aff / np.max(gt_aff)
     elif args.env_name == 'RopeConfiguration':
@@ -450,9 +452,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        visualize_aff_critic(crump_obs.copy(), agent, args)
+        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        # visualize_aff_critic(crump_obs.copy(), agent, args)
 
 
 def main():

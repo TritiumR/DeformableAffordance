@@ -60,29 +60,30 @@ def run_jobs(process_id, args, env_kwargs):
             # print(np.min(prev_depth), np.max(prev_depth))
             mask = np.where(prev_depth[:, :, 0] < 0.295, 255, 0)
             # print(mask.shape)
-            cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
+            # cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
-                if step_i == 0:
-                    mask = prev_obs[10:, :, 0]
-                    indexs = np.transpose(np.where(mask == 255))
-                    corner_id = random.randint(0, 3)
-                    # print(corner_id)
-                    top, left = indexs.min(axis=0)
-                    bottom, right = indexs.max(axis=0)
+                # if step_i == 0:
+                mask = prev_obs[:, :, 0]
+                # cv2.imwrite(f'./visual/test-mask-{step_i}-cloth.jpg', mask)
+                indexs = np.transpose(np.where(mask != 0))
+                corner_id = random.randint(0, 3)
+                # print(corner_id)
+                top, left = indexs.min(axis=0)
+                bottom, right = indexs.max(axis=0)
 
-                    corners = [[top + 10, left],
-                               [top + 10, right],
-                               [bottom + 10, right],
-                               [bottom + 10, left]]
-                    u1 = (corners[corner_id][1]) * 2.0 / 720 - 1
-                    v1 = (corners[corner_id][0]) * 2.0 / 720 - 1
-                else:
-                    indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
-                    index = random.choice(indexs)
-                    u1 = (index[1]) * 2.0 / 720 - 1
-                    v1 = (index[0]) * 2.0 / 720 - 1
+                corners = [[top, left],
+                           [top, right],
+                           [bottom, right],
+                           [bottom, left]]
+                u1 = (corners[corner_id][1]) * 2.0 / 720 - 1
+                v1 = (corners[corner_id][0]) * 2.0 / 720 - 1
+                # else:
+                #     indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
+                #     index = random.choice(indexs)
+                #     u1 = (index[1]) * 2.0 / 720 - 1
+                #     v1 = (index[0]) * 2.0 / 720 - 1
 
                 u2 = random.uniform(-1., 1.)
                 v2 = random.uniform(-1., 1.)
@@ -108,6 +109,25 @@ def run_jobs(process_id, args, env_kwargs):
             _, _, _, info = env.step(action, record_continuous_video=args.render, img_size=args.img_size)
             if env.action_tool.not_on_cloth:
                 print(f'{step_i} not on cloth')
+                if args.env_name == 'ClothFlatten':
+                    # from flat configuration
+                    full_covered_area = env._set_to_flatten()
+                elif args.env_name == 'RopeConfiguration':
+                    # from goal configuration
+                    if args.shape == 'S':
+                        env.set_state(env.goal_state[0])
+                    elif args.shape == 'O':
+                        env.set_state(env.goal_state[1])
+                    elif args.shape == 'M':
+                        env.set_state(env.goal_state[2])
+                    elif args.shape == 'C':
+                        env.set_state(env.goal_state[3])
+                    elif args.shape == 'U':
+                        env.set_state(env.goal_state[4])
+                    full_distance = -env.compute_reward()
+                pyflex.step()
+
+                step_i = 0
                 continue
             if args.env_name == 'RopeConfiguration':
                 env.action_tool.hide()
@@ -143,7 +163,7 @@ def run_jobs(process_id, args, env_kwargs):
         elif args.env_name == 'RopeConfiguration':
             min_distance = float('inf')
 
-        another_pick = random.randint(0, 149)
+        another_pick = random.randint(0, 49)
         if another_pick == 0:
             another_action = env.action_space.sample()
             action[2] = another_action[0]
@@ -242,7 +262,7 @@ def run_jobs(process_id, args, env_kwargs):
             if args.step == 1:
                 if_save = (max_recover >= 0.8 and max_recover - 0.05 >= crump_percent and crump_percent <= 0.8) or another_pick == 0
             else:
-                if_save = (max_recover - 0.15 >= crump_percent and crump_percent <= 0.6) or another_pick == 0
+                if_save = (max_recover - 0.20 >= crump_percent and crump_percent <= 0.6) or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
             if args.step == 1:
                 if_save = (min_distance <= 0.053 and crump_distance - 0.008 >= min_distance) or another_pick == 0
