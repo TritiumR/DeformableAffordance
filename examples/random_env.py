@@ -55,6 +55,8 @@ def main():
 
     frames = [env.get_image(args.img_size, args.img_size)]
     for i in range(env.horizon):
+        particle_pos = np.array(pyflex.get_positions()).reshape([-1, 4])[:, :3].flatten()
+        print(particle_pos[0])
         action = env.action_space.sample()
         # By default, the environments will apply action repitition. The option of record_continuous_video provides rendering of all
         # intermediate frames. Only use this option for visualization as it increases computation.
