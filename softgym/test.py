@@ -334,7 +334,7 @@ def run_jobs(process_id, args, env_kwargs):
                 action = np.array([u1, v1, u2, v2])
 
             elif args.env_name == 'RopeConfiguration':
-                if step_i == 1:
+                if step_i == 0:
                     indexs = np.transpose(np.nonzero(mask[:, :, 0]))
                     corner_id = random.randint(0, 3)
                     # print(corner_id)

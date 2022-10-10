@@ -111,9 +111,9 @@ class Dataset:
 
             if need_next:
                 curr_obs = data['curr_obs']
-                return obs, curr_obs, action, metric, step, not_on_cloth
+                return obs, curr_obs, action, metric, step, not_on_cloth, iepisode
 
-            return obs, action, metric, step, not_on_cloth
+            return obs, action, metric, step, not_on_cloth, iepisode
 
         if self.demo_times == 1:
             action = []
@@ -131,6 +131,6 @@ class Dataset:
 
             if need_next:
                 curr_obs = data['curr_obs']
-                return obs, curr_obs, action, metric, step, not_on_cloth
+                return obs, curr_obs, action, metric, step, not_on_cloth, iepisode
 
-            return obs, action, metric, step, not_on_cloth
+            return obs, action, metric, step, not_on_cloth, iepisode

@@ -3,10 +3,10 @@ CUDA_VISIBLE_DEVICES=5 python ./softgym/train.py \
   --task cloth-flatten \
   --agent aff_critic \
   --num_demos 8000 \
-  --num_iters 400000 \
+  --num_iters 600000 \
   --out_logits 1 \
   --demo_times 10 \
-  --exp_name 1008-09-tryten-aff-only_depth \
+  --exp_name 1011-01-tryten-aff-only_depth-expert \
   --suffix tryten-step1 \
   --max_load 2000 \
   --batch 24 \

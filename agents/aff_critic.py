@@ -47,12 +47,15 @@ class AffCritic:
         self.use_goal_image = use_goal_image
         self.only_depth = only_depth
         self.strategy = strategy
+
         self.critic_obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
         self.critic_obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
         self.aff_obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
         self.aff_obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
 
-    def compute_reward(self, metric, not_on_cloth, curr_obs=None, only_state=False, only_gt=False):
+        self.reward_cache = dict()
+
+    def compute_reward(self, metric, not_on_cloth, curr_obs=None, only_state=False, only_gt=False, iepisode=None, obs=None):
         m_len = len(metric)
         reward = []
 
@@ -93,7 +96,12 @@ class AffCritic:
                     curr_percent = metric[i][1] * 50
                     reward.append(curr_percent)
             else:
-                attention = self.attention_model.forward_batch(curr_obs.copy())
+                if iepisode in self.reward_cache:
+                    return self.reward_cache[iepisode]
+                if self.only_depth:
+                    attention = self.attention_model.forward_batch(np.array(curr_obs)[:, :, :, -1:].copy())
+                else:
+                    attention = self.attention_model.forward_batch(curr_obs.copy())
                 for i in range(0, m_len):
                     gt_state = np.max(attention[i])
 
@@ -101,10 +109,11 @@ class AffCritic:
                     #     score_list += f'-{int(gt_state * 2)}'
 
                     # img_obs = curr_obs[i][:, :, :3]
-                    # vis_aff = attention[0] - np.min(attention[0])
+                    # vis_aff = attention[i] - np.min(attention[i])
                     # vis_aff = 255 * vis_aff / np.max(vis_aff)
                     # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
                     # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
+                    # cv2.imwrite(f'./visual/state-{gt_state}-vis.jpg', vis_img)
 
                     # print('gt_state: ', gt_state)
                     curr_percent = metric[i][1] * 50
@@ -112,32 +121,35 @@ class AffCritic:
                     if only_state:
                         reward_i = gt_state
                     else:
-                        reward_i = (curr_percent + gt_state) / 2
+                        reward_i = (curr_percent * 2 + gt_state) / 3
                     reward.append(reward_i)
+
+                self.reward_cache[iepisode] = reward
                 # cv2.imwrite(f'./visual/state-{score_list}.jpg', img)
                 # print("save img")
         return reward
 
     def train_aff(self, dataset, num_iter, writer, batch, no_perturb=False):
         for i in range(num_iter):
-            obs, act, _, _, not_on_cloth = dataset.sample_index(need_next=False)
+            obs, act, _, _, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
 
             if self.use_goal_image:
                 input_image = np.concatenate((obs, goal), axis=2)
             else:
                 input_image = obs.copy()
 
-            # p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
+            p0 = [min(self.input_shape[0] - 1, int((act[0][1] + 1.) * 0.5 * self.input_shape[0])),
+                  min(self.input_shape[0] - 1, int((act[0][0] + 1.) * 0.5 * self.input_shape[0]))]
             # Do data augmentation (perturb rotation and translation).
             if not no_perturb:
-                input_image_perturb, p0_list = agent_utils.perturb(input_image.copy(), [])
+                input_image_perturb, p0_list = agent_utils.perturb(input_image.copy(), [p0])
                 if input_image_perturb is not None:
                     input_image = input_image_perturb
-                    # p0 = p0_list[0]
+                    p0 = p0_list[0]
                 else:
                     print('no perturb')
 
-            p_list = []
+            p_list = [p0]
             for p_i in range(batch):
                 # sample_x = max(min(np.random.normal(loc=p0[0], scale=0.12), self.input_shape[0] - 1), 0)
                 # sample_y = max(min(np.random.normal(loc=p0[1], scale=0.12), self.input_shape[0] - 1), 0)
@@ -198,13 +210,13 @@ class AffCritic:
                 if self.step > 1:
                     if extra_dataset is not None:
                         if bh % 2 == 0:
-                            obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                            obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
                         else:
-                            obs, act, metric, step, not_on_cloth = extra_dataset.sample_index(need_next=False)
+                            obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
                     else:
-                        obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                        obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
                 else:
-                    obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
+                    obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
 
                 step_batch.append(step)
 
@@ -215,12 +227,13 @@ class AffCritic:
 
                 p0 = [min(self.input_shape[0] - 1, int((act[0][1] + 1.) * 0.5 * self.input_shape[0])),
                       min(self.input_shape[0] - 1, int((act[0][0] + 1.) * 0.5 * self.input_shape[0]))]
+
                 p1_list = []
                 for point in act:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
-                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state, only_gt)
+                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state, only_gt, iepisode, obs=obs.copy())
                 # print('reward: ', reward)
                 reward_batch.append(reward.copy())
 
@@ -271,13 +284,13 @@ class AffCritic:
             if self.step > 1:
                 if extra_dataset is not None:
                     if bh % 2 == 0:
-                        obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                        obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
                     else:
-                        obs, act, metric, step, not_on_cloth = extra_dataset.sample_index(need_next=False)
+                        obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
                 else:
-                    obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                    obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
             else:
-                obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
+                obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
 
             step_batch.append(step)
 
@@ -380,13 +393,13 @@ class AffCritic:
                 if self.step > 1:
                     if extra_dataset is not None:
                         if bh % 2 == 0:
-                            obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                            obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
                         else:
-                            obs, act, metric, step, not_on_cloth = extra_dataset.sample_index(need_next=False)
+                            obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
                     else:
-                        obs, curr_obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=True)
+                        obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
                 else:
-                    obs, act, metric, step, not_on_cloth = dataset.sample_index(need_next=False)
+                    obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
 
                 step_batch.append(step)
 
@@ -595,23 +608,23 @@ class AffCritic:
     def critic_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        for d in range(self.input_shape[2]):
+        for d in range(self.input_shape[2] - 1):
             image[:, :, d] = (image[:, :, d] / 255 - self.critic_obs_mean[d]) / self.critic_obs_std[d]
-        # image[:, :, -1] = (image[:, :, -1] / - self.critic_obs_mean[-1]) / self.critic_obs_std[-1]
+        image[:, :, -1] = (image[:, :, -1] - self.critic_obs_mean[-1]) / self.critic_obs_std[-1]
         return image
 
     def aff_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        for d in range(self.input_shape[2] - 1):
+        for d in range(self.input_shape[2]):
             image[:, :, d] = (image[:, :, d] / 255 - self.aff_obs_mean[d]) / self.aff_obs_std[d]
-        image[:, :, -1] = (image[:, :, -1] / - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
+        # image[:, :, -1] = (image[:, :, -1] - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
         return image
 
     def aff_preprocess_only_depth(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        image[:, :, -1] = (image[:, :, -1] / - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
+        image[:, :, -1] = (image[:, :, -1] - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
         return image
 
     def ori_preprocess(self, image_in):
@@ -686,17 +699,14 @@ class AffCritic:
     #     self.prev_critic_fname = critic_fname
     #     self.critic_model.save(critic_fname)
     #
-    # def save_aff_with_epoch(self, remove=True):
-    #     """Save models."""
-    #     if not os.path.exists(self.models_dir):
-    #         os.makedirs(self.models_dir)
-    #     aff_fname = 'attention-ckpt-%d.h5' % self.total_iter
-    #     aff_fname = os.path.join(self.models_dir, aff_fname)
-    #     if remove and self.prev_aff_fname is not None:
-    #         cmd = "rm %s" % self.prev_aff_fname
-    #         call(cmd, shell=True)
-    #     self.prev_aff_fname = aff_fname
-    #     self.attention_model.save(aff_fname)
+    def save_aff_with_epoch(self, iter):
+        """Save models."""
+        if not os.path.exists(self.models_dir):
+            os.makedirs(self.models_dir)
+        aff_fname = 'attention-online-ckpt-%d.h5' % iter
+        aff_fname = os.path.join(self.models_dir, aff_fname)
+        print(f'saveto {aff_fname}')
+        self.attention_model.save(aff_fname)
 
     def save_aff(self):
         """Save models."""
