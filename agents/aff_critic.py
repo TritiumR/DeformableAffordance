@@ -48,11 +48,6 @@ class AffCritic:
         self.only_depth = only_depth
         self.strategy = strategy
 
-        self.critic_obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
-        self.critic_obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
-        self.aff_obs_mean = [0.17277866, 0.08951129, 0.07458702, 0.000707991]
-        self.aff_obs_std = [0.3573698, 0.18700241, 0.21131192, 0.00145624]
-
         self.reward_cache = dict()
 
     def compute_reward(self, metric, not_on_cloth, curr_obs=None, only_state=False, only_gt=False, iepisode=None, obs=None):
@@ -584,11 +579,9 @@ class AffCritic:
         for fname in dirs:
             data = pickle.load(open(os.path.join(path, fname), 'rb'))
             obs = np.array(data['obs'])
-            for d in range(self.input_shape[2] - 1):
+            for d in range(self.input_shape[2]):
                 mean[d] += obs[:, :, d].mean() / 255
                 std[d] += obs[:, :, d].std() / 255
-            mean[-1] += obs[:, :, -1].mean()
-            std[-1] += obs[:, :, -1].std()
 
         mean /= len(dirs)
         std /= len(dirs)
@@ -597,34 +590,32 @@ class AffCritic:
         print("std: ", std)
 
         if mode == 'critic':
-            self.critic_obs_mean = mean
-            self.critic_obs_std = std
+            self.critic_mean = mean
+            self.critic_std = std
         elif mode == 'aff':
-            self.aff_obs_mean = mean
-            self.aff_obs_std = std
+            self.aff_mean = mean
+            self.aff_std = std
 
         self.save_mean_std(mode)
 
     def critic_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        for d in range(self.input_shape[2] - 1):
-            image[:, :, d] = (image[:, :, d] / 255 - self.critic_obs_mean[d]) / self.critic_obs_std[d]
-        image[:, :, -1] = (image[:, :, -1] - self.critic_obs_mean[-1]) / self.critic_obs_std[-1]
+        for d in range(self.input_shape[2]):
+            image[:, :, d] = (image[:, :, d] / 255 - self.critic_mean[d]) / self.critic_std[d]
         return image
 
     def aff_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
         for d in range(self.input_shape[2]):
-            image[:, :, d] = (image[:, :, d] / 255 - self.aff_obs_mean[d]) / self.aff_obs_std[d]
-        # image[:, :, -1] = (image[:, :, -1] - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
+            image[:, :, d] = (image[:, :, d] / 255 - self.aff_mean[d]) / self.aff_std[d]
         return image
 
     def aff_preprocess_only_depth(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
-        image[:, :, -1] = (image[:, :, -1] - self.aff_obs_mean[-1]) / self.aff_obs_std[-1]
+        image[:, :, -1] = (image[:, :, -1] / 255 - self.aff_mean[-1]) / self.aff_std[-1]
         return image
 
     def ori_preprocess(self, image_in):
@@ -671,11 +662,11 @@ class AffCritic:
             os.makedirs(self.models_dir)
         data = {}
         if mode == 'critic':
-            data['mean'] = self.critic_obs_mean
-            data['std'] = self.critic_obs_std
+            data['mean'] = self.critic_mean
+            data['std'] = self.critic_std
         elif mode == 'aff':
-            data['mean'] = self.aff_obs_mean
-            data['std'] = self.aff_obs_std
+            data['mean'] = self.aff_mean
+            data['std'] = self.aff_std
         fname = mode + 'mean_std.pkl'
         pickle.dump(data, open(os.path.join(self.models_dir, fname), 'wb'))
 
@@ -732,6 +723,22 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                          critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
                          only_depth=only_depth, strategy=strategy)
 
+        if load_critic_mean_std_dir != 'xxx':
+            fname = 'criticmean_std.pkl'
+            mean_std = pickle.load(open(os.path.join(load_critic_mean_std_dir, fname), 'rb'))
+            self.critic_mean = mean_std['mean']
+            self.critic_std = mean_std['std']
+            print("critic mean: ", self.critic_mean)
+            print('critic std: ', self.critic_std)
+
+        if load_aff_mean_std_dir != 'xxx':
+            fname = 'affmean_std.pkl'
+            mean_std = pickle.load(open(os.path.join(load_aff_mean_std_dir, fname), 'rb'))
+            self.aff_mean = mean_std['mean']
+            self.aff_std = mean_std['std']
+            print("aff mean: ", self.aff_mean)
+            print('aff std: ', self.aff_std)
+
         if only_depth:
             self.attention_model = Affordance(input_shape=(image_size, image_size, 1),
                                               preprocess=self.aff_preprocess_only_depth,
@@ -755,21 +762,6 @@ class OriginalTransporterAffCriticAgent(AffCritic):
                                        layer_normalize=layer_normalize,
                                        strategy=strategy
                                        )
-        if load_critic_mean_std_dir != 'xxx':
-            fname = 'criticmean_std.pkl'
-            mean_std = pickle.load(open(os.path.join(load_critic_mean_std_dir, fname), 'rb'))
-            self.critic_mean = mean_std['mean']
-            self.critic_std = mean_std['std']
-            print("mean: ", self.critic_mean)
-            print('srd: ', self.critic_std)
-
-        if load_aff_mean_std_dir != 'xxx':
-            fname = 'affmean_std.pkl'
-            mean_std = pickle.load(open(os.path.join(load_aff_mean_std_dir, fname), 'rb'))
-            self.aff_mean = mean_std['mean']
-            self.aff_std = mean_std['std']
-            print("mean: ", self.aff_mean)
-            print('srd: ', self.aff_std)
 
         if load_next_dir != 'xxx':
             self.next_model = Affordance(input_shape=self.input_shape,
@@ -796,7 +788,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
             print('*' * 3 + f'load_critic_dir {load_critic_dir}' + '*' * 3)
             self.critic_model.load(load_critic_dir)
             print('*' * 50)
-            print(f'*' * 20 + f'critic_pick {self.critic_pick}'+ '*' * 20)
+            print(f'*' * 20 + f'critic_pick {self.critic_pick}' + '*' * 20)
 
 
 class GoalTransporterAgent(AffCritic):

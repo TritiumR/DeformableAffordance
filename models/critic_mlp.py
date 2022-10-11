@@ -278,6 +278,28 @@ class Critic_MLP:
 
                 for i in range(batch_len):
                     reward = reward_batch[i].copy()
+                    # img = in_img_batch[i][:, :, :-1]
+                    #
+                    # for u in range(max(0, p0_batch[i][0] - 4), min(160, p0_batch[i][0] + 4)):
+                    #     for v in range(max(0, p0_batch[i][1] - 4), min(160, p0_batch[i][1] + 4)):
+                    #         img[u][v] = (255, 0, 0)
+                    #
+                    # vis_critic = np.array(QQ_cur[i])
+                    # argmax = np.argmax(vis_critic)
+                    # argmax = np.unravel_index(argmax, shape=vis_critic.shape)
+                    # p1_pixel = argmax[0:2]
+                    # vis_critic = vis_critic - np.min(vis_critic)
+                    # vis_critic = 255 * vis_critic / np.max(vis_critic)
+                    # vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
+                    #
+                    # for u in range(max(0, p1_pixel[0] - 4), min(160, p1_pixel[0] + 4)):
+                    #     for v in range(max(0, p1_pixel[1] - 4), min(160, p1_pixel[1] + 4)):
+                    #         img[u][v] = (255, 255, 255)
+                    #
+                    # vis_img = np.concatenate((cv2.cvtColor(img, cv2.COLOR_BGR2RGB), vis_critic), axis=1)
+                    #
+                    # cv2.imwrite(f'./visual/debug-test-aff_critic-{reward}.jpg', vis_img)
+                    # print("save to" + f'./visual/debug-test-aff_critic-{reward}.jpg')
                     # print("reward", reward)
                     p1_list = p1_list_batch[i].copy()
                     len_q = len(p1_list)

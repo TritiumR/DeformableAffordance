@@ -107,6 +107,7 @@ def run_jobs(process_id, args, env_kwargs):
                 action = np.array([u1, v1, u2, v2])
 
             _, _, _, info = env.step(action, record_continuous_video=args.render, img_size=args.img_size)
+
             if env.action_tool.not_on_cloth:
                 print(f'{step_i} not on cloth')
                 if args.env_name == 'ClothFlatten':
