@@ -90,6 +90,7 @@ class AffCritic:
                 for i in range(0, m_len):
                     curr_percent = metric[i][1] * 50
                     reward.append(curr_percent)
+                # print(reward)
             else:
                 if iepisode in self.reward_cache:
                     return self.reward_cache[iepisode]
@@ -612,12 +613,6 @@ class AffCritic:
             image[:, :, d] = (image[:, :, d] / 255 - self.aff_mean[d]) / self.aff_std[d]
         return image
 
-    def aff_preprocess_only_depth(self, image_in):
-        image = copy.deepcopy(image_in)
-        """Pre-process images (subtract mean, divide by std)."""
-        image[:, :, -1] = (image[:, :, -1] / 255 - self.aff_mean[-1]) / self.aff_std[-1]
-        return image
-
     def ori_preprocess(self, image_in):
         image = copy.deepcopy(image_in)
         """Pre-process images (subtract mean, divide by std)."""
@@ -741,7 +736,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
 
         if only_depth:
             self.attention_model = Affordance(input_shape=(image_size, image_size, 1),
-                                              preprocess=self.aff_preprocess_only_depth,
+                                              preprocess=self.aff_preprocess,
                                               learning_rate=learning_rate,
                                               strategy=strategy
                                               )
