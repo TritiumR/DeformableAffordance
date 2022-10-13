@@ -50,7 +50,7 @@ class Dataset:
         """Limit random samples to specific fixed set."""
         self.episode_set = episodes
 
-    def sample_index(self, need_next=False):
+    def sample_index(self, need_next=False, set_iepisode=None):
         """Randomly sample from the dataset uniformly.
 
         The 'cached_load' will use the load (from pickle file) to
@@ -97,6 +97,9 @@ class Dataset:
                 self._cache[iepisode] = load(iepisode)
                 self.cache_size += 1
             return self._cache[iepisode]
+
+        if set_iepisode is not None:
+            iepisode = set_iepisode
 
         if self.demo_times > 1:
             data = cached_load(iepisode, i)
