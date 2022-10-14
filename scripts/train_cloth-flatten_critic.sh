@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=6 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=0 python ./softgym/train.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
@@ -8,12 +8,11 @@ CUDA_VISIBLE_DEVICES=6 python ./softgym/train.py \
   --num_iters 300000 \
   --out_logits 1 \
   --step 2 \
-  --exp_name 1012-01-tryten_eleven-only_gt \
+  --exp_name 1013-04-tryten_eleven-online_render \
   --max_load 2000 \
-  --batch 20 \
+  --batch 1 \
   --critic_depth 1 \
   --learning_rate 1e-4 \
-  --only_gt \
   --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-50000-1010-08-test_online-step-2-0.8-step-1/attention-online-ckpt-7000.h5 \
   --load_aff_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-50000-1010-08-test_online-step-2-0.8-step-1 \
   --model critic \
