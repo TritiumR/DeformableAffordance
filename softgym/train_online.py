@@ -208,7 +208,7 @@ def run_jobs(process_id, args, env_kwargs):
         if args.env_name == 'ClothFlatten':
             crump_area = env._get_current_covered_area(pyflex.get_positions())
             crump_percent = crump_area / full_covered_area
-            if crump_percent >= (0.8 - args.step * 0.1):
+            if crump_percent >= (0.8 - args.step * 0.05):
                 continue
             # print("crump percent: ", crump_percent)
         elif args.env_name == 'RopeConfiguration':
@@ -289,7 +289,7 @@ def run_jobs(process_id, args, env_kwargs):
                 metric_data.append(final_distance)
 
         if args.env_name == 'ClothFlatten':
-            if max_recover <= 0.8:
+            if max_recover <= 1.0 - (args.step * 0.1):
                 continue
         elif args.env_name == 'RopeConfiguration':
             if min_distance >= 0.6:
