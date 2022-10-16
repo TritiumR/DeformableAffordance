@@ -1,8 +1,8 @@
 #!/bin/bash
-for ((i=0;i<=59;i++))
+for ((i=0;i<=19;i++))
 do
   echo "running $i"
-  CUDA_VISIBLE_DEVICES=7 python ./softgym/test_all.py \
+  CUDA_VISIBLE_DEVICES=4 python ./softgym/test_all.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
@@ -10,12 +10,12 @@ do
   --step 2 \
   --test_step 10 \
   --out_logits 1 \
-  --exp_name 1015-08-step-2-all_score-not_set_flat-aff_critic \
+  --exp_name 1016-03-step-2-online-all_score-aff_critic-0.85 \
   --test_id "$i" \
   --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-9000-1011-16-tryten_eleven-online-2:1-step-2/critic-ckpt-300000.h5 \
   --load_critic_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-9000-1011-16-tryten_eleven-online-2:1-step-2 \
-  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-8000-1014-03-tryeleven-aff-step2/attention-ckpt-400000.h5 \
-  --load_aff_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-8000-1014-03-tryeleven-aff-step2 \
+  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-20000-1010-08-test_online-step-3-0.7-step-1/attention-online-ckpt-7000.h5 \
+  --load_aff_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-20000-1010-08-test_online-step-3-0.7-step-1 \
   --image_size 160 \
   --set_flat 0 \
   --save_video_dir './test_video/' \
