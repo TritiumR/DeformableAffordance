@@ -674,25 +674,22 @@ class AffCritic:
         critic_fname = os.path.join(self.models_dir, critic_fname)
         self.critic_model.save(critic_fname)
 
-    # def save_critic_with_epoch(self, remove=True):
-    #     """Save models."""
-    #     if not os.path.exists(self.models_dir):
-    #         os.makedirs(self.models_dir)
-    #     critic_fname = 'critic-ckpt-%d.h5' % self.total_iter
-    #     critic_fname = os.path.join(self.models_dir, critic_fname)
-    #     if remove and self.prev_critic_fname is not None:
-    #         cmd = "rm %s" % self.prev_critic_fname
-    #         call(cmd, shell=True)
-    #     self.prev_critic_fname = critic_fname
-    #     self.critic_model.save(critic_fname)
-    #
+    def save_critic_with_epoch(self, iter):
+        """Save models."""
+        if not os.path.exists(self.models_dir):
+            os.makedirs(self.models_dir)
+        critic_fname = 'critic-online-ckpt-%d.h5' % iter
+        critic_fname = os.path.join(self.models_dir, critic_fname)
+        print(f'save to {critic_fname}')
+        self.critic_model.save(critic_fname)
+
     def save_aff_with_epoch(self, iter):
         """Save models."""
         if not os.path.exists(self.models_dir):
             os.makedirs(self.models_dir)
         aff_fname = 'attention-online-ckpt-%d.h5' % iter
         aff_fname = os.path.join(self.models_dir, aff_fname)
-        print(f'saveto {aff_fname}')
+        print(f'save to {aff_fname}')
         self.attention_model.save(aff_fname)
 
     def save_aff(self):

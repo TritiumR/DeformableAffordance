@@ -1,12 +1,13 @@
-CUDA_VISIBLE_DEVICES=5 python ./softgym/train_online.py \
+CUDA_VISIBLE_DEVICES=7 python ./softgym/train_online.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
   --num_online 20000 \
-  --data_type 3 \
+  --data_type 4 \
   --step 3 \
   --out_logits 1 \
-  --exp_name 1010-08-test_online-step-3-0.7 \
+  --exp_name 1017-06-online-step-3-both-0.7 \
+  --mode both \
   --process_num 1 \
   --critic_depth 1 \
   --learning_rate 5e-5 \

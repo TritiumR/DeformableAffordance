@@ -296,35 +296,65 @@ def run_jobs(process_id, args, env_kwargs):
                 continue
         # train aff with online data
 
-        batch = len(curr_data)
-        with tf.GradientTape() as tape:
-            loss = None
-            if agent.only_depth:
-                aff_pred = agent.attention_model.forward_batch(np.array(curr_data)[:, :, :, -1:].copy(), apply_softmax=False)
-            else:
-                aff_pred = agent.attention_model.forward_batch(curr_data.copy(), apply_softmax=False)
-            for bh in range(batch):
-                p0 = [min(args.image_size - 1, int((action_data[bh][1] + 1.) * 0.5 * args.image_size)),
-                      min(args.image_size - 1, int((action_data[bh][0] + 1.) * 0.5 * args.image_size))]
-                output = aff_pred[bh, p0[0], p0[1], :]
-                gt = metric_data[bh] * 50
-                print("output: ", output, "gt: ", gt)
-                if loss is None:
-                    loss = tf.keras.losses.MAE(gt, output)
+        if args.model == 'aff' or args.model == 'both':
+            batch = len(curr_data)
+            with tf.GradientTape() as tape:
+                loss = None
+                if agent.only_depth:
+                    aff_pred = agent.attention_model.forward_batch(np.array(curr_data)[:, :, :, -1:].copy(), apply_softmax=False)
                 else:
-                    loss = loss + tf.keras.losses.MAE(gt, output)
-            loss = tf.reduce_mean(loss)
-            loss = loss / batch
-        grad = tape.gradient(loss, agent.attention_model.model.trainable_variables)
-        agent.attention_model.optim.apply_gradients(zip(grad, agent.attention_model.model.trainable_variables))
-        agent.attention_model.metric(loss)
-        print(f"iter: {online_id} loss: {loss}")
+                    aff_pred = agent.attention_model.forward_batch(curr_data.copy(), apply_softmax=False)
+                for bh in range(batch):
+                    p0 = [min(args.image_size - 1, int((action_data[bh][1] + 1.) * 0.5 * args.image_size)),
+                          min(args.image_size - 1, int((action_data[bh][0] + 1.) * 0.5 * args.image_size))]
+                    output = aff_pred[bh, p0[0], p0[1], :]
+                    gt = metric_data[bh] * 50
+                    print("output: ", output, "gt: ", gt)
+                    if loss is None:
+                        loss = tf.keras.losses.MAE(gt, output)
+                    else:
+                        loss = loss + tf.keras.losses.MAE(gt, output)
+                loss = tf.reduce_mean(loss)
+                loss = loss / batch
+            grad = tape.gradient(loss, agent.attention_model.model.trainable_variables)
+            agent.attention_model.optim.apply_gradients(zip(grad, agent.attention_model.model.trainable_variables))
+            agent.attention_model.metric(loss)
+            print(f"aff iter: {online_id} loss: {loss}")
 
-        if online_id % 1000 == 0:
-            agent.save_aff_with_epoch(online_id)
+            if online_id % 1000 == 0:
+                agent.save_aff_with_epoch(online_id)
+
+        if args.model == 'critic' or args.model == 'both':
+            batch = len(curr_data)
+            with tf.GradientTape() as tape:
+                loss_critic = None
+
+                for bh in range(batch):
+                    p0 = [min(args.image_size - 1, int((action_data[bh][1] + 1.) * 0.5 * args.image_size)),
+                          min(args.image_size - 1, int((action_data[bh][0] + 1.) * 0.5 * args.image_size))]
+                    p1 = [min(args.image_size - 1, int((action_data[bh][3] + 1.) * 0.5 * args.image_size)),
+                          min(args.image_size - 1, int((action_data[bh][2] + 1.) * 0.5 * args.image_size))]
+                    QQ_cur = agent.critic_model.forward(curr_data[bh], p0)
+                    output = QQ_cur[0, p1[0], p1[1], :]
+                    gt = metric_data[bh] * 50
+                    print("output: ", output, "gt: ", gt)
+                    if loss_critic is None:
+                        loss_critic = tf.keras.losses.MAE(gt, output)
+                    else:
+                        loss_critic = loss_critic + tf.keras.losses.MAE(gt, output)
+                loss_critic = tf.reduce_mean(loss_critic)
+                loss_critic /= batch
+
+            grad = tape.gradient(loss_critic, agent.critic_model.model.trainable_variables)
+            agent.critic_model.optim.apply_gradients(zip(grad, agent.critic_model.model.trainable_variables))
+            agent.critic_model.metric(loss_critic)
+            print(f"critic iter: {online_id} loss: {loss_critic}")
+
+            if online_id % 1000 == 0:
+                agent.save_critic_with_epoch(online_id)
+
         if online_id % 100 == 0:
             visualize_aff_critic(curr_data[0].copy(), agent, args, online_id)
-
         online_id += 1
 
 
@@ -352,6 +382,7 @@ def main():
     parser.add_argument('--load_aff_dir',       default='xxx')
     parser.add_argument('--load_critic_mean_std_dir', default='xxx')
     parser.add_argument('--load_aff_mean_std_dir', default='xxx')
+    parser.add_argument('--model', default='aff', type=str)
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--only_depth', action='store_true')
     parser.add_argument('--exp', action='store_true')
