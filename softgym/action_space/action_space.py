@@ -20,7 +20,7 @@ class ActionToolBase(metaclass=abc.ABCMeta):
 
 
 class Picker(ActionToolBase):
-    def __init__(self, num_picker=1, picker_radius=0.05, init_pos=(0., -0.1, 0.), picker_threshold=0.005, particle_radius=0.05,
+    def __init__(self, num_picker=1, picker_radius=0.025, init_pos=(0., -0.1, 0.), picker_threshold=0.005, particle_radius=0.05,
                  picker_low=(-0.4, 0., -0.4), picker_high=(0.4, 0.5, 0.4), init_particle_pos=None, spring_coef=1.2, **kwargs):
         """
 
@@ -396,7 +396,7 @@ class PickAndPlace(PickerQPG):
         u1 = ((u1 + 1.) * 0.5) * self.image_size[0]
         v1 = ((v1 + 1.) * 0.5) * self.image_size[1]
         x1, y1, z1 = super()._get_world_coor_from_image(u1, v1)
-        y1 += 0.055
+        y1 += 0.03
         # print(x1, z1)
 
         u2, v2 = action[2:]

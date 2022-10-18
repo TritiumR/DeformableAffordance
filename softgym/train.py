@@ -114,11 +114,6 @@ def main():
                                      strategy=strategy
                                      )
 
-    # if args.model == 'critic':
-    #     agent.train_critic(dataset, num_iter=1000, writer=train_summary_writer,
-    #                        batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
-    #                        only_state=args.only_state)
-
     while agent.total_iter < args.num_iters:
         if args.model == 'critic':
             agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), 'critic')
