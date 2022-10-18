@@ -111,6 +111,11 @@ def run_jobs(process_id, args, env_kwargs):
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
     env.reset()
 
+    if args.model == 'aff' or args.model == 'both':
+        agent.save_mean_std("aff")
+    if args.model == 'critic' or args.model == 'both':
+        agent.save_mean_std("critic")
+
     online_id = 0
     full_covered_area = None
     while (online_id < args.num_online):
@@ -269,24 +274,33 @@ def run_jobs(process_id, args, env_kwargs):
             curr_data.append(curr_obs.copy())
 
             # step-2 manipulation
-            agent_action = agent.act(curr_obs.copy())
-            action_data.append(agent_action)
+            state_curr = env.get_state()
 
-            _, _, _, info = env.step(agent_action, record_continuous_video=False, img_size=args.img_size)
+            for critic_id in range(args.critic_type):
+                env.set_state(state_curr)
+                agent_action = agent.act(curr_obs.copy())
 
-            if args.env_name == 'ClothFlatten':
-                final_area = env._get_current_covered_area(pyflex.get_positions())
-                final_percent = final_area / full_covered_area
-                # print("final percent: ", final_percent)
-                if final_percent > max_recover:
-                    max_recover = final_percent
-                metric_data.append(final_percent)
-            elif args.env_name == 'RopeConfiguration':
-                final_distance = -env.compute_reward()
-                # print("final distance: ", final_distance)
-                if final_distance < min_distance:
-                    min_distance = final_distance
-                metric_data.append(final_distance)
+                if critic_id != 0:
+                    agent_action[2] = random.uniform(-1., 1.)
+                    agent_action[3] = random.uniform(-1., 1.)
+
+                action_data.append(agent_action.copy())
+
+                _, _, _, info = env.step(agent_action, record_continuous_video=False, img_size=args.img_size)
+
+                if args.env_name == 'ClothFlatten':
+                    final_area = env._get_current_covered_area(pyflex.get_positions())
+                    final_percent = final_area / full_covered_area
+                    # print(f'final percent {critic_id}: ', final_percent)
+                    if final_percent > max_recover:
+                        max_recover = final_percent
+                    metric_data.append(final_percent)
+                elif args.env_name == 'RopeConfiguration':
+                    final_distance = -env.compute_reward()
+                    # print(f'final distance {critic_id}: ', final_distance)
+                    if final_distance < min_distance:
+                        min_distance = final_distance
+                    metric_data.append(final_distance)
 
         if args.env_name == 'ClothFlatten':
             if max_recover <= 1.0 - (args.step * 0.1):
@@ -294,63 +308,66 @@ def run_jobs(process_id, args, env_kwargs):
         elif args.env_name == 'RopeConfiguration':
             if min_distance >= 0.6:
                 continue
-        # train aff with online data
 
+        # train aff with online data
         if args.model == 'aff' or args.model == 'both':
-            batch = len(curr_data)
             with tf.GradientTape() as tape:
                 loss = None
                 if agent.only_depth:
                     aff_pred = agent.attention_model.forward_batch(np.array(curr_data)[:, :, :, -1:].copy(), apply_softmax=False)
                 else:
                     aff_pred = agent.attention_model.forward_batch(curr_data.copy(), apply_softmax=False)
-                for bh in range(batch):
-                    p0 = [min(args.image_size - 1, int((action_data[bh][1] + 1.) * 0.5 * args.image_size)),
-                          min(args.image_size - 1, int((action_data[bh][0] + 1.) * 0.5 * args.image_size))]
+                for bh in range(args.data_type):
+                    base = bh * args.critic_type
+                    p0 = [min(args.image_size - 1, int((action_data[base][1] + 1.) * 0.5 * args.image_size)),
+                          min(args.image_size - 1, int((action_data[base][0] + 1.) * 0.5 * args.image_size))]
                     output = aff_pred[bh, p0[0], p0[1], :]
-                    gt = metric_data[bh] * 50
-                    print("output: ", output, "gt: ", gt)
+                    gt = metric_data[base] * 50
+                    print("aff output: ", output, "gt: ", gt)
                     if loss is None:
                         loss = tf.keras.losses.MAE(gt, output)
                     else:
                         loss = loss + tf.keras.losses.MAE(gt, output)
                 loss = tf.reduce_mean(loss)
-                loss = loss / batch
+                loss = loss / args.data_type
             grad = tape.gradient(loss, agent.attention_model.model.trainable_variables)
             agent.attention_model.optim.apply_gradients(zip(grad, agent.attention_model.model.trainable_variables))
             agent.attention_model.metric(loss)
             print(f"aff iter: {online_id} loss: {loss}")
 
-            if online_id % 1000 == 0:
+            if online_id % 500 == 0:
                 agent.save_aff_with_epoch(online_id)
 
+        # train critic with online data
         if args.model == 'critic' or args.model == 'both':
-            batch = len(curr_data)
             with tf.GradientTape() as tape:
                 loss_critic = None
 
-                for bh in range(batch):
-                    p0 = [min(args.image_size - 1, int((action_data[bh][1] + 1.) * 0.5 * args.image_size)),
-                          min(args.image_size - 1, int((action_data[bh][0] + 1.) * 0.5 * args.image_size))]
-                    p1 = [min(args.image_size - 1, int((action_data[bh][3] + 1.) * 0.5 * args.image_size)),
-                          min(args.image_size - 1, int((action_data[bh][2] + 1.) * 0.5 * args.image_size))]
+                for bh in range(args.data_type):
+                    base = bh * args.critic_type
+                    p0 = [min(args.image_size - 1, int((action_data[base][1] + 1.) * 0.5 * args.image_size)),
+                          min(args.image_size - 1, int((action_data[base][0] + 1.) * 0.5 * args.image_size))]
                     QQ_cur = agent.critic_model.forward(curr_data[bh], p0)
-                    output = QQ_cur[0, p1[0], p1[1], :]
-                    gt = metric_data[bh] * 50
-                    print("output: ", output, "gt: ", gt)
-                    if loss_critic is None:
-                        loss_critic = tf.keras.losses.MAE(gt, output)
-                    else:
-                        loss_critic = loss_critic + tf.keras.losses.MAE(gt, output)
+
+                    for p1_id in range(args.critic_type):
+                        p1 = [min(args.image_size - 1, int((action_data[base + p1_id][3] + 1.) * 0.5 * args.image_size)),
+                              min(args.image_size - 1, int((action_data[base + p1_id][2] + 1.) * 0.5 * args.image_size))]
+                        output = QQ_cur[0, p1[0], p1[1], :]
+                        gt = metric_data[base + p1_id] * 50
+                        print("critic output: ", output, "gt: ", gt)
+                        if loss_critic is None:
+                            loss_critic = tf.keras.losses.MAE(gt, output) / args.critic_type
+                        else:
+                            loss_critic = loss_critic + tf.keras.losses.MAE(gt, output) / args.critic_type
                 loss_critic = tf.reduce_mean(loss_critic)
-                loss_critic /= batch
+                loss_critic /= args.data_type
 
             grad = tape.gradient(loss_critic, agent.critic_model.model.trainable_variables)
             agent.critic_model.optim.apply_gradients(zip(grad, agent.critic_model.model.trainable_variables))
             agent.critic_model.metric(loss_critic)
             print(f"critic iter: {online_id} loss: {loss_critic}")
 
-            if online_id % 1000 == 0:
+            if online_id % 500 == 0:
                 agent.save_critic_with_epoch(online_id)
 
         if online_id % 100 == 0:
@@ -374,6 +391,7 @@ def main():
     parser.add_argument('--learning_rate', default=5e-5, type=float)
     parser.add_argument('--num_online', type=int, default=1, help='How many test do you need for inferring')
     parser.add_argument('--data_type', type=int, default=1, help='How many children for one crumple state')
+    parser.add_argument('--critic_type', type=int, default=1, help='How many children for one current state')
     parser.add_argument('--process_num', type=int, default=1, help='How many process do you need')
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--out_logits',     default=1, type=int)

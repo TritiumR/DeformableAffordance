@@ -59,17 +59,14 @@ def run_jobs(process_id, args, env_kwargs):
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
             # print(np.min(prev_depth), np.max(prev_depth))
             mask = np.where(prev_depth[:, :, 0] < 0.295, 255, 0)
-            # print(mask.shape)
             # cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
                 # if step_i == 0:
                 mask = prev_obs[:, :, 0]
-                # cv2.imwrite(f'./visual/test-mask-{step_i}-cloth.jpg', mask)
                 indexs = np.transpose(np.where(mask != 0))
                 corner_id = random.randint(0, 3)
-                # print(corner_id)
                 top, left = indexs.min(axis=0)
                 bottom, right = indexs.max(axis=0)
 
@@ -96,9 +93,6 @@ def run_jobs(process_id, args, env_kwargs):
                 u1 = (index[1]) * 2.0 / 720 - 1
                 v1 = (index[0]) * 2.0 / 720 - 1
 
-                # bound = (step_i + 1) * 0.2
-                # u2 = random.uniform(-bound, bound)
-                # v2 = random.uniform(-bound, bound)
                 u2 = max(min(np.random.normal(u1, scale=0.4), 0.999), -1.)
                 v2 = max(min(np.random.normal(v1, scale=0.4), 0.999), -1.)
                 # u2 = random.uniform(-1., 1.)
@@ -212,8 +206,6 @@ def run_jobs(process_id, args, env_kwargs):
                 random_action = env.action_space.sample()
                 random_action[0] = reverse_action[0]
                 random_action[1] = reverse_action[1]
-                # u2 = 0.4 * id - 1
-                # v2 = 0.4 * id - 1
                 action_data.append(random_action.copy())
                 _, _, _, info = env.step(random_action, record_continuous_video=False, img_size=args.img_size)
                 if args.env_name == 'RopeConfiguration':
@@ -274,7 +266,6 @@ def run_jobs(process_id, args, env_kwargs):
             data = {}
             data['obs'] = np.array(crump_obs).copy()
             data['curr_obs'] = curr_data
-            # data['curr'] = np.array(curr_data).copy()
             assert data['obs'].shape == (160, 160, 4)
             data['area'] = metric_data
             data['action'] = action_data
@@ -288,6 +279,7 @@ def run_jobs(process_id, args, env_kwargs):
             print('Video generated and save to {}'.format(save_name))
         # env.end_record()
 
+
 def show_obs(obs):
     window_name = 'obs'
     cv2.namedWindow(window_name, 0)
@@ -295,25 +287,6 @@ def show_obs(obs):
     cv2.imshow(window_name, obs)
     cv2.waitKey(10000)
     cv2.destroyAllWindows()
-
-def show_depth():
-    # render rgb and depth
-    img, depth = pyflex.render()
-    img = img.reshape((720, 720, 4))[::-1, :, :3]
-    depth = depth.reshape((720, 720))[::-1]
-    # get foreground mask
-    rgb, depth = pyflex.render_cloth()
-    rgb = rgb.reshape((720, 720, 4))[::-1, :, :3]
-    depth = depth.reshape(720, 720)[::-1]
-    # mask = mask[:, :, 3]
-    # depth[mask == 0] = 0
-    # show rgb and depth(masked)
-    obs = np.where(rgb == 0, img, rgb)
-    depth[depth > 5] = 0
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    axes[0].imshow(img)
-    axes[1].imshow(depth)
-    plt.show()
 
 
 def main():
