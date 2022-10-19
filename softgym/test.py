@@ -41,7 +41,6 @@ def visualize_aff_critic(obs, agent, args):
     argmax = np.unravel_index(argmax, shape=attention.shape)
 
     p0_pixel = argmax[1:3]
-    print(p0_pixel)
 
     img_critic = obs.copy()
     critic = agent.critic_model.forward(img_critic, p0_pixel)
@@ -55,7 +54,6 @@ def visualize_aff_critic(obs, agent, args):
         argmax = np.unravel_index(argmax, shape=critic.shape)
 
     p1_pixel = argmax[1:3]
-    print(p1_pixel)
 
     vis_aff = np.array(attention[0])
     vis_critic = np.array(critic[0])
