@@ -303,7 +303,7 @@ def run_jobs(process_id, args, env_kwargs):
                     metric_data.append(final_distance)
 
         if args.env_name == 'ClothFlatten':
-            if max_recover <= 1.0 - (args.step * 0.1):
+            if max_recover <= max(1.0 - (args.step * 0.1), 0.7):
                 continue
         elif args.env_name == 'RopeConfiguration':
             if min_distance >= 0.6:
