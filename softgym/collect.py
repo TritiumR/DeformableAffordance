@@ -158,7 +158,7 @@ def run_jobs(process_id, args, env_kwargs):
         elif args.env_name == 'RopeConfiguration':
             min_distance = float('inf')
 
-        another_pick = random.randint(0, 49)
+        another_pick = random.randint(0, 149)
         if another_pick == 0:
             another_action = env.action_space.sample()
             action[2] = another_action[0]

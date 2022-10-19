@@ -8,7 +8,7 @@ from copy import deepcopy
 
 
 class RopeNewEnv(FlexEnv):
-    def __init__(self, observation_mode, action_mode, num_picker=2, horizon=75, render_mode='particle', picker_radius=0.02, **kwargs):
+    def __init__(self, observation_mode, action_mode, num_picker=2, horizon=75, render_mode='particle', picker_radius=0.025, **kwargs):
         self.render_mode = render_mode
         super().__init__(**kwargs)
 
@@ -27,10 +27,11 @@ class RopeNewEnv(FlexEnv):
         elif action_mode == 'pickandplace':
             cam_pos, cam_angle = self.get_camera_params()
             self.action_tool = PickAndPlace((self.camera_height, self.camera_height), cam_pos, cam_angle,
-                                             picker_threshold=0.01,
-                                             num_picker=num_picker, particle_radius=0.00625, env=self,
-                                             picker_low=(-0.35, 0., -0.35), picker_high=(0.35, 0.3, 0.35)
-                                             )
+                                            picker_radius=picker_radius,
+                                            picker_threshold=0.005,
+                                            num_picker=num_picker, particle_radius=0.00625, env=self,
+                                            picker_low=(-0.35, 0., -0.35), picker_high=(0.35, 0.1, 0.35)
+                                            )
             self.action_space = self.action_tool.action_space
 
         if observation_mode in ['key_point', 'point_cloud']:
