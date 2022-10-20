@@ -1,5 +1,5 @@
 import os
-root = '/root/softgym/test_video/cloth-flatten-Aff_Critic-80001019-07-only_gt-step-3-no_online'
+root = '/root/softgym/test_video/cloth-flatten-Aff_Critic-80001020-11-both-online-9500-step2-10'
 dirs = os.listdir(root)
 total = 0.
 i = 0
@@ -15,5 +15,6 @@ for fname in dirs:
     total += score
     i += 1
 
+print(i)
 total /= i
 print(total)

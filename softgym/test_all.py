@@ -54,7 +54,6 @@ def run_jobs(args, env, agent):
                 # cv2.imwrite(f'./visual/test-mask-{step_i}-cloth.jpg', mask)
                 indexs = np.transpose(np.where(mask != 0))
                 corner_id = random.randint(0, 3)
-                # print(corner_id)
                 top, left = indexs.min(axis=0)
                 bottom, right = indexs.max(axis=0)
 
@@ -64,11 +63,6 @@ def run_jobs(args, env, agent):
                            [bottom, left]]
                 u1 = (corners[corner_id][1]) * 2.0 / 720 - 1
                 v1 = (corners[corner_id][0]) * 2.0 / 720 - 1
-                # else:
-                #     indexs = np.transpose(np.nonzero(prev_obs[:, :, 0]))
-                #     index = random.choice(indexs)
-                #     u1 = (index[1]) * 2.0 / 720 - 1
-                #     v1 = (index[0]) * 2.0 / 720 - 1
 
                 u2 = random.uniform(-1., 1.)
                 v2 = random.uniform(-1., 1.)
@@ -130,7 +124,9 @@ def run_jobs(args, env, agent):
 
     max_percent = -float("inf")
 
+    in_step = 0
     for i in range(args.test_step):
+        in_step += 1
         if args.env_name == 'ClothFlatten':
             crump_obs, crump_depth = pyflex.render_cloth()
         elif args.env_name == 'RopeConfiguration':
@@ -155,8 +151,6 @@ def run_jobs(args, env, agent):
         if args.env_name == 'ClothFlatten':
             curr_area = env._get_current_covered_area(pyflex.get_positions())
             curr_percent = curr_area / full_covered_area
-            # if curr_percent > max_percent:
-            #     max_percent = curr_percent
             print("curr percent: ", i, curr_percent)
             if (curr_percent >= 0.85):
                 break
@@ -188,7 +182,7 @@ def run_jobs(args, env, agent):
         path_name = os.path.join(args.save_video_dir, agent.name + args.exp_name)
         if not os.path.exists(path_name):
             os.makedirs(path_name)
-        save_name = os.path.join(path_name, f'{args.test_id}-{result}-{normalize_score}.gif')
+        save_name = os.path.join(path_name, f'{args.test_id}-{in_step}-{result}-{normalize_score}.gif')
         save_numpy_as_gif(np.array(env.video_frames), save_name)
         print('Video generated and save to {}'.format(save_name))
 
