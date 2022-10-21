@@ -107,19 +107,26 @@ def run_jobs(args, env, agent):
             if args.env_name == 'RopeConfiguration':
                 env.action_tool.hide()
             step_i += 1
+            if args.env_name == 'ClothFlatten' and step_i == args.step:
+                now_area = env._get_current_covered_area(pyflex.get_positions())
+                now_percent = now_area / full_covered_area
+                if now_percent >= (0.65 - args.step * 0.05):
+                    step_i = 0
+                    continue
+            elif args.env_name == 'RopeConfiguration':
+                now_distance = env.compute_reward()
+                if now_distance >= -0.1:
+                    step_i = 0
+                    continue
 
     env.start_record()
 
     if args.env_name == 'ClothFlatten':
         crump_area = env._get_current_covered_area(pyflex.get_positions())
         crump_percent = crump_area / full_covered_area
-        if crump_percent >= (0.7 - args.step * 0.1) and args.set_flat:
-            return 0
         print("crump percent: ", crump_percent)
     elif args.env_name == 'RopeConfiguration':
         crump_distance = env.compute_reward()
-        if crump_distance >= -0.1 and args.set_flat:
-            return 0
         print("crump distance: ", crump_distance)
 
     max_percent = -float("inf")

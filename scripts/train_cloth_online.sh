@@ -7,7 +7,7 @@ CUDA_VISIBLE_DEVICES=0 python ./softgym/train_online.py \
   --critic_type 5 \
   --step 4 \
   --out_logits 1 \
-  --exp_name 1019-08-online-step-3-both-0.7 \
+  --exp_name 1019-08-online-step-4-both-0.7 \
   --mode both \
   --process_num 1 \
   --critic_depth 1 \

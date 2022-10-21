@@ -344,9 +344,6 @@ def run_jobs(process_id, args, env_kwargs):
                 u1 = (index[1]) * 2.0 / 720 - 1
                 v1 = (index[0]) * 2.0 / 720 - 1
 
-                # bound = (step_i + 1) * 0.2
-                # u2 = random.uniform(-bound, bound)
-                # v2 = random.uniform(-bound, bound)
                 u2 = max(min(np.random.normal(u1, scale=0.4), 0.999), -1.)
                 v2 = max(min(np.random.normal(v1, scale=0.4), 0.999), -1.)
                 # u2 = random.uniform(-1., 1.)
@@ -392,7 +389,7 @@ def run_jobs(process_id, args, env_kwargs):
             print("crump percent: ", crump_percent)
         elif args.env_name == 'RopeConfiguration':
             crump_distance = env.compute_reward()
-            if crump_distance >= -0.06:
+            if crump_distance >= -0.055:
                 continue
             print("crump distance: ", crump_distance)
 
@@ -477,9 +474,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
-        # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        visualize_aff_critic(crump_obs.copy(), agent, args)
+        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
+        # visualize_aff_critic(crump_obs.copy(), agent, args)
 
 
 def main():
