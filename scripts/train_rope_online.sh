@@ -3,20 +3,20 @@ CUDA_VISIBLE_DEVICES=7 python ./softgym/train_online.py \
   --task rope-configuration \
   --agent aff_critic \
   --shape U \
-  --num_online 10000 \
-  --data_type 4 \
+  --num_online 20000 \
+  --data_type 5 \
   --critic_type 1 \
   --step 2 \
   --out_logits 1 \
-  --exp_name 1022-04-online-aff-step-2-0.06 \
+  --exp_name 1023-01-continue-online-aff-step-2-0.06 \
   --mode aff \
   --process_num 1 \
   --critic_depth 1 \
-  --learning_rate 5e-5 \
+  --learning_rate 1e-4 \
   --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1019-02-trysix-U-step-1/critic-ckpt-300000.h5 \
   --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-8000-1019-02-trysix-U-step-1 \
-  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-8000-1021-13-trysix-no_perturb-aff-U-step-1/attention-ckpt-360000.h5 \
-  --load_aff_mean_std_dir checkpoints/rope-configuration-Aff_Critic-8000-1021-13-trysix-no_perturb-aff-U-step-1 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-10000-1022-04-U-online-aff-step-2-0.06-step-1/attention-online-ckpt-9500.h5 \
+  --load_aff_mean_std_dir checkpoints/rope-configuration-Aff_Critic-10000-1022-04-U-online-aff-step-2-0.06-step-1 \
   --image_size 160 \
   --headless 1
 

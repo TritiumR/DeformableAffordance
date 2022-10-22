@@ -1,18 +1,19 @@
 CUDA_VISIBLE_DEVICES=0 python ./softgym/test.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
-  --shape S \
+  --shape U \
   --step 1 \
   --agent aff_critic \
-  --num_demos 7900 \
+  --num_demos 8000 \
   --out_logits 1 \
-  --exp_name 1022-05-S-tryseven-expert-exp \
+  --exp_name 1022-08-U-trysix-online-aff_critic-exp \
   --process_num 1 \
   --num_test 20 \
   --critic_depth 1 \
-  --expert_pick \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-16-tryseven-S-no_perturb-step-1/critic-ckpt-90000.h5 \
-  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-16-tryseven-S-no_perturb-step-1 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1019-02-trysix-U-step-1/critic-ckpt-300000.h5 \
+  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-8000-1019-02-trysix-U-step-1 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-10000-1022-04-U-online-aff-step-2-0.06-step-1/attention-online-ckpt-9500.h5 \
+  --load_aff_mean_std_dir checkpoints/rope-configuration-Aff_Critic-10000-1022-04-U-online-aff-step-2-0.06-step-1 \
   --exp \
   --image_size 160 \
   --save_video_dir './test_video/' \
