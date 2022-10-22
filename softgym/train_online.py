@@ -143,12 +143,12 @@ def run_jobs(process_id, args, env_kwargs):
             if args.env_name == 'ClothFlatten':
                 prev_obs, prev_depth = pyflex.render_cloth()
             elif args.env_name == 'RopeConfiguration':
-                env.action_tool.hide()
                 prev_obs, prev_depth = pyflex.render()
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            mask = np.where(prev_depth[:, :, 0] < 0.295, 255, 0)
-            # cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
+            # print(np.min(prev_depth), np.max(prev_depth))
+            mask = np.where(prev_depth[:, :, 0] < 0.348, 255, 0)
+            # cv2.imwrite(f'./visual/test-mask-rope-{step_i}.jpg', mask)
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
@@ -206,6 +206,8 @@ def run_jobs(process_id, args, env_kwargs):
                 step_i = 0
                 continue
 
+            if args.env_name == 'RopeConfiguration':
+                env.action_tool.hide()
             step_i += 1
 
         # online manipulate online manipulate online manipulate online manipulate
@@ -306,7 +308,7 @@ def run_jobs(process_id, args, env_kwargs):
             if max_recover <= max(1.0 - (args.step * 0.1), 0.7):
                 continue
         elif args.env_name == 'RopeConfiguration':
-            if min_distance >= 0.6:
+            if min_distance >= 0.06:
                 continue
 
         # train aff with online data
@@ -322,7 +324,10 @@ def run_jobs(process_id, args, env_kwargs):
                     p0 = [min(args.image_size - 1, int((action_data[base][1] + 1.) * 0.5 * args.image_size)),
                           min(args.image_size - 1, int((action_data[base][0] + 1.) * 0.5 * args.image_size))]
                     output = aff_pred[bh, p0[0], p0[1], :]
-                    gt = metric_data[base] * 50
+                    if args.env_name == 'ClothFlatten':
+                        gt = metric_data[base] * 50
+                    elif args.env_name == 'RopeConfiguration':
+                        gt = metric_data[base] * 100
                     print("aff output: ", output, "gt: ", gt)
                     if loss is None:
                         loss = tf.keras.losses.MAE(gt, output)
@@ -353,7 +358,10 @@ def run_jobs(process_id, args, env_kwargs):
                         p1 = [min(args.image_size - 1, int((action_data[base + p1_id][3] + 1.) * 0.5 * args.image_size)),
                               min(args.image_size - 1, int((action_data[base + p1_id][2] + 1.) * 0.5 * args.image_size))]
                         output = QQ_cur[0, p1[0], p1[1], :]
-                        gt = metric_data[base + p1_id] * 50
+                        if args.env_name == 'ClothFlatten':
+                            gt = metric_data[base + p1_id] * 50
+                        elif args.env_name == 'RopeConfiguration':
+                            gt = metric_data[base + p1_id] * 100
                         print("critic output: ", output, "gt: ", gt)
                         if loss_critic is None:
                             loss_critic = tf.keras.losses.MAE(gt, output) / args.critic_type

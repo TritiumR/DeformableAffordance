@@ -58,12 +58,12 @@ def visualize_aff_critic(obs, agent, args):
     vis_aff = np.array(attention[0])
     vis_critic = np.array(critic[0])
 
+    if args.env_name == 'RopeConfiguration':
+        vis_critic = -vis_critic
+
     if args.exp:
         vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
         vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
-
-    if args.env_name == 'RopeConfiguration':
-        vis_critic = -vis_critic
 
     vis_aff = vis_aff - np.min(vis_aff)
     vis_aff = 255 * vis_aff / np.max(vis_aff)
@@ -81,7 +81,7 @@ def visualize_aff_critic(obs, agent, args):
 
     for u in range(max(0, p1_pixel[0] - 4), min(args.image_size, p1_pixel[0] + 4)):
         for v in range(max(0, p1_pixel[1] - 4), min(args.image_size, p1_pixel[1] + 4)):
-            img_obs[u][v] = (255, 255, 255)
+            img_obs[u][v] = (0, 255, 0)
 
     vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 

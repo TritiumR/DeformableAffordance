@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=6 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=7 python ./softgym/train.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
   --agent aff_critic \
@@ -8,11 +8,11 @@ CUDA_VISIBLE_DEVICES=6 python ./softgym/train.py \
   --num_iters 300000 \
   --out_logits 1 \
   --step 1 \
-  --exp_name 1021-17-tryseven-S-perturb \
+  --exp_name 1022-01-tryseven-S-no_perturb \
   --max_load 2000 \
   --batch 20 \
   --critic_depth 1 \
   --learning_rate 1e-4 \
   --model critic \
   --image_size 160 \
-
+  --no_perturb

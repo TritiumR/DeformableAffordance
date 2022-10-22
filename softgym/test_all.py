@@ -141,7 +141,7 @@ def run_jobs(args, env, agent):
             crump_obs, crump_depth = pyflex.render()
 
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
-        # show_obs(crump_obs)
+        # cv2.imwrite(f'./visual/test-rope-obs-{in_step}.jpg', crump_obs)
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
@@ -165,7 +165,7 @@ def run_jobs(args, env, agent):
             curr_distance = env.compute_reward()
             if curr_distance > max_percent:
                 max_percent = curr_distance
-            if curr_distance >= -0.06:
+            if curr_distance >= -0.055:
                 break
             print("curr distance: ", i, curr_distance)
 
@@ -177,8 +177,8 @@ def run_jobs(args, env, agent):
             result = 'fail'
 
     elif args.env_name == 'RopeConfiguration':
-        normalize_score = (max_percent - crump_distance) / (0 - crump_distance)
-        if max_percent >= -0.06:
+        normalize_score = (curr_distance - crump_distance) / (0 - crump_distance)
+        if max_percent >= -0.055:
             result = 'success'
         else:
             result = 'fail'
@@ -207,6 +207,7 @@ def main():
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--task', type=str, default='cloth-flatten')
+    parser.add_argument('--shape', type=str, default='U')
     parser.add_argument('--set_flat', type=int, default=1)
     parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--test_step', default=20, type=int)
