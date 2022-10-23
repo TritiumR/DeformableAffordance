@@ -39,11 +39,12 @@ def run_jobs(args, env, agent):
             if args.env_name == 'ClothFlatten':
                 prev_obs, prev_depth = pyflex.render_cloth()
             elif args.env_name == 'RopeConfiguration':
+                env.action_tool.hide()
                 prev_obs, prev_depth = pyflex.render()
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            # print(np.min(prev_depth), np.max(prev_depth))
-            mask = np.where(prev_depth[:, :, 0] < 0.295, 255, 0)
+            print(np.min(prev_depth), np.max(prev_depth))
+            mask = np.where(prev_depth[:, :, 0] < 0.348, 255, 0)
             # print(mask.shape)
             # cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
 
@@ -141,7 +142,7 @@ def run_jobs(args, env, agent):
             crump_obs, crump_depth = pyflex.render()
 
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
-        # cv2.imwrite(f'./visual/test-rope-obs-{in_step}.jpg', crump_obs)
+        # cv2.imwrite(f'./visual/test-{args.test_id}-rope-obs-{in_step}.jpg', crump_obs)
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
@@ -185,6 +186,7 @@ def run_jobs(args, env, agent):
 
     if args.env_name == 'RopeConfiguration':
         env.action_tool.hide()
+    print(normalize_score)
     if args.save_video_dir is not None:
         path_name = os.path.join(args.save_video_dir, agent.name + args.exp_name)
         if not os.path.exists(path_name):
