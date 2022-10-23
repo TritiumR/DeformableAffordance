@@ -306,7 +306,7 @@ def run_jobs(process_id, args, env_kwargs):
                 prev_obs, prev_depth = pyflex.render()
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            print(np.min(prev_depth), np.max(prev_depth))
+            # print(np.min(prev_depth), np.max(prev_depth))
             mask = np.where(prev_depth[:, :, 0] < 0.348, 255, 0)
             # print(mask.shape)
             # cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
