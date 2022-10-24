@@ -1,5 +1,5 @@
 import os
-root = '/root/softgym/test_video/cloth-flatten-Aff_Critic-80001021-11-only_gt-no-online-300000-step2-set_flat-10'
+root = '/root/softgym/visual/1024-07'
 dirs = os.listdir(root)
 total = 0.
 i = 0
@@ -8,7 +8,9 @@ for fname in dirs:
     path = os.path.join(root, fname)
     print(fname)
     score = fname.split('-')[-1]
-    score = float(score.split('.g')[0])
+    score = float(score.split('.j')[0])
+    if len(fname.split('-')) == 13:
+        score = -score
     print(score)
     if score > 1:
         score = 1

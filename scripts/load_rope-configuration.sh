@@ -6,15 +6,14 @@ CUDA_VISIBLE_DEVICES=0 python ./softgym/test.py \
   --agent aff_critic \
   --num_demos 7900 \
   --out_logits 1 \
-  --exp_name 1023-10-S-tryseven-online-aff-perturb-critic-exp \
+  --exp_name 1024-05-S-tryseven-online-aff-28000-no_perturb-critic-300000 \
   --process_num 1 \
   --num_test 20 \
   --critic_depth 1 \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-17-tryseven-S-perturb-step-1/critic-ckpt-210000.h5 \
-  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-17-tryseven-S-perturb-step-1 \
-  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-10000-1023-06-S-online-aff-step-2-0.06-step-1/attention-online-ckpt-9500.h5 \
-  --load_aff_mean_std_dir checkpoints/rope-configuration-Aff_Critic-10000-1023-06-S-online-aff-step-2-0.06-step-1 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-16-tryseven-S-no_perturb-step-1/critic-ckpt-300000.h5 \
+  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-16-tryseven-S-no_perturb-step-1 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-20000-1023-01-continue-online-aff-step-2-0.06-step-1/attention-online-ckpt-18000.h5 \
+  --load_aff_mean_std_dir checkpoints/rope-configuration-Aff_Critic-20000-1023-01-continue-online-aff-step-2-0.06-step-1 \
   --exp \
   --image_size 160 \
-  --save_video_dir './test_video/' \
   --headless 1

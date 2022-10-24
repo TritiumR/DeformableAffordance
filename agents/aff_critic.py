@@ -70,7 +70,7 @@ class AffCritic:
                     reward.append(curr_percent)
             elif self.task == 'rope-configuration':
                 for i in range(0, m_len):
-                    curr_distance = metric[i][1] * (100)
+                    curr_distance = metric[i][1] * 100
                     reward.append(curr_distance)
         else:
             # l_img = np.concatenate((
@@ -99,8 +99,12 @@ class AffCritic:
                 else:
                     attention = self.attention_model.forward_batch(curr_obs.copy())
                 for i in range(0, m_len):
-                    gt_state = np.max(attention[i])
-
+                    if self.task == 'cloth-flatten':
+                        gt_state = np.max(attention[i])
+                        curr_percent = metric[i][1] * 50
+                    elif self.task == 'rope-configuration':
+                        gt_state = np.min(attention[i])
+                        curr_percent = metric[i][1] * 100
                     # if (i < 5):
                     #     score_list += f'-{int(gt_state * 2)}'
 
@@ -113,7 +117,6 @@ class AffCritic:
                     # print(f'saved ./visual/online-bone-{iepisode}-{i}-{int(gt_state)}-vis.jpg')
 
                     # print('gt_state: ', gt_state)
-                    curr_percent = metric[i][1] * 50
                     # print("curr: ", curr_percent)
                     if only_state:
                         reward_i = gt_state
