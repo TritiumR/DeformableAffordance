@@ -218,6 +218,8 @@ class AffCritic:
                 else:
                     obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
 
+                # self.visualize_aff_critic(obs.copy(), id=iepisode, curr_obs=np.array(curr_obs).copy(), action=act)
+
                 step_batch.append(step)
 
                 if self.use_goal_image:
@@ -703,6 +705,94 @@ class AffCritic:
         aff_fname = os.path.join(self.models_dir, aff_fname)
         self.attention_model.save(aff_fname)
 
+    def visualize_aff_critic(self, obs, id, curr_obs, action):
+        img_aff = obs.copy()
+        attention = self.attention_model.forward(img_aff)
+
+        if self.task == 'cloth-flatten':
+            state_score = int(np.max(attention) * 2)
+
+        elif self.task == 'rope-configuration':
+            state_score = int(np.min(attention) * 10)
+            attention = -attention
+
+        attention = attention - np.min(attention)
+        argmax = np.argmax(attention)
+        argmax = np.unravel_index(argmax, shape=attention.shape)
+
+        p0_pixel = argmax[1:3]
+
+        img_critic = obs.copy()
+        critic = self.critic_model.forward(img_critic, p0_pixel)
+
+        if self.task == 'cloth-flatten':
+            argmax = np.argmax(critic)
+            argmax = np.unravel_index(argmax, shape=critic.shape)
+
+        elif self.task == 'rope-configuration':
+            argmax = np.argmin(critic)
+            argmax = np.unravel_index(argmax, shape=critic.shape)
+
+        p1_pixel_max = argmax[1:3]
+
+        vis_aff = np.array(attention[0])
+        vis_critic = np.array(critic[0])
+
+        if self.task == 'rope-configuration':
+            vis_critic = -vis_critic
+            vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
+            vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
+
+        vis_aff = vis_aff - np.min(vis_aff)
+        vis_aff = 255 * vis_aff / np.max(vis_aff)
+        vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
+
+        vis_critic = vis_critic - np.min(vis_critic)
+        vis_critic = 255 * vis_critic / np.max(vis_critic)
+        vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
+
+        curr_obs = curr_obs[:, :, :, :-1]
+        for i in range(9):
+            p1 = (action[i][2], action[i][3])
+            p1_pixel = (int((p1[1] + 1.) / 2. * self.input_shape[0]), int((p1[0] + 1.) / 2. * self.input_shape[0]))
+            for u in range(max(0, p1_pixel[0] - 2), min(self.input_shape[0], p1_pixel[0] + 2)):
+                for v in range(max(0, p1_pixel[1] - 2), min(self.input_shape[0], p1_pixel[1] + 2)):
+                    vis_critic[u][v] = (255, 255, 255)
+                    curr_obs[i][u][v] = (255, 255, 255)
+
+        img_obs = obs[:, :, :3]
+
+        for u in range(max(0, p0_pixel[0] - 2), min(self.input_shape[0], p0_pixel[0] + 2)):
+            for v in range(max(0, p0_pixel[1] - 2), min(self.input_shape[0], p0_pixel[1] + 2)):
+                img_obs[u][v] = (255, 0, 0)
+
+        for u in range(max(0, p1_pixel_max[0] - 2), min(self.input_shape[0], p1_pixel_max[0] + 2)):
+            for v in range(max(0, p1_pixel_max[1] - 2), min(self.input_shape[0], p1_pixel_max[1] + 2)):
+                img_obs[u][v] = (0, 255, 0)
+                vis_critic[u][v] = (0, 255, 0)
+
+        vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
+
+        l_img = np.concatenate((
+            cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[0], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[1], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[2], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[3], cv2.COLOR_BGR2RGB)),
+            axis=1)
+        r_img = np.concatenate((
+            cv2.cvtColor(curr_obs[4], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[5], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[6], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[7], cv2.COLOR_BGR2RGB),
+            cv2.cvtColor(curr_obs[8], cv2.COLOR_BGR2RGB)),
+            axis=1)
+        img = np.concatenate((l_img, r_img), axis=0)
+
+        cv2.imwrite(f'./visual/{self.name}-compare-obs-aff_critic-{id}-{state_score}.jpg', vis_img)
+        cv2.imwrite(f'./visual/{self.name}-compare-curr-aff_critic-{id}.jpg', img)
+        print("save to" + f'./visual/{self.name}-compare-aff_critic-{id}.jpg')
+
 
 class OriginalTransporterAffCriticAgent(AffCritic):
     """
@@ -805,9 +895,5 @@ class GoalTransporterAgent(AffCritic):
         self.attention_model = Attention(input_shape=a_shape,
                                          num_rotations=1,
                                          preprocess=self.preprocess)
-        # self.transport_model = TransportGoal(input_shape=self.input_shape,
-        #                                      num_rotations=self.num_rotations,
-        #                                      crop_size=self.crop_size,
-        #                                      preprocess=self.preprocess)
 
 

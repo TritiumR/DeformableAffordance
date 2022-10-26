@@ -114,23 +114,23 @@ def main():
                                      strategy=strategy
                                      )
 
+    agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), args.model)
+
     while agent.total_iter < args.num_iters:
         if args.model == 'critic':
-            agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), 'critic')
             # Train critic.
             tf.keras.backend.set_learning_phase(1)
             if args.multi_gpu:
-                agent.train_critic_multi_gpu(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch)
+                agent.train_critic_multi_gpu(dataset, num_iter=args.num_iters // 10, writer=train_summary_writer, batch=args.batch)
             else:
-                agent.train_critic(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer,
+                agent.train_critic(dataset, num_iter=args.num_iters // 10, writer=train_summary_writer,
                                    batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
                                    only_state=args.only_state, only_gt=args.only_gt)
             tf.keras.backend.set_learning_phase(0)
         if args.model == 'aff':
-            agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), 'aff')
             # Train aff.
             tf.keras.backend.set_learning_phase(1)
-            agent.train_aff(dataset, num_iter=args.num_iters // 20, writer=train_summary_writer, batch=args.batch, no_perturb=args.no_perturb)
+            agent.train_aff(dataset, num_iter=args.num_iters // 10, writer=train_summary_writer, batch=args.batch, no_perturb=args.no_perturb)
             tf.keras.backend.set_learning_phase(0)
 
 
