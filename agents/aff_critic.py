@@ -110,11 +110,14 @@ class AffCritic:
 
                     # img_obs = curr_obs[i][:, :, :3]
                     # vis_aff = attention[i] - np.min(attention[i])
-                    # vis_aff = 255 * vis_aff / 45
-                    # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_BONE)
+                    # if self.task == 'rope-configuration':
+                    #     vis_aff = -vis_aff
+                    # vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
+                    # vis_aff = 255 * vis_aff / np.max(vis_aff)
+                    # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
                     # vis_img = np.concatenate((cv2.cvtColor(curr_obs[i], cv2.COLOR_BGR2RGB), vis_aff), axis=1)
-                    # cv2.imwrite(f'./visual/online-bone-{iepisode}-{i}-{int(gt_state)}-vis.jpg', vis_img)
-                    # print(f'saved ./visual/online-bone-{iepisode}-{i}-{int(gt_state)}-vis.jpg')
+                    # cv2.imwrite(f'./visual/rope-no-debug-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg', vis_img)
+                    # print(f'saved ./visual/rope-no-debug-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg')
 
                     # print('gt_state: ', gt_state)
                     # print("curr: ", curr_percent)

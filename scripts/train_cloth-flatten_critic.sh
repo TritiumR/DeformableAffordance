@@ -7,10 +7,10 @@ CUDA_VISIBLE_DEVICES=1 python ./softgym/train.py \
   --demo_times 10 \
   --num_iters 300000 \
   --out_logits 1 \
-  --step 2 \
-  --exp_name 1026-01-tryeleven-2:1-mix2 \
+  --step 3 \
+  --exp_name 1026-07-tryeleven-2:1-mix2 \
   --max_load 3000 \
-  --batch 1 \
+  --batch 24 \
   --critic_depth 1 \
   --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-20000-1010-08-test_online-step-3-0.7-step-1/attention-online-ckpt-7000.h5 \
   --load_aff_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-20000-1010-08-test_online-step-3-0.7-step-1 \
