@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=5 python ./softgym/test.py \
+CUDA_VISIBLE_DEVICES=0 python ./softgym/test.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
   --shape S \
@@ -6,13 +6,13 @@ CUDA_VISIBLE_DEVICES=5 python ./softgym/test.py \
   --agent aff_critic \
   --num_demos 7900 \
   --out_logits 1 \
-  --exp_name 1028-01-step2-only_state-expert \
+  --exp_name 1028-09-step2-2:1-expert-exp \
   --process_num 1 \
   --num_test 20 \
   --critic_depth 1 \
   --expert_pick \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1026-16-tryseven-S-step2-only_state-no_perturb-step-2/critic-ckpt-150000.h5 \
-  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-8000-1026-16-tryseven-S-step2-only_state-no_perturb-step-2 \
   --exp \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1026-18-tryseven-S-step2-with-online-7000-2:1-no_perturb-step-2/critic-ckpt-210000.h5 \
+  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-8000-1026-18-tryseven-S-step2-with-online-7000-2:1-no_perturb-step-2 \
   --image_size 160 \
   --headless 1
