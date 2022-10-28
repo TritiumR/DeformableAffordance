@@ -1,9 +1,9 @@
 #!/bin/bash
-for ((i=4;i<=4;i++))
+for ((i=6;i<=6;i++))
 do
   CUDA_VISIBLE_DEVICES=$i python softgym/collect.py \
   --env_name ClothFlatten \
-  --path ./data/cloth-flatten-tryeleven-step3 \
+  --path ./data/cloth-flatten-tryeleven-step4 \
   --process_num 2 \
   --data_num 2000 \
   --data_type 10 \
