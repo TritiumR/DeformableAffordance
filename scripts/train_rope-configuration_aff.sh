@@ -1,12 +1,12 @@
-CUDA_VISIBLE_DEVICES=0 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=2 python ./softgym/train.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
   --agent aff_critic \
-  --num_demos 7900 \
+  --num_demos 8000 \
   --num_iters 400000 \
   --out_logits 1 \
   --demo_times 10 \
-  --exp_name 1028-10-tryseven-no_perturb-aff-S-step2 \
+  --exp_name 1029-04-tryseven-no_perturb-aff-S-step2 \
   --suffix tryseven-step2-S \
   --max_load 2000 \
   --batch 24 \

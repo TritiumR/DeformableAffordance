@@ -14,9 +14,7 @@ do
   --exp_name 1024-06-S-online-aff-9500-critic-300000-step1-10 \
   --test_id "$i" \
   --load_critic_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-16-tryseven-S-no_perturb-step-1/critic-ckpt-300000.h5 \
-  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-16-tryseven-S-no_perturb-step-1 \
   --load_aff_dir checkpoints/rope-configuration-Aff_Critic-10000-1023-06-S-online-aff-step-2-0.06-step-1/attention-online-ckpt-9500.h5 \
-  --load_aff_mean_std_dir checkpoints/rope-configuration-Aff_Critic-10000-1023-06-S-online-aff-step-2-0.06-step-1 \
   --image_size 160 \
   --set_flat 0 \
   --headless 1
