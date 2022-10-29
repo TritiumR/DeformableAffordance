@@ -254,8 +254,6 @@ def main():
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
-                                     load_critic_mean_std_dir=args.load_critic_mean_std_dir,
-                                     load_aff_mean_std_dir=args.load_aff_mean_std_dir,
                                      out_logits=args.out_logits,
                                      without_global=args.without_global,
                                      expert_pick=args.expert_pick,

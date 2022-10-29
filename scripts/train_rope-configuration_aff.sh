@@ -14,5 +14,4 @@ CUDA_VISIBLE_DEVICES=0 python ./softgym/train.py \
   --image_size 160 \
   --no_perturb \
   --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1026-18-tryseven-S-step2-with-online-7000-2:1-no_perturb-step-2/critic-ckpt-210000.h5 \
-  --load_critic_mean_std_dir checkpoints/rope-configuration-Aff_Critic-8000-1026-18-tryseven-S-step2-with-online-7000-2:1-no_perturb-step-2 \
 

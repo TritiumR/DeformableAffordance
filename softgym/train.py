@@ -101,8 +101,6 @@ def main():
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
                                      load_next_dir=args.load_next_dir,
-                                     load_critic_mean_std_dir=args.load_critic_mean_std_dir,
-                                     load_aff_mean_std_dir=args.load_aff_mean_std_dir,
                                      out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,

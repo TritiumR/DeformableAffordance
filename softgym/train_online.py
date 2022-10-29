@@ -99,8 +99,6 @@ def run_jobs(process_id, args, env_kwargs):
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
-                                     load_critic_mean_std_dir=args.load_critic_mean_std_dir,
-                                     load_aff_mean_std_dir=args.load_aff_mean_std_dir,
                                      out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,
@@ -306,7 +304,7 @@ def run_jobs(process_id, args, env_kwargs):
                     metric_data.append(final_distance)
 
         if args.env_name == 'ClothFlatten':
-            if max_recover <= max(1.0 - (args.step * 0.1), 0.7):
+            if max_recover <= max(1.0 - (args.step * 0.1), 0.6):
                 continue
         elif args.env_name == 'RopeConfiguration':
             if min_distance >= 0.06:

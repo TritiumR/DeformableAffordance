@@ -19,7 +19,7 @@ import random
 import pickle
 
 
-def visualize_aff_critic(obs, agent, args):
+def visualize_aff_critic(obs, agent, args, render_obs):
     if args.only_depth:
         img_aff = obs[:, :, -1:].copy()
     else:
@@ -73,17 +73,15 @@ def visualize_aff_critic(obs, agent, args):
     vis_critic = 255 * vis_critic / np.max(vis_critic)
     vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
 
-    img_obs = obs[:, :, :3]
-
     for u in range(max(0, p0_pixel[0] - 4), min(args.image_size, p0_pixel[0] + 4)):
         for v in range(max(0, p0_pixel[1] - 4), min(args.image_size, p0_pixel[1] + 4)):
-            img_obs[u][v] = (255, 0, 0)
+            render_obs[u][v] = (255, 0, 0)
 
     for u in range(max(0, p1_pixel[0] - 4), min(args.image_size, p1_pixel[0] + 4)):
         for v in range(max(0, p1_pixel[1] - 4), min(args.image_size, p1_pixel[1] + 4)):
-            img_obs[u][v] = (0, 255, 0)
+            render_obs[u][v] = (0, 255, 0)
 
-    vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
+    vis_img = np.concatenate((cv2.cvtColor(render_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
 
     cv2.imwrite(f'./visual/{args.exp_name}-test-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg', vis_img)
     print("save to" + f'./visual/{args.exp_name}-test-aff_critic-{p0_pixel[0]}-{p0_pixel[1]}-{state_score}.jpg')
@@ -260,8 +258,6 @@ def run_jobs(process_id, args, env_kwargs):
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
-                                     load_critic_mean_std_dir=args.load_critic_mean_std_dir,
-                                     load_aff_mean_std_dir=args.load_aff_mean_std_dir,
                                      out_logits=args.out_logits,
                                      without_global=args.without_global,
                                      expert_pick=args.expert_pick,
@@ -396,16 +392,20 @@ def run_jobs(process_id, args, env_kwargs):
 
         if args.env_name == 'ClothFlatten':
             crump_obs, crump_depth = pyflex.render_cloth()
+            render_obs, _ = pyflex.render()
         elif args.env_name == 'RopeConfiguration':
             env.action_tool.hide()
             crump_obs, crump_depth = pyflex.render()
+            render_obs = crump_obs.copy()
 
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
-        # show_obs(crump_obs)
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
         crump_obs = cv2.resize(crump_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
+
+        render_obs = render_obs.reshape((720, 720, 4))[::-1, :, :3]
+        render_obs = cv2.resize(render_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
 
         state_crump = env.get_state()
 
@@ -475,9 +475,9 @@ def run_jobs(process_id, args, env_kwargs):
         env.end_record()
         test_id += 1
 
-        visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
+        # visualize_critic_gt(crump_obs.copy(), env, agent, reverse_p0, full_covered_area, args, state_crump)
         # visualize_aff_state(crump_obs.copy(), env, agent, full_covered_area, args, state_crump)
-        # visualize_aff_critic(crump_obs.copy(), agent, args)
+        visualize_aff_critic(crump_obs.copy(), agent, args, render_obs)
 
 
 def main():

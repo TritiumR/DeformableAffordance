@@ -805,28 +805,35 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     """
 
     def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
-                 load_critic_mean_std_dir='xxx', load_aff_mean_std_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
                  learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, only_depth=False, strategy=None):
         super().__init__(name, task, image_size=image_size, use_goal_image=use_goal_image, out_logits=out_logits,
                          critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
                          only_depth=only_depth, strategy=strategy)
 
-        if load_critic_mean_std_dir != 'xxx':
-            fname = 'criticmean_std.pkl'
-            mean_std = pickle.load(open(os.path.join(load_critic_mean_std_dir, fname), 'rb'))
-            self.critic_mean = mean_std['mean']
-            self.critic_std = mean_std['std']
-            print("critic mean: ", self.critic_mean)
-            print('critic std: ', self.critic_std)
+        fname = 'criticmean_std.pkl'
+        load_critic_dir_list = load_critic_dir.split('/')[:-1]
+        load_critic_mean_std_dir = load_critic_dir_list[0]
+        for critic_dir_part in load_critic_dir_list[1:]:
+            load_critic_mean_std_dir += '/' + critic_dir_part
+        print(load_critic_mean_std_dir)
+        mean_std = pickle.load(open(os.path.join(load_critic_mean_std_dir, fname), 'rb'))
+        self.critic_mean = mean_std['mean']
+        self.critic_std = mean_std['std']
+        print("critic mean: ", self.critic_mean)
+        print('critic std: ', self.critic_std)
 
-        if load_aff_mean_std_dir != 'xxx':
-            fname = 'affmean_std.pkl'
-            mean_std = pickle.load(open(os.path.join(load_aff_mean_std_dir, fname), 'rb'))
-            self.aff_mean = mean_std['mean']
-            self.aff_std = mean_std['std']
-            print("aff mean: ", self.aff_mean)
-            print('aff std: ', self.aff_std)
+        fname = 'affmean_std.pkl'
+        load_aff_dir_list = load_aff_dir.split('/')[:-1]
+        load_aff_mean_std_dir = load_aff_dir_list[0]
+        for aff_dir_part in load_aff_dir_list[1:]:
+            load_aff_mean_std_dir += '/' + aff_dir_part
+        print(load_aff_mean_std_dir)
+        mean_std = pickle.load(open(os.path.join(load_aff_mean_std_dir, fname), 'rb'))
+        self.aff_mean = mean_std['mean']
+        self.aff_std = mean_std['std']
+        print("aff mean: ", self.aff_mean)
+        print('aff std: ', self.aff_std)
 
         if only_depth:
             self.attention_model = Affordance(input_shape=(image_size, image_size, 1),
