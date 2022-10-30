@@ -20,10 +20,7 @@ import pickle
 
 
 def visualize_aff_critic(obs, agent, args, render_obs):
-    if args.only_depth:
-        img_aff = obs[:, :, -1:].copy()
-    else:
-        img_aff = obs.copy()
+    img_aff = obs.copy()
     attention = agent.attention_model.forward(img_aff)
 
     # depth = obs[:, :, -1:].copy()
@@ -263,8 +260,7 @@ def run_jobs(process_id, args, env_kwargs):
                                      expert_pick=args.expert_pick,
                                      critic_pick=args.critic_pick,
                                      random_pick=args.random_pick,
-                                     critic_depth=args.critic_depth,
-                                     only_depth=args.only_depth
+                                     unet=args.unet
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -499,6 +495,7 @@ def main():
     parser.add_argument('--save_video_dir', type=str, default=None, help='Path to the saved video')
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--out_logits',     default=1, type=int)
+    parser.add_argument('--unet', default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
@@ -508,7 +505,6 @@ def main():
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
     parser.add_argument('--random_pick',    action='store_true')
-    parser.add_argument('--only_depth', action='store_true')
     parser.add_argument('--exp', action='store_true')
     args = parser.parse_args()
 

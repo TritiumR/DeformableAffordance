@@ -18,7 +18,7 @@ class Affordance:
     so the label is just sized at (320,160,1).
     """
 
-    def __init__(self, input_shape, preprocess, unet=1, out_logits=1, learning_rate=1e-4, strategy=None):
+    def __init__(self, input_shape, preprocess, unet=1, out_logits=1, learning_rate=1e-4):
         self.preprocess = preprocess
         self.out_logits = out_logits
 
@@ -27,39 +27,22 @@ class Affordance:
 
         # Initialize fully convolutional Residual Network with 43 layers and
         # 8-stride (3 2x2 max pools and 3 2x bilinear upsampling)
-        # strategy = tf.distribute.MirroredStrategy()
-        if strategy is not None:
-            with strategy.scope():
-                if self.unet:
-                    in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
-                    self.conv_seq = tf.keras.Sequential([
-                        tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                               input_shape=(input_shape[0], input_shape[1], 256 + 512)),
-                        tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(input_shape[0], input_shape[1], 256)),
-                    ])
-                    self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
-                else:
-                    d_in, d_out = ResNet43_8s(input_shape, 1)
-                    self.model = tf.keras.models.Model(inputs=[d_in], outputs=[d_out])
-
-                self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        if self.unet:
+            in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
+            self.conv_seq = tf.keras.Sequential([
+                tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
+                                       input_shape=(input_shape[0], input_shape[1], 256 + 512)),
+                tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(input_shape[0], input_shape[1], 256)),
+            ])
+            self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
         else:
-            if self.unet:
-                in0, out0, global_feat = UNet43_8s(input_shape, 256, prefix='s0_d1_')
-                self.conv_seq = tf.keras.Sequential([
-                    tf.keras.layers.Conv2D(filters=256, kernel_size=1, activation='relu',
-                                           input_shape=(input_shape[0], input_shape[1], 256 + 512)),
-                    tf.keras.layers.Conv2D(filters=self.out_logits, kernel_size=1, input_shape=(input_shape[0], input_shape[1], 256)),
-                ])
-                self.model = tf.keras.models.Model(inputs=[in0], outputs=[out0, global_feat])
-            else:
-                d_in, d_out = ResNet43_8s(input_shape, 1)
-                self.model = tf.keras.models.Model(inputs=[d_in], outputs=[d_out])
+            d_in, d_out = ResNet43_8s(input_shape, 1)
+            self.model = tf.keras.models.Model(inputs=[d_in], outputs=[d_out])
 
-            self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        self.optim = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self.metric = tf.keras.metrics.Mean(name='attention_loss')
 
-    def forward(self, in_img, apply_softmax=True):
+    def forward(self, in_img):
         """Forward pass.
 
         in_img.shape: (320, 160, 6)
@@ -81,7 +64,7 @@ class Affordance:
 
         return logits
 
-    def forward_batch(self, in_img_batch, apply_softmax=True):
+    def forward_batch(self, in_img_batch):
         """Forward pass.
 
         in_img.shape: (160, 160, 4)
@@ -106,25 +89,6 @@ class Affordance:
             logits = self.model(in_tensor)
 
         return logits
-
-    def train(self, in_img, p, gt):
-        self.metric.reset_states()
-        with tf.GradientTape() as tape:
-            output = self.forward(in_img, apply_softmax=False)
-
-            # Compute loss
-            output = output[:, p[0], p[1], :]
-            loss = tf.keras.losses.MAE(gt, output)
-            # loss = tf.nn.softmax_cross_entropy_with_logits(label, output)
-            loss = tf.reduce_mean(loss)
-
-        # Backpropagate
-        grad = tape.gradient(loss, self.model.trainable_variables)
-        self.optim.apply_gradients(
-            zip(grad, self.model.trainable_variables))
-
-        self.metric(loss)
-        return np.float32(loss)
 
     def load(self, path):
         self.model.load_weights(path)

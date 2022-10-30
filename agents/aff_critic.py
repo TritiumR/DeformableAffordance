@@ -25,7 +25,7 @@ import ipdb
 
 class AffCritic:
     def __init__(self, name, task, image_size=320, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
-                 out_logits=1, step=1, only_depth=False, strategy=None):
+                 out_logits=1, step=1):
         """Creates Transporter agent with attention and transport modules."""
         self.name = name
         self.task = task
@@ -45,8 +45,6 @@ class AffCritic:
 
         self.out_logits = out_logits
         self.use_goal_image = use_goal_image
-        self.only_depth = only_depth
-        self.strategy = strategy
 
         self.reward_cache = dict()
 
@@ -94,10 +92,7 @@ class AffCritic:
             else:
                 if iepisode in self.reward_cache:
                     return self.reward_cache[iepisode]
-                if self.only_depth:
-                    attention = self.attention_model.forward_batch(np.array(curr_obs)[:, :, :, -1:].copy())
-                else:
-                    attention = self.attention_model.forward_batch(curr_obs.copy())
+                attention = self.attention_model.forward_batch(curr_obs.copy())
                 for i in range(0, m_len):
                     if self.task == 'cloth-flatten':
                         gt_state = np.max(attention[i])
@@ -172,10 +167,7 @@ class AffCritic:
 
             with tf.GradientTape() as tape:
                 loss = None
-                if self.only_depth:
-                    aff_pred = self.attention_model.forward(input_image[:, :, -1:].copy(), apply_softmax=False)
-                else:
-                    aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
+                aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
                 for idx_p0 in range(p_len):
                     p0 = p_list[idx_p0]
                     output = aff_pred[:, p0[0], p0[1], :]
@@ -274,183 +266,66 @@ class AffCritic:
         self.total_iter += num_iter
         self.save_critic()
 
-    def train_critic_multi_gpu(self, dataset, num_iter, writer, batch=1):
-        # for epoch training
-        input_batch = []
-        p0_batch = []
-        p1_list_batch = []
-        step_batch = []
-        reward_batch = []
+    # def validate(self, dataset, extra_dataset, writer, visualize, iter=0):
+    #     for i in range(dataset.validate):
+    #         for bh in range(1):
+    #             curr_obs = None
+    #             if self.step > 1:
+    #                 if extra_dataset is not None:
+    #                     if bh % 2 == 0:
+    #                         obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
+    #                     else:
+    #                         obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
+    #                 else:
+    #                     obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
+    #             else:
+    #                 obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
+    #
+    #             step_batch.append(step)
+    #
+    #             if self.use_goal_image:
+    #                 input_image = np.concatenate((obs, goal), axis=2)
+    #             else:
+    #                 input_image = obs.copy()
+    #
+    #             p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]),
+    #                   int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
+    #             p1_list = []
+    #             for point in act:
+    #                 p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]),
+    #                       int((point[2] + 1.) * 0.5 * self.input_shape[0])]
+    #                 p1_list.append(p1)
+    #
+    #             reward = self.compute_reward(metric, not_on_cloth[0], curr_obs)
+    #             # print('reward: ', reward)
+    #             reward_batch.append(reward.copy())
+    #
+    #             if no_perturb:
+    #                 input_batch.append(input_image.copy())
+    #                 p0_batch.append(p0)
+    #                 p1_list_batch.append(p1_list.copy())
+    #             else:
+    #                 # Do data augmentation (perturb rotation and translation).
+    #                 pixels_list = [p0]
+    #                 pixels_list.extend(p1_list)
+    #                 input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
+    #                 if input_image_perturb is None:
+    #                     input_batch.append(input_image.copy())
+    #                 else:
+    #                     p0 = pixels[0]
+    #                     p1_list = pixels[1:]
+    #                     input_batch.append(input_image_perturb.copy())
+    #
+    #                 p0_batch.append(p0)
+    #                 p1_list_batch.append(p1_list.copy())
+    #
+    #         # Compute Transport training loss.
+    #         loss1 = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=True)
+    #         with writer.as_default():
+    #             tf.summary.scalar('critic_loss', self.critic_model.validate_metric.result(), step=iter + i)
+    #         print(f'Validate Iter: {iter + i} Loss: {loss1:.4f}')
 
-        flag = 0
-
-        for bh in range(200):
-            curr_obs = None
-            if self.step > 1:
-                if extra_dataset is not None:
-                    if bh % 2 == 0:
-                        obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
-                    else:
-                        obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
-                else:
-                    obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
-            else:
-                obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
-
-            step_batch.append(step)
-
-            if self.use_goal_image:
-                input_image = np.concatenate((obs, goal), axis=2)
-            else:
-                input_image = obs.copy()
-
-            p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]), int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
-            p1_list = []
-            for point in act:
-                p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
-                p1_list.append(p1)
-
-            # pick_area = obs[max(0, p0[0] - 4): min(self.input_shape[0], p0[0] + 4),
-            #                 max(0, p0[1] - 4): min(self.input_shape[0], p0[1] + 4),
-            #                 :3]
-            # if np.sum(pick_area) == 0:
-            #     print('not on cloth')
-            #     m_len = len(metric)
-            #     reward = np.zeros(m_len)
-            # else:
-            #     reward = self.compute_reward(self.task, metric, self.step)
-            # reward_batch.append(reward.copy())
-
-            if not_on_cloth[0] == 1:
-                print('not on cloth')
-                m_len = len(metric)
-                reward = np.zeros(m_len)
-            else:
-                reward = self.compute_reward(self.task, metric, self.step, curr_obs)
-            reward_batch.append(reward.copy())
-
-            # Do data augmentation (perturb rotation and translation).
-            pixels_list = [p0]
-            pixels_list.extend(p1_list)
-            input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
-            if input_image_perturb is None:
-                flag = 1
-                input_image = self.preprocess(input_image)
-                input_batch.append(input_image.copy())
-            else:
-                p0 = pixels[0]
-                p1_list = pixels[1:]
-                input_image_perturb = self.preprocess(input_image_perturb)
-                input_batch.append(input_image_perturb.copy())
-
-            p0_batch.append(p0)
-            p1_list_batch.append(p1_list.copy())
-
-        if flag == 1:
-            print("no perturb")
-
-        with self.strategy.scope():
-            BUFFER_SIZE = len(input_batch)
-            print("BUFFER_SIZE", BUFFER_SIZE)
-            print("batch", batch)
-            # input_batch = tf.convert_to_tensor(input_batch, dtype=tf.float32)
-            # p0_batch = tf.convert_to_tensor(p0_batch, dtype=tf.float32)
-            # reward_batch = tf.convert_to_tensor(reward_batch, dtype=tf.float32)
-            # p1_list_batch = tf.convert_to_tensor(p1_list_batch, dtype=tf.float32)
-            # step_batch = tf.convert_to_tensor(step_batch, dtype=tf.float32)
-
-            train_dataset = tf.data.Dataset.from_tensor_slices((input_batch, p0_batch,
-                                                                p1_list_batch, reward_batch,
-                                                                step_batch)).shuffle(BUFFER_SIZE).batch(batch)
-
-            train_dist_dataset = self.strategy.experimental_distribute_dataset(train_dataset)
-
-            for i in range(num_iter):
-                # Compute Transport training loss.
-                if self.out_logits == 1:
-                    for dist_input in train_dist_dataset:
-                        loss1 = self.strategy.run(self.critic_model.train_batch_multi_gpu, args=(dist_input, batch))
-                    with writer.as_default():
-                        tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
-                    print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss1}')
-                # else:
-                #     if batch == 1:
-                #         loss1, loss_max_dis, loss_avg_dis, loss_cvx = self.critic_model.train_phy(
-                #             input_image_batch[0], p0_batch[0], p1_list_batch[0], distance_batch[0], nxt_distances_batch[0],
-                #             cvx_batch[0], nxt_cvx_batch[0], ep_batch[0], ep_len_batch[0])
-                #     else:
-                #         loss1, loss_max_dis, loss_avg_dis, loss_cvx = self.critic_model.train_phy_batch(input_batch, p0_batch, p1_list_batch, distance_batch, nxt_distances_batch, cvx_batch, nxt_cvx_batch, ep_batch, ep_len_batch, False, self.task)
-                #     with writer.as_default():
-                #         tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
-                #         tf.summary.scalar('max_dis_loss', float(loss_max_dis), step=self.total_iter+i)
-                #         tf.summary.scalar('avg_dis_loss', float(loss_avg_dis), step=self.total_iter+i)
-                #         tf.summary.scalar('cvx_loss', float(loss_cvx), step=self.total_iter+i)
-
-                    # print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss1:.4f} Max_Dis Loss: {loss_max_dis:.4f} Avg_Dis Loss: {loss_avg_dis:.4f} CVX Loss: {loss_cvx:.4f}')
-
-        self.total_iter += num_iter
-        self.save_critic()
-
-    def validate(self, dataset, extra_dataset, writer, visualize, iter=0):
-        for i in range(dataset.validate):
-            for bh in range(1):
-                curr_obs = None
-                if self.step > 1:
-                    if extra_dataset is not None:
-                        if bh % 2 == 0:
-                            obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
-                        else:
-                            obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
-                    else:
-                        obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
-                else:
-                    obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
-
-                step_batch.append(step)
-
-                if self.use_goal_image:
-                    input_image = np.concatenate((obs, goal), axis=2)
-                else:
-                    input_image = obs.copy()
-
-                p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]),
-                      int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
-                p1_list = []
-                for point in act:
-                    p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]),
-                          int((point[2] + 1.) * 0.5 * self.input_shape[0])]
-                    p1_list.append(p1)
-
-                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs)
-                # print('reward: ', reward)
-                reward_batch.append(reward.copy())
-
-                if no_perturb:
-                    input_batch.append(input_image.copy())
-                    p0_batch.append(p0)
-                    p1_list_batch.append(p1_list.copy())
-                else:
-                    # Do data augmentation (perturb rotation and translation).
-                    pixels_list = [p0]
-                    pixels_list.extend(p1_list)
-                    input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
-                    if input_image_perturb is None:
-                        input_batch.append(input_image.copy())
-                    else:
-                        p0 = pixels[0]
-                        p1_list = pixels[1:]
-                        input_batch.append(input_image_perturb.copy())
-
-                    p0_batch.append(p0)
-                    p1_list_batch.append(p1_list.copy())
-
-            # Compute Transport training loss.
-            loss1 = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=True)
-            with writer.as_default():
-                tf.summary.scalar('critic_loss', self.critic_model.validate_metric.result(), step=iter + i)
-            print(f'Validate Iter: {iter + i} Loss: {loss1:.4f}')
-
-    def act(self, obs, goal=None, p0=None):
+    def act(self, obs, p0=None):
         """Run inference and return best action given visual observations.
 
         If goal-conditioning, provide `goal`. Both `obs` and `goal` have
@@ -464,9 +339,6 @@ class AffCritic:
         np.array(obs['color']) and goal['color']: (3, 480, 640, 3)
         np.array(obs['depth']) and goal['depth']: (3, 480, 640)
         """
-        if self.use_goal_image:
-            input_image = np.concatenate((obs, goal), axis=2)
-
         if self.random_pick:
             indexs = np.transpose(np.nonzero(obs[:, :, 3]))
             index = random.choice(indexs)
@@ -480,12 +352,10 @@ class AffCritic:
 
         elif self.critic_pick:
             p0_list = []
-            # indexs = np.transpose(np.nonzero(obs[:, :, 3]))
             interval = int(self.input_shape[0] / (self.critic_num - 1))
             for i in range(self.critic_num):
                 for j in range(self.critic_num):
                     p0_list.append((min(self.input_shape[0] - 1, i * interval), min(self.input_shape[1] - 1, j * interval)))
-            # p0_list.append(p0)
 
             img_pick = obs.copy()
             max_score = -float('inf')
@@ -494,9 +364,6 @@ class AffCritic:
 
             if self.task == 'cloth-flatten':
                 for i in range(0, self.critic_num ** 2):
-                    # index = random.choice(indexs)
-                    # u1 = index[0]
-                    # v1 = index[1]
                     u1 = p0_list[i][0]
                     v1 = p0_list[i][1]
                     p0_pixel = (u1, v1)
@@ -514,16 +381,6 @@ class AffCritic:
                         min_score = critic_score
                         max_i = i
 
-            #
-            # for i in range(0, self.critic_num):
-            #     cable_score = np.max(critic_list[i, :, :, 0])
-            #     if cable_score > max_score:
-            #         max_i = i
-            #         max_score = cable_score
-
-            # if max_i == 0:
-            #     print('reverse')
-
             p0_pixel = (p0_list[max_i][0], p0_list[max_i][1])
 
         else:
@@ -534,18 +391,9 @@ class AffCritic:
                 input_only = input_image[:, :, :maxdim].copy()
                 attention = self.attention_model.forward(input_only)
             else:
-                if self.only_depth:
-                    img_aff = obs[:, :, -1:].copy()
-                else:
-                    img_aff = obs.copy()
+                img_aff = obs.copy()
                 attention = self.attention_model.forward(img_aff)
-                # print("state: ", np.max(attention))
 
-            # depth = obs[:, :, -1:]
-            # mask = np.where(depth == 0, 0, 1)
-            #
-            # attention = attention - np.min(attention)
-            # attention = attention * mask
             if self.task == 'cloth-flatten':
                 argmax = np.argmax(attention)
             elif self.task == 'rope-configuration':
@@ -622,16 +470,16 @@ class AffCritic:
             image[:, :, d] = (image[:, :, d] / 255 - self.aff_mean[d]) / self.aff_std[d]
         return image
 
-    def ori_preprocess(self, image_in):
-        image = copy.deepcopy(image_in)
-        """Pre-process images (subtract mean, divide by std)."""
-        color_mean = 0.18877631
-        depth_mean = 0.00509261
-        color_std = 0.07276466
-        depth_std = 0.00903967
-        image[:, :, :3] = (image[:, :, :3] / 255 - color_mean) / color_std
-        image[:, :, 3:] = (image[:, :, 3:] - depth_mean) / depth_std
-        return image
+    # def ori_preprocess(self, image_in):
+    #     image = copy.deepcopy(image_in)
+    #     """Pre-process images (subtract mean, divide by std)."""
+    #     color_mean = 0.18877631
+    #     depth_mean = 0.00509261
+    #     color_std = 0.07276466
+    #     depth_std = 0.00903967
+    #     image[:, :, :3] = (image[:, :, :3] / 255 - color_mean) / color_std
+    #     image[:, :, 3:] = (image[:, :, 3:] - depth_mean) / depth_std
+    #     return image
 
     def load(self, num_iter):
         """Load pre-trained models."""
@@ -804,12 +652,11 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     turned to 36 for Andy's paper) and to crop to get kernels _before_ the query.
     """
 
-    def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx', load_next_dir='xxx',
+    def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
-                 learning_rate=1e-4, critic_depth=1, batch_normalize=False, layer_normalize=False, only_depth=False, strategy=None):
+                 learning_rate=1e-4, unet=1):
         super().__init__(name, task, image_size=image_size, use_goal_image=use_goal_image, out_logits=out_logits,
-                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
-                         only_depth=only_depth, strategy=strategy)
+                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step)
 
         if load_critic_dir != 'xxx':
             fname = 'criticmean_std.pkl'
@@ -837,41 +684,19 @@ class OriginalTransporterAffCriticAgent(AffCritic):
             print("aff mean: ", self.aff_mean)
             print('aff std: ', self.aff_std)
 
-        if only_depth:
-            self.attention_model = Affordance(input_shape=(image_size, image_size, 1),
-                                              preprocess=self.aff_preprocess,
-                                              learning_rate=learning_rate,
-                                              strategy=strategy
-                                              )
-        else:
-            self.attention_model = Affordance(input_shape=self.input_shape,
-                                              preprocess=self.aff_preprocess,
-                                              learning_rate=learning_rate,
-                                              strategy=strategy
-                                              )
+        self.attention_model = Affordance(input_shape=self.input_shape,
+                                          preprocess=self.aff_preprocess,
+                                          learning_rate=learning_rate,
+                                          unet=unet
+                                          )
 
         self.critic_model = Critic_MLP(input_shape=self.input_shape,
                                        preprocess=self.critic_preprocess,
                                        out_logits=self.out_logits,
                                        learning_rate=learning_rate,
                                        without_global=without_global,
-                                       depth=critic_depth,
-                                       batch_normalize=batch_normalize,
-                                       layer_normalize=layer_normalize,
-                                       strategy=strategy
+                                       unet=unet
                                        )
-
-        if load_next_dir != 'xxx':
-            self.next_model = Affordance(input_shape=self.input_shape,
-                                         preprocess=self.preprocess,
-                                         learning_rate=0,
-                                         )
-
-            print('*' * 50)
-            print('*' * 20 + 'load next model' + '*' * 20)
-            print('*' * 3 + f'load_next_dir {load_next_dir}' + '*' * 3)
-            self.next_model.load(load_next_dir)
-            print('*' * 50)
 
         if load_aff_dir != 'xxx':
             print('*' * 50)

@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--task', type=str, default='cloth-flatten')
     parser.add_argument('--agent', default='aff_critic')
-    parser.add_argument('--image_size', default=320, type=int)
+    parser.add_argument('--image_size', default=160, type=int)
     parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--extra_num_demos', type=int, default=1, help='How many data do you need for training')
@@ -31,10 +31,8 @@ def main():
     parser.add_argument('--num_iters', type=int, default=1, help='How many iterations do you need for training')
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--learning_rate',  default=1e-4, type=float)
-    parser.add_argument('--batch_normalize', action='store_true')
-    parser.add_argument('--layer_normalize', action='store_true')
     parser.add_argument('--out_logits',     default=1, type=int)
-    parser.add_argument('--critic_depth', default=1, type=int)
+    parser.add_argument('--unet', default=1, type=int)
     parser.add_argument('--demo_times', default=1, type=int)
     parser.add_argument('--extra_demo_times', default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
@@ -42,18 +40,13 @@ def main():
     parser.add_argument('--extra_suffix', default='')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
-    parser.add_argument('--load_next_dir', default='xxx')
-    parser.add_argument('--load_critic_mean_std_dir', default='xxx')
-    parser.add_argument('--load_aff_mean_std_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--max_load',       default=-1, type=int)
     parser.add_argument('--batch',          default=1, type=int)
     parser.add_argument('--model', default='critic', type=str)
     parser.add_argument('--only_state', action='store_true')
     parser.add_argument('--only_gt', action='store_true')
-    parser.add_argument('--multi_gpu', action='store_true')
     parser.add_argument('--no_perturb', action='store_true')
-    parser.add_argument('--only_depth', action='store_true')
     args = parser.parse_args()
 
     dataset = Dataset(os.path.join('data', f"{args.task}-{args.suffix}"), max_load=args.max_load,
@@ -89,27 +82,17 @@ def main():
     else:
         extra_dataset = None
 
-    if args.multi_gpu:
-        strategy = tf.distribute.MirroredStrategy()
-    else:
-        strategy = None
-
     agent = agents.names[args.agent](name,
                                      args.task,
                                      image_size=args.image_size,
                                      use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
-                                     load_next_dir=args.load_next_dir,
                                      out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,
                                      step=args.step,
-                                     critic_depth=args.critic_depth,
-                                     batch_normalize=args.batch_normalize,
-                                     layer_normalize=args.layer_normalize,
-                                     only_depth=args.only_depth,
-                                     strategy=strategy
+                                     unet=args.unet
                                      )
 
     agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), args.model)
@@ -118,12 +101,9 @@ def main():
         if args.model == 'critic':
             # Train critic.
             tf.keras.backend.set_learning_phase(1)
-            if args.multi_gpu:
-                agent.train_critic_multi_gpu(dataset, num_iter=args.num_iters // 10, writer=train_summary_writer, batch=args.batch)
-            else:
-                agent.train_critic(dataset, num_iter=args.num_iters // 10, writer=train_summary_writer,
-                                   batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
-                                   only_state=args.only_state, only_gt=args.only_gt)
+            agent.train_critic(dataset, num_iter=args.num_iters // 10, writer=train_summary_writer,
+                               batch=args.batch, extra_dataset=extra_dataset, no_perturb=args.no_perturb,
+                               only_state=args.only_state, only_gt=args.only_gt)
             tf.keras.backend.set_learning_phase(0)
         if args.model == 'aff':
             # Train aff.

@@ -246,7 +246,7 @@ def ResNet43_8s(input_shape, output_dim, include_batchnorm=False, include_layern
     return input_data, output
 
 
-def UNet43_8s(input_shape, output_dim, include_batchnorm=False, include_layernorm=False, norm_axis=-1, prefix='', cutoff_early=False):
+def UNet43_8s(input_shape, output_dim, include_batchnorm=False, include_layernorm=False, norm_axis=-1, prefix=''):
     """produces an hourglass FCN network, adapted to CoRL submission size.
 
     Regarding shapes, look at: https://www.tensorflow.org/api_docs/python/tf/keras/Input [excludes batch size]

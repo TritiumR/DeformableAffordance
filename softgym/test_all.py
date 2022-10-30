@@ -219,11 +219,10 @@ def main():
     parser.add_argument('--save_video_dir', type=str, default=None, help='Path to the saved video')
     parser.add_argument('--use_goal_image',       default=0, type=int)
     parser.add_argument('--out_logits',     default=1, type=int)
+    parser.add_argument('--unet', default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
-    parser.add_argument('--load_critic_mean_std_dir', default='xxx')
-    parser.add_argument('--load_aff_mean_std_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
@@ -259,6 +258,7 @@ def main():
                                      expert_pick=args.expert_pick,
                                      critic_pick=args.critic_pick,
                                      random_pick=args.random_pick,
+                                     unet=args.unet
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
