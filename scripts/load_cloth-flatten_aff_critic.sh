@@ -1,11 +1,11 @@
-CUDA_VISIBLE_DEVICES=3 python ./softgym/test.py \
+CUDA_VISIBLE_DEVICES=7 python ./softgym/test.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
   --num_demos 8000 \
   --step 1 \
   --out_logits 1 \
-  --exp_name 1030-15-online-9000-aff-301000-critic-step-1-test \
+  --exp_name 1031-06-mask \
   --process_num 1 \
   --num_test 30 \
   --critic_depth 1 \

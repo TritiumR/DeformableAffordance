@@ -395,6 +395,9 @@ class AffCritic:
                 attention = self.attention_model.forward(img_aff)
 
             if self.task == 'cloth-flatten':
+                mask = np.where(obs[:, :, :-1] == (0, 0, 0), 0, 1)
+                # print(mask.shape)
+                attention *= mask
                 argmax = np.argmax(attention)
             elif self.task == 'rope-configuration':
                 argmax = np.argmin(attention)

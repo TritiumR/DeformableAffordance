@@ -23,11 +23,10 @@ def visualize_aff_critic(obs, agent, args, render_obs):
     img_aff = obs.copy()
     attention = agent.attention_model.forward(img_aff)
 
-    # depth = obs[:, :, -1:].copy()
-    # mask = np.where(depth == 0, 0, 1)
-    # state_map = np.where(depth == 0, 0, attention)
     if args.env_name == 'ClothFlatten':
         state_score = int(np.max(attention) * 2)
+        mask = np.where(obs[:, :, :-1] == (0, 0, 0), 0, 1)
+        attention *= mask
 
     elif args.env_name == 'RopeConfiguration':
         state_score = int(np.min(attention) * 10)
@@ -51,7 +50,6 @@ def visualize_aff_critic(obs, agent, args, render_obs):
         argmax = np.unravel_index(argmax, shape=critic.shape)
 
     p1_pixel = argmax[1:3]
-
     vis_aff = np.array(attention[0])
     vis_critic = np.array(critic[0])
 
