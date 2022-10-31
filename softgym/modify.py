@@ -1,5 +1,5 @@
 import os
-root = '/root/softgym/test_video/cloth-flatten-Aff_Critic-80001030-17-step4-online-continue-critic-set_flat-10'
+root = '/root/softgym/test_video/rope-configuration-Aff_Critic-80001031-03-S-online-aff-9500-critic-step2-set_flat'
 dirs = os.listdir(root)
 total = 0.
 i = 0

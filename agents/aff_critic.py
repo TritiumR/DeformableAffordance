@@ -167,7 +167,7 @@ class AffCritic:
 
             with tf.GradientTape() as tape:
                 loss = None
-                aff_pred = self.attention_model.forward(input_image.copy(), apply_softmax=False)
+                aff_pred = self.attention_model.forward(input_image.copy())
                 for idx_p0 in range(p_len):
                     p0 = p_list[idx_p0]
                     output = aff_pred[:, p0[0], p0[1], :]

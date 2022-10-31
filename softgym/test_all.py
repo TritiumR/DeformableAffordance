@@ -116,7 +116,7 @@ def run_jobs(args, env, agent):
                     continue
             elif args.env_name == 'RopeConfiguration':
                 now_distance = env.compute_reward()
-                if now_distance >= -0.1:
+                if now_distance >= -0.06:
                     step_i = 0
                     continue
 
