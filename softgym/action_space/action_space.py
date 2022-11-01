@@ -396,7 +396,7 @@ class PickAndPlace(PickerQPG):
         u1 = ((u1 + 1.) * 0.5) * self.image_size[0]
         v1 = ((v1 + 1.) * 0.5) * self.image_size[1]
         x1, y1, z1 = super()._get_world_coor_from_image(u1, v1)
-        y1 += 0.03
+        y1 += 0.02
         # print(x1, z1)
 
         u2, v2 = action[2:]
