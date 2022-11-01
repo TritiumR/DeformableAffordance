@@ -1,15 +1,15 @@
-CUDA_VISIBLE_DEVICES=2 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=7 python ./softgym/train.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
-  --suffix tryten-step1 \
-  --num_demos 8000 \
+  --suffix tryeleven-only_gt \
+  --num_demos 9000 \
   --demo_times 10 \
   --num_iters 300000 \
   --out_logits 1 \
-  --without_global \
-  --step 1 \
-  --exp_name 1030-17-tryten-without_global \
+  --step 5 \
+  --exp_name 1101-04-tryeleven-only_gt \
+  --only_gt \
   --max_load 3000 \
   --batch 20 \
   --learning_rate 1e-4 \
