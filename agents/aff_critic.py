@@ -25,7 +25,7 @@ import ipdb
 
 class AffCritic:
     def __init__(self, name, task, image_size=320, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
-                 out_logits=1, step=1):
+                 out_logits=1, step=1, use_mask=False):
         """Creates Transporter agent with attention and transport modules."""
         self.name = name
         self.task = task
@@ -45,6 +45,7 @@ class AffCritic:
 
         self.out_logits = out_logits
         self.use_goal_image = use_goal_image
+        self.use_mask = use_mask
 
         self.reward_cache = dict()
 
@@ -340,12 +341,14 @@ class AffCritic:
         np.array(obs['depth']) and goal['depth']: (3, 480, 640)
         """
         if self.random_pick:
-            indexs = np.transpose(np.nonzero(obs[:, :, 3]))
+            if self.task == 'cloth-flatten':
+                indexs = np.transpose(np.nonzero(obs[:, :, 0]))
+            elif self.task == 'rope-configuration':
+                mask = np.where(prev_depth[:, :, -1] < 0.348, 255, 0)
+                indexs = np.transpose(np.nonzero(mask))
             index = random.choice(indexs)
-            u1 = index[0]
-            v1 = index[1]
-            print((u1, v1))
-            p0_pixel = (u1, v1)
+            print(index)
+            p0_pixel = (index[0], index[1])
 
         elif self.expert_pick:
             p0_pixel = p0
@@ -395,10 +398,11 @@ class AffCritic:
                 attention = self.attention_model.forward(img_aff)
 
             if self.task == 'cloth-flatten':
-                mask = np.where(obs[:, :, :-1] == (0, 0, 0), 0, 1)
-                # print(mask.shape)
-                attention *= mask
+                if self.use_mask:
+                    mask = np.where(obs[:, :, :-1] == (0, 0, 0), 0, 1)
+                    attention *= mask
                 argmax = np.argmax(attention)
+
             elif self.task == 'rope-configuration':
                 argmax = np.argmin(attention)
 
@@ -657,9 +661,10 @@ class OriginalTransporterAffCriticAgent(AffCritic):
 
     def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx',
                  out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
-                 learning_rate=1e-4, unet=1):
+                 learning_rate=1e-4, unet=1, use_mask=False):
         super().__init__(name, task, image_size=image_size, use_goal_image=use_goal_image, out_logits=out_logits,
-                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step)
+                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
+                         use_mask=use_mask)
 
         if load_critic_dir != 'xxx':
             fname = 'criticmean_std.pkl'

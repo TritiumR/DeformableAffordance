@@ -258,7 +258,8 @@ def run_jobs(process_id, args, env_kwargs):
                                      expert_pick=args.expert_pick,
                                      critic_pick=args.critic_pick,
                                      random_pick=args.random_pick,
-                                     unet=args.unet
+                                     unet=args.unet,
+                                     use_mask=args.use_mask
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -503,6 +504,7 @@ def main():
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
     parser.add_argument('--random_pick',    action='store_true')
+    parser.add_argument('--use_mask', action='store_true')
     parser.add_argument('--exp', action='store_true')
     args = parser.parse_args()
 

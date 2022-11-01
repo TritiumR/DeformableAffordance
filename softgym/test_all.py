@@ -31,7 +31,6 @@ def run_jobs(args, env, agent):
             full_distance = env.compute_reward()
         pyflex.step()
 
-        # env.start_record()
         step_i = 0
 
         while step_i < args.step:
@@ -43,16 +42,12 @@ def run_jobs(args, env, agent):
                 prev_obs, prev_depth = pyflex.render()
             prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
             prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            # print(np.min(prev_depth), np.max(prev_depth))
             mask = np.where(prev_depth[:, :, 0] < 0.348, 255, 0)
-            # print(mask.shape)
-            # cv2.imwrite(f'./visual/test-mask-{step_i}-depth.jpg', mask)
 
             # crumple the cloth by grabbing corner
             if args.env_name == 'ClothFlatten':
                 # if step_i == 0:
                 mask = prev_obs[:, :, 0]
-                # cv2.imwrite(f'./visual/test-mask-{step_i}-cloth.jpg', mask)
                 indexs = np.transpose(np.where(mask != 0))
                 corner_id = random.randint(0, 3)
                 top, left = indexs.min(axis=0)
@@ -142,7 +137,6 @@ def run_jobs(args, env, agent):
             crump_obs, crump_depth = pyflex.render()
 
         crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
-        # cv2.imwrite(f'./visual/test-{args.test_id}-rope-obs-{in_step}.jpg', crump_obs)
         crump_depth[crump_depth > 5] = 0
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
@@ -187,7 +181,7 @@ def run_jobs(args, env, agent):
     if args.env_name == 'RopeConfiguration':
         env.action_tool.hide()
     print(normalize_score)
-    cv2.imwrite(f'./visual/1025-04/{args.exp_name}-{args.test_id}-{normalize_score}.jpg', crump_obs)
+    cv2.imwrite(f'./visual/1101-09/{args.exp_name}-{args.test_id}-{normalize_score}.jpg', crump_obs)
     if args.save_video_dir is not None:
         path_name = os.path.join(args.save_video_dir, agent.name + args.exp_name)
         if not os.path.exists(path_name):
@@ -227,6 +221,7 @@ def main():
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
     parser.add_argument('--random_pick',    action='store_true')
+    parser.add_argument('--use_mask', action='store_true')
     args = parser.parse_args()
 
     env_kwargs = env_arg_dict[args.env_name]
@@ -258,7 +253,8 @@ def main():
                                      expert_pick=args.expert_pick,
                                      critic_pick=args.critic_pick,
                                      random_pick=args.random_pick,
-                                     unet=args.unet
+                                     unet=args.unet,
+                                     use_mask=args.use_mask
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
