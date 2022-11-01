@@ -188,19 +188,30 @@ class Critic_MLP:
 
     def forward_with_plist(self, in_img, plist):
         len_p = len(plist)
-        feat, global_feat = self.forward_with_feat(in_img)
-        global_feat = tf.tile(global_feat, [len_p, feat.shape[1], feat.shape[2], 1])
-        select_feat_list = []
-        for idx_p0 in range(len_p):
-            p0 = plist[idx_p0]
-            select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, feat.shape[1], feat.shape[2], 1])
-            select_feat_list.append(select_feat)
-        select_feat = tf.concat(select_feat_list, axis=0)
-        feat = tf.tile(feat, [len_p, 1, 1, 1])
-        if self.without_global:
-            all_feat = tf.concat([feat, select_feat], axis=-1)
+        if self.unet:
+            feat, global_feat = self.forward_with_feat(in_img)
+            global_feat = tf.tile(global_feat, [len_p, feat.shape[1], feat.shape[2], 1])
+            select_feat_list = []
+            for idx_p0 in range(len_p):
+                p0 = plist[idx_p0]
+                select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, feat.shape[1], feat.shape[2], 1])
+                select_feat_list.append(select_feat)
+            select_feat = tf.concat(select_feat_list, axis=0)
+            feat = tf.tile(feat, [len_p, 1, 1, 1])
+            if self.without_global:
+                all_feat = tf.concat([feat, select_feat], axis=-1)
+            else:
+                all_feat = tf.concat([feat, select_feat, global_feat], axis=-1)
         else:
-            all_feat = tf.concat([feat, select_feat, global_feat], axis=-1)
+            feat = self.forward_with_feat(in_img)
+            select_feat_list = []
+            for idx_p0 in range(len_p):
+                p0 = plist[idx_p0]
+                select_feat = tf.tile(feat[:, p0[0]:p0[0] + 1, p0[1]:p0[1] + 1, :], [1, feat.shape[1], feat.shape[2], 1])
+                select_feat_list.append(select_feat)
+            select_feat = tf.concat(select_feat_list, axis=0)
+            feat = tf.tile(feat, [len_p, 1, 1, 1])
+            all_feat = tf.concat([feat, select_feat], axis=-1)
 
         output = self.conv_seq(all_feat)
 
