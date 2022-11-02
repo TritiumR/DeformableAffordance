@@ -6,12 +6,13 @@ CUDA_VISIBLE_DEVICES=3 python ./softgym/train.py \
   --num_iters 400000 \
   --out_logits 1 \
   --demo_times 10 \
-  --exp_name 1101-11-tryeleven-aff-no_unet-step1 \
+  --exp_name 1102-05-tryeleven-aff-no_global-step1 \
   --suffix tryten-step1 \
-  --max_load 2000 \
+  --max_load 3000 \
   --batch 20 \
   --model aff \
-  --unet 0 \
+  --unet 1 \
+  --without_global \
   --image_size 160 \
-  --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-8000-1030-16-tryten-no_unet-step-1/critic-ckpt-300000.h5 \
+  --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-8000-1030-17-tryten-without_global-step-1/critic-ckpt-300000.h5 \
 

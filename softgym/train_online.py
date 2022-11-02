@@ -20,10 +20,7 @@ import pickle
 
 
 def visualize_aff_critic(obs, agent, args, iter):
-    if args.only_depth:
-        img_aff = obs[:, :, -1:].copy()
-    else:
-        img_aff = obs.copy()
+    img_aff = obs.copy()
     attention = agent.attention_model.forward(img_aff)
 
     # depth = obs[:, :, -1:].copy()
@@ -102,8 +99,7 @@ def run_jobs(process_id, args, env_kwargs):
                                      out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,
-                                     critic_depth=args.critic_depth,
-                                     only_depth=args.only_depth
+                                     unet=args.unet
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -314,10 +310,7 @@ def run_jobs(process_id, args, env_kwargs):
         if args.model == 'aff' or args.model == 'both':
             with tf.GradientTape() as tape:
                 loss = None
-                if agent.only_depth:
-                    aff_pred = agent.attention_model.forward_batch(np.array(curr_data)[:, :, :, -1:].copy(), apply_softmax=False)
-                else:
-                    aff_pred = agent.attention_model.forward_batch(curr_data.copy(), apply_softmax=False)
+                aff_pred = agent.attention_model.forward_batch(curr_data.copy())
                 for bh in range(args.data_type):
                     base = bh * args.critic_type
                     p0 = [min(args.image_size - 1, int((action_data[base][1] + 1.) * 0.5 * args.image_size)),
@@ -394,7 +387,7 @@ def main():
     parser.add_argument('--shape', type=str, default='S')
     parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--agent', default='aff_critic')
-    parser.add_argument('--critic_depth', default=1, type=int)
+    parser.add_argument('--unet', default=1, type=int)
     parser.add_argument('--learning_rate', default=5e-5, type=float)
     parser.add_argument('--num_online', type=int, default=1, help='How many test do you need for inferring')
     parser.add_argument('--data_type', type=int, default=1, help='How many children for one crumple state')
@@ -405,11 +398,8 @@ def main():
     parser.add_argument('--exp_name', type=str, default='0809-01')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
-    parser.add_argument('--load_critic_mean_std_dir', default='xxx')
-    parser.add_argument('--load_aff_mean_std_dir', default='xxx')
     parser.add_argument('--model', default='aff', type=str)
     parser.add_argument('--without_global', action='store_true')
-    parser.add_argument('--only_depth', action='store_true')
     parser.add_argument('--exp', action='store_true')
     args = parser.parse_args()
 

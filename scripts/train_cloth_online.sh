@@ -1,21 +1,19 @@
-CUDA_VISIBLE_DEVICES=5 python ./softgym/train_online.py \
+CUDA_VISIBLE_DEVICES=2 python ./softgym/train_online.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
-  --num_online 10000 \
+  --num_online 7001 \
   --data_type 3 \
   --critic_type 1 \
-  --step 5 \
+  --step 2 \
   --out_logits 1 \
-  --exp_name 1028-03-online-step-5-aff-0.6 \
+  --exp_name 1102-04-no_unet-online-step-2-aff-0.8 \
   --mode aff \
   --process_num 1 \
-  --critic_depth 1 \
+  --unet 0 \
   --learning_rate 5e-5 \
-  --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-8000-1024-02-tryeleven-with-online-aff-9500-2:1-mix1-step4-step-4/critic-ckpt-195000.h5 \
-  --load_critic_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-8000-1024-02-tryeleven-with-online-aff-9500-2:1-mix1-step4-step-4 \
-  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-8000-1026-22-tryeleven-aff-with-2:1-195000-step4-step-1/attention-ckpt-400000.h5 \
-  --load_aff_mean_std_dir checkpoints/cloth-flatten-Aff_Critic-8000-1026-22-tryeleven-aff-with-2:1-195000-step4-step-1 \
+  --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-8000-1030-16-tryten-no_unet-step-1/critic-ckpt-300000.h5 \
+  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-8000-1101-11-tryeleven-aff-no_unet-step1-step-1/attention-ckpt-360000.h5 \
   --image_size 160 \
   --headless 1
 
