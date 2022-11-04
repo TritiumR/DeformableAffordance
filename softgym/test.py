@@ -498,8 +498,6 @@ def main():
     parser.add_argument('--exp_name', type=str, default='0809-01')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
-    parser.add_argument('--load_critic_mean_std_dir', default='xxx')
-    parser.add_argument('--load_aff_mean_std_dir', default='xxx')
     parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--expert_pick',    action='store_true')
     parser.add_argument('--critic_pick',    action='store_true')
