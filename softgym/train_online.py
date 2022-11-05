@@ -215,7 +215,7 @@ def run_jobs(process_id, args, env_kwargs):
             # print("crump percent: ", crump_percent)
         elif args.env_name == 'RopeConfiguration':
             crump_distance = -env.compute_reward()
-            if crump_distance <= 0.06:
+            if crump_distance <= 0.055:
                 continue
             # print("crump distance: ", crump_distance)
 
@@ -303,7 +303,7 @@ def run_jobs(process_id, args, env_kwargs):
             if max_recover <= max(1.0 - (args.step * 0.1), 0.6):
                 continue
         elif args.env_name == 'RopeConfiguration':
-            if min_distance >= 0.055 + (args.step - 1) * 0.005:
+            if min_distance >= min(0.055 + (args.step - 1) * 0.005, 0.065):
                 continue
 
         # train aff with online data

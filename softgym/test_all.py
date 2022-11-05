@@ -172,7 +172,9 @@ def run_jobs(args, env, agent):
             result = 'fail'
 
     elif args.env_name == 'RopeConfiguration':
-        normalize_score = (curr_distance - crump_distance) / (0 - crump_distance)
+        if curr_distance > -0.05:
+            curr_distance = -0.05
+        normalize_score = (curr_distance - crump_distance) / (-0.050 - crump_distance)
         if max_percent >= -0.055:
             result = 'success'
         else:
@@ -181,7 +183,7 @@ def run_jobs(args, env, agent):
     if args.env_name == 'RopeConfiguration':
         env.action_tool.hide()
     print(normalize_score)
-    cv2.imwrite(f'./visual/1104-01/{args.exp_name}-{args.test_id}-{normalize_score}.jpg', crump_obs)
+    cv2.imwrite(f'./visual/1105-01/{args.exp_name}-{args.test_id}-{normalize_score}.jpg', crump_obs)
     if args.save_video_dir is not None:
         path_name = os.path.join(args.save_video_dir, agent.name + args.exp_name)
         if not os.path.exists(path_name):

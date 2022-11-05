@@ -27,7 +27,7 @@ plt.plot(x, y_4, marker='*', color='steelblue', label='without unet')
 
 plt.plot(x, y_5, marker='*', color='violet', label='random pick')
 
-plt.hlines(0.629, xmin=1, xmax=4, ls='-', lw=2, color='y', label='only GT')
+plt.hlines(0.669, xmin=1, xmax=4, ls='-', lw=2, color='y', label='only GT')
 
 # 显示图例（使绘制生效）
 plt.legend()
