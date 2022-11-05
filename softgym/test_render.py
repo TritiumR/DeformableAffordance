@@ -141,9 +141,9 @@ def run_jobs(process_id, args, env_kwargs):
             if i == 0:
                 critic_max = np.max(critic)
 
-            for u in range(max(0, pick_pixel[0] - 2 * (i + 1)), min(args.image_size - 1, pick_pixel[0] + 2 * (i + 1))):
-                for v in range(max(0, pick_pixel[1] - 2 * (i + 1)), min(args.image_size - 1, pick_pixel[1] + 2 * (i + 1))):
-                    vis_img[0][u][v] = (0, 255, 255)
+            # for u in range(max(0, pick_pixel[0] - 2 * (i + 1)), min(args.image_size - 1, pick_pixel[0] + 2 * (i + 1))):
+            #     for v in range(max(0, pick_pixel[1] - 2 * (i + 1)), min(args.image_size - 1, pick_pixel[1] + 2 * (i + 1))):
+            #         vis_img[0][u][v] = (0, 255, 255)
 
             if args.exp:
                 vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
@@ -177,9 +177,9 @@ def run_jobs(process_id, args, env_kwargs):
                 render_obs, _ = pyflex.render()
                 render_obs = render_obs.reshape((720, 720, 4))[::-1, :, :3]
                 render_obs = cv2.resize(render_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
-                for u in range(max(0, place_pixel[0] - 4), min(args.image_size - 1, place_pixel[0] + 4)):
-                    for v in range(max(0, place_pixel[1] - 4), min(args.image_size - 1, place_pixel[1] + 4)):
-                        render_obs[u][v] = (255, 255, 0)
+                # for u in range(max(0, place_pixel[0] - 4), min(args.image_size - 1, place_pixel[0] + 4)):
+                #     for v in range(max(0, place_pixel[1] - 4), min(args.image_size - 1, place_pixel[1] + 4)):
+                #         render_obs[u][v] = (255, 255, 0)
                 vis_img.append(cv2.cvtColor(render_obs, cv2.COLOR_BGR2RGB).copy())
 
         vis_img = np.concatenate(vis_img, axis=1)

@@ -1,19 +1,21 @@
-CUDA_VISIBLE_DEVICES=6 python ./softgym/train_online.py \
+CUDA_VISIBLE_DEVICES=3 python ./softgym/train_online.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
   --agent aff_critic \
   --shape S \
-  --num_online 8001 \
+  --num_online 7001 \
   --data_type 3 \
   --critic_type 1 \
-  --step 4 \
+  --step 2 \
   --out_logits 1 \
-  --exp_name 1105-04-S-2:1-mix2-online-aff-step-4-0.065 \
+  --exp_name 1106-03-S-2:1-no_global-online-aff-step-2-0.06 \
   --mode aff \
   --process_num 1 \
   --learning_rate 1e-4 \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1101-05-tryseven-S-step3-2:1-mix2-no_perturb-step-3/critic-ckpt-300000.h5 \
-  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-8000-1104-04-tryseven-no_perturb-aff-with-2:1-mix2-S-step3-step-1/attention-ckpt-400000.h5 \
+  --unet 1 \
+  --without_global \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-7900-1103-06-without_global-tryseven-S-step1-no_perturb-step-1/critic-ckpt-300000.h5 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-7900-1105-11-tryseven-no_global-aff-step1-step-1/attention-ckpt-240000.h5 \
   --image_size 160 \
   --headless 1
 

@@ -1,12 +1,12 @@
 
 import matplotlib.pyplot as plt
 
-x = [1, 2, 3, 4]
-y_1 = [0.589, 0.695, 0.788, 0.758]
-y_2 = [0.526, 0.586, 0.629, 0.624]
-y_3 = [0.561, 0.475, 0.575, 0.585]
-y_4 = [0.516, 0.570, 0.600, 0.630]
-y_5 = [0.241, 0.211, 0.304, 0.185]
+x = [1, 2, 3, 4, 5]
+y_1 = [0.589, 0.695, 0.788, 0.752, 0.758]
+y_2 = [0.526, 0.586, 0.629, 0.624, 0.634]
+y_3 = [0.561, 0.475, 0.575, 0.585, 0.585]
+y_4 = [0.516, 0.570, 0.600, 0.610, 0.610]
+y_5 = [0.241, 0.211, 0.304, 0.185, 0.190]
 
 print(x)
 print(y_1)
@@ -27,7 +27,7 @@ plt.plot(x, y_4, marker='*', color='steelblue', label='without unet')
 
 plt.plot(x, y_5, marker='*', color='violet', label='random pick')
 
-plt.hlines(0.669, xmin=1, xmax=4, ls='-', lw=2, color='y', label='only GT')
+plt.hlines(0.669, xmin=1, xmax=5, ls='-', lw=2, color='y', label='only GT')
 
 # 显示图例（使绘制生效）
 plt.legend()

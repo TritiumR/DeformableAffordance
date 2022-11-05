@@ -105,15 +105,19 @@ class AffCritic:
                     #     score_list += f'-{int(gt_state * 2)}'
 
                     # img_obs = curr_obs[i][:, :, :3]
-                    # vis_aff = attention[i] - np.min(attention[i])
+                    # vis_aff = attention[i]
+                    # if self.use_mask:
+                    #     mask = np.where(img_obs == (0, 0, 0), 0, 1)
+                    #     vis_aff *= mask
+                    # vis_aff = vis_aff - np.min(vis_aff)
                     # if self.task == 'rope-configuration':
                     #     vis_aff = -vis_aff
-                    # vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
-                    # vis_aff = 255 * vis_aff / np.max(vis_aff)
+                    # # vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
+                    # vis_aff = 255 * vis_aff / 50
                     # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
-                    # vis_img = np.concatenate((cv2.cvtColor(curr_obs[i], cv2.COLOR_BGR2RGB), vis_aff), axis=1)
-                    # cv2.imwrite(f'./visual/rope-no-debug-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg', vis_img)
-                    # print(f'saved ./visual/rope-no-debug-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg')
+                    # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
+                    # cv2.imwrite(f'./visual/1105-26-cloth-no-online-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg', vis_img)
+                    # print(f'saved ./visual/1105-26-cloth-no-online-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg')
 
                     # print('gt_state: ', gt_state)
                     # print("curr: ", curr_percent)

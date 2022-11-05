@@ -47,6 +47,7 @@ def main():
     parser.add_argument('--only_state', action='store_true')
     parser.add_argument('--only_gt', action='store_true')
     parser.add_argument('--no_perturb', action='store_true')
+    parser.add_argument('--use_mask', action='store_true')
     args = parser.parse_args()
 
     dataset = Dataset(os.path.join('data', f"{args.task}-{args.suffix}"), max_load=args.max_load,
@@ -92,7 +93,8 @@ def main():
                                      learning_rate=args.learning_rate,
                                      without_global=args.without_global,
                                      step=args.step,
-                                     unet=args.unet
+                                     unet=args.unet,
+                                     use_mask=args.use_mask
                                      )
 
     agent.get_mean_and_std(os.path.join('data', f"{args.task}-{args.suffix}"), args.model)

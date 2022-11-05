@@ -160,9 +160,9 @@ def run_jobs(args, env, agent):
             curr_distance = env.compute_reward()
             if curr_distance > max_percent:
                 max_percent = curr_distance
+            print("curr distance: ", i, curr_distance)
             if curr_distance >= -0.055:
                 break
-            print("curr distance: ", i, curr_distance)
 
     if args.env_name == 'ClothFlatten':
         normalize_score = (curr_percent - crump_percent) / (1 - crump_percent)
@@ -172,9 +172,9 @@ def run_jobs(args, env, agent):
             result = 'fail'
 
     elif args.env_name == 'RopeConfiguration':
-        if curr_distance > -0.05:
-            curr_distance = -0.05
-        normalize_score = (curr_distance - crump_distance) / (-0.050 - crump_distance)
+        if curr_distance > -0.040:
+            curr_distance = -0.040
+        normalize_score = (curr_distance - crump_distance) / (-0.040 - crump_distance)
         if max_percent >= -0.055:
             result = 'success'
         else:
@@ -183,7 +183,12 @@ def run_jobs(args, env, agent):
     if args.env_name == 'RopeConfiguration':
         env.action_tool.hide()
     print(normalize_score)
-    cv2.imwrite(f'./visual/1105-01/{args.exp_name}-{args.test_id}-{normalize_score}.jpg', crump_obs)
+    visual_path = os.path.join('./visual', args.exp_name.split('-')[0])
+    if not os.path.exists(visual_path):
+        os.makedirs(visual_path)
+    visual_path = os.path.join(visual_path, f'{args.exp_name}-{args.test_id}-{normalize_score}.jpg')
+    print(f'save to {visual_path}')
+    cv2.imwrite(visual_path, crump_obs)
     if args.save_video_dir is not None:
         path_name = os.path.join(args.save_video_dir, agent.name + args.exp_name)
         if not os.path.exists(path_name):

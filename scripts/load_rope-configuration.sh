@@ -2,16 +2,16 @@ CUDA_VISIBLE_DEVICES=1 python ./softgym/test.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
   --shape S \
-  --step 2 \
+  --step 3 \
   --agent aff_critic \
   --num_demos 8000 \
   --out_logits 1 \
-  --exp_name 1031-01-step2-online-9500-aff-critic \
+  --exp_name 1105-15-step3-online-8000-aff-critic \
   --process_num 1 \
   --num_test 20 \
   --critic_depth 1 \
   --exp \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1026-18-tryseven-S-step2-with-online-7000-2:1-no_perturb-step-2/critic-ckpt-300000.h5 \
-  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-10000-1030-05-S-online-aff-step-3-0.065-step-1/attention-online-ckpt-9500.h5 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1101-05-tryseven-S-step3-2:1-mix2-no_perturb-step-3/critic-ckpt-300000.h5 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-8001-1105-04-S-2:1-mix2-online-aff-step-4-0.065-step-1/attention-online-ckpt-8000.h5 \
   --image_size 160 \
   --headless 1

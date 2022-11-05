@@ -11,12 +11,11 @@ do
   --step 3 \
   --test_step 10 \
   --out_logits 1 \
-  --exp_name 1105-06-S-step1-set_flat-trick \
+  --exp_name 1105_23-S-no-online-step3-set_flat-trick-0.040 \
   --test_id "$i" \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-7900-1021-16-tryseven-S-no_perturb-step-1/critic-ckpt-300000.h5 \
-  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-10000-1023-06-S-online-aff-step-2-0.06-step-1/attention-online-ckpt-9000.h5 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1030-11-tryseven-S-step3-only_gt-no_perturb-step-3/critic-ckpt-300000.h5 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-8000-1102-03-tryseven-no_perturb-aff-with-only_gt-S-step3-step-1/attention-ckpt-300000.h5 \
   --image_size 160 \
-  --save_video_dir './test_video/' \
   --set_flat 1 \
   --headless 1
 done
