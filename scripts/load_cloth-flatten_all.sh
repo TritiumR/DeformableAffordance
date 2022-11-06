@@ -10,7 +10,7 @@ do
   --step 3 \
   --test_step 10 \
   --out_logits 1 \
-  --exp_name 1106_23-step2-no-unet-online-aff_critic-set_flat-10 \
+  --exp_name 1106_27-step2-no-unet-online-aff_critic-set_flat-10 \
   --test_id "$i" \
   --unet 0 \
   --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-8000-1103-09-tryeleven-no_unet-step2-step-2/critic-ckpt-300000.h5 \

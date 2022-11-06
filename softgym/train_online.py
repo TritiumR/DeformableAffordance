@@ -303,7 +303,7 @@ def run_jobs(process_id, args, env_kwargs):
             if max_recover <= max(1.0 - (args.step * 0.1), 0.6):
                 continue
         elif args.env_name == 'RopeConfiguration':
-            if min_distance >= min(0.055 + (args.step - 1) * 0.005, 0.065):
+            if min_distance >= min(0.055 + (args.step - 1) * 0.005, 0.060):
                 continue
 
         # train aff with online data
