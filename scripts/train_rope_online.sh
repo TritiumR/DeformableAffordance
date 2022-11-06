@@ -3,7 +3,7 @@ CUDA_VISIBLE_DEVICES=3 python ./softgym/train_online.py \
   --task rope-configuration \
   --agent aff_critic \
   --shape S \
-  --num_online 7001 \
+  --num_online 9001 \
   --data_type 3 \
   --critic_type 1 \
   --step 2 \

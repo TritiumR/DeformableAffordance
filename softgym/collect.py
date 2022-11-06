@@ -262,7 +262,7 @@ def run_jobs(process_id, args, env_kwargs):
             if args.step == 1:
                 if_save = (min_distance <= 0.053 and crump_distance - 0.008 >= min_distance) or another_pick == 0
             else:
-                if_save = min_distance <= 0.055 + (args.step - 1) * 0.005 and crump_distance - 0.01 >= min_distance or another_pick == 0
+                if_save = min_distance <= min(0.055 + (args.step - 1) * 0.005, 0.063) and crump_distance - 0.01 >= min_distance or another_pick == 0
 
         if if_save:
             data = {}

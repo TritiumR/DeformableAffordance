@@ -8,13 +8,14 @@ do
   --shape S \
   --agent aff_critic \
   --num_demos 8000 \
-  --step 3 \
+  --step 4 \
   --test_step 10 \
   --out_logits 1 \
-  --exp_name 1105_23-S-no-online-step3-set_flat-trick-0.040 \
+  --exp_name 1106_11-S-no_unet-online-step1-no-set_flat-trick-0.040 \
   --test_id "$i" \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1030-11-tryseven-S-step3-only_gt-no_perturb-step-3/critic-ckpt-300000.h5 \
-  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-8000-1102-03-tryseven-no_perturb-aff-with-only_gt-S-step3-step-1/attention-ckpt-300000.h5 \
+  --unet 1 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1101-05-tryseven-S-step3-2:1-mix2-no_perturb-step-3/critic-ckpt-300000.h5 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-9001-1105-17-S-2:1-mix2-online-aff-step-4-0.065-more-type-step-1/attention-online-ckpt-7500.h5 \
   --image_size 160 \
   --set_flat 1 \
   --headless 1
