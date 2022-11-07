@@ -33,6 +33,7 @@ def run_jobs(process_id, args, env_kwargs):
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
                                      out_logits=args.out_logits,
+                                     without_global=args.without_global,
                                      use_mask=args.use_mask
                                      )
 
@@ -143,17 +144,22 @@ def run_jobs(process_id, args, env_kwargs):
                 p1_pixel = critic_argmax[1:3]
                 vis_critic = np.array(critic[0])
 
-                for u in range(max(0, pick_pixel[0] - 2 * (i + 1)), min(args.image_size - 1, pick_pixel[0] + 2 * (i + 1))):
-                    for v in range(max(0, pick_pixel[1] - 2 * (i + 1)), min(args.image_size - 1, pick_pixel[1] + 2 * (i + 1))):
+                for u in range(max(0, pick_pixel[0] - (i + 1)), min(args.image_size - 1, pick_pixel[0] + (i + 1))):
+                    for v in range(max(0, pick_pixel[1] - (i + 1)), min(args.image_size - 1, pick_pixel[1] + (i + 1))):
                         vis_img[step_id * (2 + args.pick_num * (1 + args.place_num))][u][v] = (0, 255, 255)
 
+                min_critic = np.min(vis_critic)
+                print(min_critic)
                 vis_critic = vis_critic - np.min(vis_critic)
                 if i == args.pick_num - 1:
                     critic_max = np.max(vis_critic)
-                vis_critic = 2 * vis_critic / np.max(vis_critic)
                 if args.exp:
+                    vis_critic = 2 * vis_critic / np.max(vis_critic)
                     vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
-                vis_critic = 255 * vis_critic / np.max(vis_critic)
+                if np.max(vis_critic) > (40 - min_critic):
+                    vis_critic = 255 * vis_critic / np.max(vis_critic)
+                else:
+                    vis_critic = 255 * vis_critic / (40 - min_critic)
                 vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
                 vis_img.append(vis_critic.copy())
                 for j in range(args.place_num):
@@ -228,6 +234,7 @@ def main():
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
     parser.add_argument('--use_mask', action='store_true')
+    parser.add_argument('--without_global', action='store_true')
     parser.add_argument('--exp', action='store_true')
     args = parser.parse_args()
 
