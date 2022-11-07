@@ -1,19 +1,20 @@
-CUDA_VISIBLE_DEVICES=2 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=4 python ./softgym/train.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
   --agent aff_critic \
-  --suffix tryseven-step2-S \
+  --suffix tryseven-step4-S \
   --num_demos 8000 \
   --demo_times 10 \
   --num_iters 300000 \
   --out_logits 1 \
-  --step 2 \
-  --exp_name 1106-07-no_unet-tryseven-S-step2-no_perturb \
+  --step 4 \
+  --exp_name 1107-03-tryseven-S-step4-2:1-mix3-no_perturb \
   --max_load 2000 \
   --batch 20 \
-  --unet 0 \
+  --unet 1 \
   --learning_rate 1e-4 \
   --model critic \
   --image_size 160 \
-  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-9001-1106-01-S-2:1-no_unet-online-aff-step-2-0.06-step-1/attention-online-ckpt-7000.h5 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-9001-1106-25-S-2:1-online-both-step-4-0.06-step-1/critic-online-ckpt-5000.h5 \
+  --load_aff_dir checkpoints/rope-configuration-Aff_Critic-9001-1106-25-S-2:1-online-both-step-4-0.06-step-1/attention-online-ckpt-5000.h5 \
   --no_perturb \

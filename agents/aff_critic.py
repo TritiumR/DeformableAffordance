@@ -348,7 +348,7 @@ class AffCritic:
             if self.task == 'cloth-flatten':
                 indexs = np.transpose(np.nonzero(obs[:, :, 0]))
             elif self.task == 'rope-configuration':
-                mask = np.where(prev_depth[:, :, -1] < 0.348, 255, 0)
+                mask = np.where(obs[:, :, -1] < 0.348, 255, 0)
                 indexs = np.transpose(np.nonzero(mask))
             index = random.choice(indexs)
             print(index)

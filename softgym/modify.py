@@ -1,5 +1,5 @@
 import os
-root = '/root/softgym/visual/1106_27'
+root = '/root/softgym/visual/1107_05'
 dirs = os.listdir(root)
 total = 0.
 i = 0
@@ -9,7 +9,7 @@ for fname in dirs:
     print(fname)
     score = fname.split('-')[-1]
     score = float(score.split('.j')[0])
-    if len(fname.split('-')) == 12:
+    if len(fname.split('-')) == 10:
         score = -score
     print(score)
     if score > 1:
