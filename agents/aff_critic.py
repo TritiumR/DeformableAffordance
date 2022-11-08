@@ -347,12 +347,15 @@ class AffCritic:
         if self.random_pick:
             if self.task == 'cloth-flatten':
                 indexs = np.transpose(np.nonzero(obs[:, :, 0]))
+                index = random.choice(indexs)
+                # print(index)
+                p0_pixel = (index[0], index[1])
             elif self.task == 'rope-configuration':
                 mask = np.where(obs[:, :, -1] < 0.348, 255, 0)
                 indexs = np.transpose(np.nonzero(mask))
-            index = random.choice(indexs)
-            print(index)
-            p0_pixel = (index[0], index[1])
+                index = random.choice(indexs)
+            # print(index)
+                p0_pixel = (random.randint(0, 159), random.randint(0, 159))
 
         elif self.expert_pick:
             p0_pixel = p0
