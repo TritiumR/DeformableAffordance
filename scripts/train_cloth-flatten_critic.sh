@@ -1,20 +1,19 @@
-CUDA_VISIBLE_DEVICES=0 python ./softgym/train.py \
+CUDA_VISIBLE_DEVICES=2 python ./softgym/train.py \
   --env_name ClothFlatten \
   --task cloth-flatten \
   --agent aff_critic \
-  --suffix tryeleven-step3 \
+  --suffix tryeleven-step4 \
   --num_demos 8000 \
   --demo_times 10 \
-  --num_iters 300000 \
+  --num_iters 100000 \
   --out_logits 1 \
-  --step 3 \
-  --exp_name 1107-11-tryeleven-no_global-step3 \
+  --step 4 \
+  --exp_name 1107-11-tryeleven-no_unet-step4 \
   --max_load 5000 \
   --batch 20 \
   --learning_rate 1e-4 \
   --model critic \
   --image_size 160 \
-  --unet 1 \
-  --without_global \
-  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-7001-1106-26-2:1-no_global-online-step-3-aff-0.7-step-1/attention-online-ckpt-5500.h5 \
+  --unet 0 \
+  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-7001-1109-05-no_unet-online-step-4-aff-step-1/attention-online-ckpt-1500.h5 \
 

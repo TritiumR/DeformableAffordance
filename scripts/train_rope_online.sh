@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=3 python ./softgym/train_online.py \
+CUDA_VISIBLE_DEVICES=1 python ./softgym/train_online.py \
   --env_name RopeConfiguration \
   --task rope-configuration \
   --agent aff_critic \
@@ -6,7 +6,7 @@ CUDA_VISIBLE_DEVICES=3 python ./softgym/train_online.py \
   --num_online 9001 \
   --data_type 3 \
   --critic_type 1 \
-  --step 5 \
+  --step 4 \
   --out_logits 1 \
   --exp_name 1109-02-online-aff-step-5-0.06 \
   --mode aff \
