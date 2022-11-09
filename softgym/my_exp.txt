@@ -15,5 +15,7 @@ train cloth no-unet step3 online
 train rope no-global step2 aff
 train rope step4 online
 train cloth no-unet step4
+train cloth no-global step4
+
 
 
