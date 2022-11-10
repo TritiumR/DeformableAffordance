@@ -3,11 +3,11 @@ CUDA_VISIBLE_DEVICES=5 python ./softgym/train.py \
   --task rope-configuration \
   --agent aff_critic \
   --num_demos 8000 \
-  --num_iters 300000 \
+  --num_iters 200000 \
   --out_logits 1 \
   --demo_times 10 \
-  --exp_name 1109-06-tryseven-no-global-aff-step2 \
-  --suffix tryseven-step2-S \
+  --exp_name 1110-02-tryseven-no-global-aff-step3 \
+  --suffix tryseven-step3-S \
   --max_load 2000 \
   --batch 20 \
   --model aff \
@@ -15,5 +15,5 @@ CUDA_VISIBLE_DEVICES=5 python ./softgym/train.py \
   --no_perturb \
   --unet 1 \
   --without_global \
-  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1107-22-tryseven-S-no_global-step2-no_perturb-step-2/critic-ckpt-200000.h5 \
+  --load_critic_dir checkpoints/rope-configuration-Aff_Critic-8000-1110-03-tryseven-S-no-global-step3-no_perturb-step-3/critic-ckpt-100000.h5
 

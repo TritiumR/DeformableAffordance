@@ -2,20 +2,26 @@
 # train cloth no-unet step3
 # train rope no-unet step2
 train cloth no-global step3
-train rope step4
+# train rope step4
 # train rope no-global step2
 # train rope no-unet step2 aff
 
-train rope no-unet step3
+# train rope no-unet step3
 # train rope no-unet online step2
 # train cloth no-unet step 3 aff
 # train cloth no-global step 3 aff
 # train rope step4 aff
 train cloth no-unet step3 online
-train rope no-global step2 aff
-train rope step4 online
+# train rope no-global step2 aff
+# train rope step4 online
 train cloth no-unet step4
-train cloth no-global step4
+train cloth no-global step4 -> aff
+
+train cloth no-unet aff step4
+train rope no-unet step3 aff
+train rope no-global step3
+
+
 
 
 
