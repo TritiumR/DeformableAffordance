@@ -1,5 +1,5 @@
 import os
-root = '/root/softgym/visual/1109_21'
+root = '/root/softgym/visual/1110_14'
 dirs = os.listdir(root)
 
 total = 0.

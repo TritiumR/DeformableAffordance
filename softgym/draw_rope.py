@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 # Drq 0.154
 # CURL 0.348
 # PlaNet 0.236
-# Wu
+# Wu 0.158
 x = [1, 2, 3, 4]
 y_1 = [0.441, 0.513, 0.518, 0.536]
 y_2 = [0.359, 0.418, 0.437, 0.479]
-y_3 = [0.406, 0.384, 0.1, 0.1]
-y_4 = [0.363, 0.379, 0.1, 0.1]
+# y_3 = [0.406, 0.384, 0.1, 0.1]
+y_4 = [0.363, 0.379, 0.418, 0.1]
 y_5 = [0.329, 0.302, 0.342, 0.334]
 
 print(x)
@@ -25,22 +25,22 @@ print(y_2)
 
 # 创建画布
 plt.figure()
-plt.ylim(0.1, 0.75)
-plt.xticks(range(1, 7, 1))
+plt.ylim(0.2, 0.60)
+plt.xticks(range(1, 6, 1))
 
 plt.plot(x, y_1, marker='*', color='orangered', label='ours')
 
 plt.plot(x, y_2, marker='*', color='darkviolet', label='without online')
 
-plt.plot(x, y_3, marker='*', color='orange', label='without global')
+# plt.plot(x, y_3, marker='*', color='orange', label='without global')
 
 plt.plot(x, y_4, marker='*', color='steelblue', label='without unet')
 
-# plt.plot(x, y_5, marker='*', color='violet', label='random pick')
+plt.plot(x, y_5, marker='*', color='violet', label='random pick')
 
-plt.hlines(0.410, xmin=1, xmax=5, ls='-', lw=2, color='y', label='only GT')
+plt.hlines(0.410, xmin=1, xmax=4, ls='-', lw=2, color='y', label='only GT')
 
-plt.hlines(0.320, xmin=1, xmax=5, ls='-', lw=2, color='violet', label='random pick')
+# plt.hlines(0.320, xmin=1, xmax=4, ls='-', lw=2, color='violet', label='random pick')
 
 # 显示图例（使绘制生效）
 plt.legend()

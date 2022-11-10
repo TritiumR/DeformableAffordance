@@ -10,11 +10,11 @@ do
   --step 3 \
   --test_step 10 \
   --out_logits 1 \
-  --exp_name 1109_22-step3-no-unet-120000-210000 \
+  --exp_name 1110_09-step4-no-unet-1500-100000 \
   --test_id "$i" \
   --unet 0 \
-  --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-8000-1106-24-tryeleven-no_unet-step3-step-3/critic-ckpt-210000.h5 \
-  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-8000-1108-07-tryeleven-no_unet-aff-step3-step-1/attention-ckpt-120000.h5 \
+  --load_critic_dir checkpoints/cloth-flatten-Aff_Critic-8000-1107-11-tryeleven-no_unet-step4-step-4/critic-ckpt-100000.h5 \
+  --load_aff_dir checkpoints/cloth-flatten-Aff_Critic-7001-1110-08-no_unet-online-step-5-aff-step-1/attention-online-ckpt-1500.h5 \
   --image_size 160 \
   --set_flat 1 \
   --headless 1

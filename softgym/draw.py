@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 
 # cloth no-unet step3 no-online 0.556
 # cloth no-global step3 0.713
+# cloth no-unet step4 0.503
 
 x = [1, 2, 3, 4, 5]
 y_1 = [0.589, 0.695, 0.782, 0.752, 0.758]
 y_2 = [0.526, 0.586, 0.629, 0.624, 0.612]
-y_3 = [0.561, 0.725, 0.713, 0.1, 0.1]
-y_4 = [0.516, 0.656, 0.669, 0.1, 0.1]
+# y_3 = [0.561, 0.725, 0.713, 0.1, 0.1]
+y_4 = [0.516, 0.656, 0.652, 0.632, 0.1]
 y_5 = [0.241, 0.211, 0.304, 0.185, 0.190]
 
 print(x)
@@ -24,7 +25,7 @@ plt.plot(x, y_1, marker='*', color='orangered', label='ours')
 
 plt.plot(x, y_2, marker='*', color='darkviolet', label='without online')
 
-plt.plot(x, y_3, marker='*', color='orange', label='without global')
+# plt.plot(x, y_3, marker='*', color='orange', label='without global')
 
 plt.plot(x, y_4, marker='*', color='steelblue', label='without unet')
 
