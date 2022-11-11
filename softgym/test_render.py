@@ -148,18 +148,19 @@ def run_jobs(process_id, args, env_kwargs):
                     for v in range(max(0, pick_pixel[1] - (i + 1)), min(args.image_size - 1, pick_pixel[1] + (i + 1))):
                         vis_img[step_id * (2 + args.pick_num * (1 + args.place_num))][u][v] = (0, 255, 255)
 
-                min_critic = np.min(vis_critic)
-                print(min_critic)
+                # min_critic = np.min(vis_critic)
+                # print(min_critic)
                 vis_critic = vis_critic - np.min(vis_critic)
                 if i == args.pick_num - 1:
                     critic_max = np.max(vis_critic)
                 if args.exp:
                     vis_critic = 2 * vis_critic / np.max(vis_critic)
                     vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
-                if np.max(vis_critic) > (40 - min_critic):
-                    vis_critic = 255 * vis_critic / np.max(vis_critic)
-                else:
-                    vis_critic = 255 * vis_critic / (40 - min_critic)
+                # if np.max(vis_critic) > (40 - min_critic):
+                #     vis_critic = 255 * vis_critic / np.max(vis_critic)
+                # else:
+                #     vis_critic = 255 * vis_critic / (40 - min_critic)
+                vis_critic = 255 * vis_critic / np.max(vis_critic)
                 vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
                 vis_img.append(vis_critic.copy())
                 for j in range(args.place_num):

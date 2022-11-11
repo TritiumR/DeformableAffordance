@@ -1,5 +1,5 @@
 import os
-root = '/root/softgym/visual/1110_14'
+root = '/root/softgym/test_video/rope-configuration-Aff_Critic-80001101-01-S-only_gt-400000-aff-300000-critic-step2-set_flat'
 dirs = os.listdir(root)
 
 total = 0.
@@ -9,7 +9,7 @@ for fname in dirs:
     path = os.path.join(root, fname)
     print(fname)
     score = fname.split('-')[-1]
-    score = float(score.split('.j')[0])
+    score = float(score.split('.g')[0])
     if len(fname.split('-')) == 8:
         score = -score
     print(score)

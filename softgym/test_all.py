@@ -127,6 +127,7 @@ def run_jobs(args, env, agent):
 
     max_percent = -float("inf")
 
+    vis_img = []
     in_step = 0
     for i in range(args.test_step):
         in_step += 1
@@ -141,7 +142,7 @@ def run_jobs(args, env, agent):
         crump_depth = crump_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
         crump_obs = cv2.resize(crump_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
-
+        vis_img.append(cv2.cvtColor(crump_obs[:, :, :3], cv2.COLOR_BGR2RGB).copy())
         if args.expert_pick:
             reverse_p0_pixel = (int((action[3] + 1.) / 2 * args.image_size), int((action[2] + 1.) / 2 * args.image_size))
             action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
@@ -161,8 +162,15 @@ def run_jobs(args, env, agent):
             if curr_distance > max_percent:
                 max_percent = curr_distance
             print("curr distance: ", i, curr_distance)
-            if curr_distance >= -0.055:
+            if curr_distance >= -0.053:
                 break
+
+    if args.env_name == 'RopeConfiguration':
+        env.action_tool.hide()
+        crump_obs, _ = pyflex.render()
+        crump_obs = crump_obs.reshape((720, 720, 4))[::-1, :, :3]
+        crump_obs = cv2.resize(crump_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
+        vis_img.append(cv2.cvtColor(crump_obs, cv2.COLOR_BGR2RGB).copy())
 
     if args.env_name == 'ClothFlatten':
         normalize_score = (curr_percent - crump_percent) / (1 - crump_percent)
@@ -175,7 +183,7 @@ def run_jobs(args, env, agent):
         if curr_distance > -0.040:
             curr_distance = -0.040
         normalize_score = (curr_distance - crump_distance) / (-0.040 - crump_distance)
-        if max_percent >= -0.055:
+        if max_percent >= -0.051:
             result = 'success'
         else:
             result = 'fail'
@@ -186,9 +194,10 @@ def run_jobs(args, env, agent):
     visual_path = os.path.join('./visual', args.exp_name.split('-')[0])
     if not os.path.exists(visual_path):
         os.makedirs(visual_path)
-    visual_path = os.path.join(visual_path, f'{args.exp_name}-{args.test_id}-{normalize_score}.jpg')
+    visual_path = os.path.join(visual_path, f'{args.exp_name}-{args.test_id}-{normalize_score}-{result}.jpg')
     print(f'save to {visual_path}')
-    cv2.imwrite(visual_path, crump_obs)
+    vis_img = np.concatenate(vis_img, axis=1)
+    cv2.imwrite(visual_path, vis_img)
     if args.save_video_dir is not None:
         path_name = os.path.join(args.save_video_dir, agent.name + args.exp_name)
         if not os.path.exists(path_name):
