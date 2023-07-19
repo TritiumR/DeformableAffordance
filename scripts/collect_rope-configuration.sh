@@ -1,15 +1,14 @@
 #!/bin/bash
-for ((i=4;i<=5;i++))
+for ((i=1;i<=4;i++))
 do
-  CUDA_VISIBLE_DEVICES=$i python softgym/collect.py \
-  --env_name RopeConfiguration \
-  --shape S \
-  --path /data/rope-configuration-tryseven-step5-S \
-  --process_num 2 \
-  --data_num 2000 \
-  --data_type 10 \
-  --curr_data $(($i * 4000 - 16000)) \
-  --step 5 \
-  --headless 1 &
   echo "running $i"
+  CUDA_VISIBLE_DEVICES=0 python softgym/collect.py \
+  --env_name RopeConfiguration \
+  --path ./data/rope-configuration-step-"$i" \
+  --process_num 2 \
+  --data_num 4000 \
+  --data_type 10 \
+  --curr_data 0 \
+  --step $i \
+  --headless 1
 done

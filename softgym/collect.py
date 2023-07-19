@@ -32,17 +32,8 @@ def run_jobs(process_id, args, env_kwargs):
             # from flat configuration
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
-            # from goal configuration
-            if args.shape == 'S':
-                env.set_state(env.goal_state[0])
-            elif args.shape == 'O':
-                env.set_state(env.goal_state[1])
-            elif args.shape == 'M':
-                env.set_state(env.goal_state[2])
-            elif args.shape == 'C':
-                env.set_state(env.goal_state[3])
-            elif args.shape == 'U':
-                env.set_state(env.goal_state[4])
+            # from shape S
+            env.set_state(env.goal_state[0])
             full_distance = -env.compute_reward()
         pyflex.step()
 
@@ -104,22 +95,13 @@ def run_jobs(process_id, args, env_kwargs):
             _, _, _, info = env.step(action, record_continuous_video=args.render, img_size=args.img_size)
 
             if env.action_tool.not_on_cloth:
-                print(f'{step_i} not on cloth')
+                # print(f'{step_i} not on cloth')
                 if args.env_name == 'ClothFlatten':
                     # from flat configuration
                     full_covered_area = env._set_to_flatten()
                 elif args.env_name == 'RopeConfiguration':
                     # from goal configuration
-                    if args.shape == 'S':
-                        env.set_state(env.goal_state[0])
-                    elif args.shape == 'O':
-                        env.set_state(env.goal_state[1])
-                    elif args.shape == 'M':
-                        env.set_state(env.goal_state[2])
-                    elif args.shape == 'C':
-                        env.set_state(env.goal_state[3])
-                    elif args.shape == 'U':
-                        env.set_state(env.goal_state[4])
+                    env.set_state(env.goal_state[0])
                     full_distance = -env.compute_reward()
                 pyflex.step()
 
@@ -165,7 +147,7 @@ def run_jobs(process_id, args, env_kwargs):
             another_action = env.action_space.sample()
             action[2] = another_action[0]
             action[3] = another_action[1]
-            print('another_pick')
+            # print('another_pick')
 
         # env.start_record()
 
@@ -191,7 +173,7 @@ def run_jobs(process_id, args, env_kwargs):
                     metric_data.append([crump_distance, recovered_distance])
                 if env.action_tool.not_on_cloth:
                     not_on_cloth_data.append(1)
-                    print('not on cloth')
+                    # print('not on cloth')
                 else:
                     not_on_cloth_data.append(0)
 
@@ -231,16 +213,6 @@ def run_jobs(process_id, args, env_kwargs):
                     curr_obs = cv2.resize(curr_obs, (160, 160), interpolation=cv2.INTER_AREA)
                     curr_data.append(curr_obs.copy())
 
-            # curr_obs, curr_depth = pyflex.render_cloth()
-            # curr_obs = curr_obs.reshape((720, 720, 4))[::-1, :, :3]
-            # curr_depth[curr_depth > 5] = 0
-            # curr_depth = curr_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            # curr_obs = np.concatenate([curr_obs, curr_depth], 2)
-            # curr_obs = cv2.resize(curr_obs, (320, 320), interpolation=cv2.INTER_AREA)
-            # curr_data.append(curr_obs)
-            # # show_obs(curr_depth)
-
-            # print(id, covered_percent)
             if args.env_name == 'ClothFlatten':
                 if recovered_percent > max_recover:
                     max_recover = recovered_percent
@@ -260,7 +232,7 @@ def run_jobs(process_id, args, env_kwargs):
                 if_save = (max_recover - 0.20 >= crump_percent and crump_percent <= 0.7) or another_pick == 0
         elif args.env_name == 'RopeConfiguration':
             if args.step == 1:
-                if_save = (min_distance <= 0.053 and crump_distance - 0.008 >= min_distance) or another_pick == 0
+                if_save = (min_distance <= 0.055 and crump_distance - 0.008 >= min_distance) or another_pick == 0
             else:
                 if_save = min_distance <= min(0.055 + (args.step - 1) * 0.005, 0.063) and crump_distance - 0.01 >= min_distance or another_pick == 0
 
@@ -295,7 +267,6 @@ def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
     # ['PassWater', 'PourWater', 'PourWaterAmount', 'RopeFlatten', 'ClothFold', 'ClothFlatten', 'ClothDrop', 'ClothFoldCrumpled', 'ClothFoldDrop', 'RopeConfiguration']
     parser.add_argument('--env_name', type=str, default='ClothDrop')
-    parser.add_argument('--shape', type=str, default='S')
     parser.add_argument('--path', type=str, default='./data/')
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
@@ -306,7 +277,7 @@ def main():
     parser.add_argument('--process_num', type=int, default=1, help='How many process do you need')
     parser.add_argument('--data_num', type=int, default=1, help='How many data do you need for each process')
     parser.add_argument('--curr_data', type=int, default=0, help='How many data have existed')
-    parser.add_argument('--data_type', type=int, default=1, help='What kind of data')
+    parser.add_argument('--data_type', type=int, default=10, help='What kind of data')
     parser.add_argument('--step', type=int, default=1, help='How many steps from goal')
 
     args = parser.parse_args()

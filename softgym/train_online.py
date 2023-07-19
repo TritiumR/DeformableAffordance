@@ -19,87 +19,17 @@ import random
 import pickle
 
 
-def visualize_aff_critic(obs, agent, args, iter):
-    img_aff = obs.copy()
-    attention = agent.attention_model.forward(img_aff)
-
-    # depth = obs[:, :, -1:].copy()
-    # mask = np.where(depth == 0, 0, 1)
-    # state_map = np.where(depth == 0, 0, attention)
-    if args.env_name == 'ClothFlatten':
-        state_score = int(np.max(attention) * 2)
-
-    elif args.env_name == 'RopeConfiguration':
-        state_score = int(np.min(attention) * 10)
-        attention = -attention
-
-    attention = attention - np.min(attention)
-    argmax = np.argmax(attention)
-    argmax = np.unravel_index(argmax, shape=attention.shape)
-
-    p0_pixel = argmax[1:3]
-
-    img_critic = obs.copy()
-    critic = agent.critic_model.forward(img_critic, p0_pixel)
-
-    if args.env_name == 'ClothFlatten':
-        argmax = np.argmax(critic)
-        argmax = np.unravel_index(argmax, shape=critic.shape)
-
-    elif args.env_name == 'RopeConfiguration':
-        argmax = np.argmin(critic)
-        argmax = np.unravel_index(argmax, shape=critic.shape)
-
-    p1_pixel = argmax[1:3]
-
-    vis_aff = np.array(attention[0])
-    vis_critic = np.array(critic[0])
-
-    if args.env_name == 'RopeConfiguration':
-        vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
-        vis_critic = -vis_critic
-        vis_critic = np.exp(vis_critic) / np.sum(np.exp(vis_critic))
-
-    vis_aff = vis_aff - np.min(vis_aff)
-    vis_aff = 255 * vis_aff / np.max(vis_aff)
-    vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
-
-    vis_critic = vis_critic - np.min(vis_critic)
-    vis_critic = 255 * vis_critic / np.max(vis_critic)
-    vis_critic = cv2.applyColorMap(np.uint8(vis_critic), cv2.COLORMAP_JET)
-
-    img_obs = obs[:, :, :3]
-
-    for u in range(max(0, p0_pixel[0] - 4), min(args.image_size, p0_pixel[0] + 4)):
-        for v in range(max(0, p0_pixel[1] - 4), min(args.image_size, p0_pixel[1] + 4)):
-            img_obs[u][v] = (255, 0, 0)
-
-    for u in range(max(0, p1_pixel[0] - 4), min(args.image_size, p1_pixel[0] + 4)):
-        for v in range(max(0, p1_pixel[1] - 4), min(args.image_size, p1_pixel[1] + 4)):
-            img_obs[u][v] = (255, 255, 255)
-
-    vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff, vis_critic), axis=1)
-
-    cv2.imwrite(f'./visual/{args.exp_name}-aff_critic-{iter}-{state_score}.jpg', vis_img)
-    print("save to" + f'./visual/{args.exp_name}-aff_critic-{iter}-{state_score}.jpg')
-
-
 def run_jobs(process_id, args, env_kwargs):
     # Set the beginning of the agent name.
-    name = f'{args.task}-Aff_Critic-{args.num_online}-{args.exp_name}'
+    name = f'{args.task}-{args.exp_name}'
 
     # Initialize agent and limit random dataset sampling to fixed set.
     tf.random.set_seed(process_id)
     agent = agents.names[args.agent](name,
                                      args.task,
-                                     image_size=args.image_size,
-                                     use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
-                                     out_logits=args.out_logits,
                                      learning_rate=args.learning_rate,
-                                     without_global=args.without_global,
-                                     unet=args.unet
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
@@ -118,16 +48,7 @@ def run_jobs(process_id, args, env_kwargs):
             full_covered_area = env._set_to_flatten()
         elif args.env_name == 'RopeConfiguration':
             # from goal configuration
-            if args.shape == 'S':
-                env.set_state(env.goal_state[0])
-            elif args.shape == 'O':
-                env.set_state(env.goal_state[1])
-            elif args.shape == 'M':
-                env.set_state(env.goal_state[2])
-            elif args.shape == 'C':
-                env.set_state(env.goal_state[3])
-            elif args.shape == 'U':
-                env.set_state(env.goal_state[4])
+            env.set_state(env.goal_state[0])
             full_distance = -env.compute_reward()
         pyflex.step()
 
@@ -180,22 +101,13 @@ def run_jobs(process_id, args, env_kwargs):
             _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
 
             if env.action_tool.not_on_cloth:
-                print(f'{step_i} not on cloth')
+                # print(f'{step_i} not on cloth')
                 if args.env_name == 'ClothFlatten':
                     # from flat configuration
                     full_covered_area = env._set_to_flatten()
                 elif args.env_name == 'RopeConfiguration':
                     # from goal configuration
-                    if args.shape == 'S':
-                        env.set_state(env.goal_state[0])
-                    elif args.shape == 'O':
-                        env.set_state(env.goal_state[1])
-                    elif args.shape == 'M':
-                        env.set_state(env.goal_state[2])
-                    elif args.shape == 'C':
-                        env.set_state(env.goal_state[3])
-                    elif args.shape == 'U':
-                        env.set_state(env.goal_state[4])
+                    env.set_state(env.goal_state[0])
                     full_distance = -env.compute_reward()
                 pyflex.step()
                 step_i = 0
@@ -370,8 +282,6 @@ def run_jobs(process_id, args, env_kwargs):
             if online_id % 500 == 0:
                 agent.save_critic_with_epoch(online_id)
 
-        if online_id % 100 == 0:
-            visualize_aff_critic(curr_data[0].copy(), agent, args, online_id)
         online_id += 1
 
 
@@ -380,27 +290,21 @@ def main():
     # ['PassWater', 'PourWater', 'PourWaterAmount', 'RopeFlatten', 'ClothFold', 'ClothFlatten', 'ClothDrop', 'ClothFoldCrumpled', 'ClothFoldDrop', 'RopeConfiguration']
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--img_size', type=int, default=720, help='Size of the recorded videos')
-    parser.add_argument('--image_size', type=int, default=320, help='Size of input observation')
+    parser.add_argument('--image_size', type=int, default=160, help='Size of input observation')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--task', type=str, default='cloth-flatten')
-    parser.add_argument('--shape', type=str, default='S')
     parser.add_argument('--step', default=1, type=int)
     parser.add_argument('--agent', default='aff_critic')
-    parser.add_argument('--unet', default=1, type=int)
     parser.add_argument('--learning_rate', default=5e-5, type=float)
     parser.add_argument('--num_online', type=int, default=1, help='How many test do you need for inferring')
-    parser.add_argument('--data_type', type=int, default=1, help='How many children for one crumple state')
+    parser.add_argument('--data_type', type=int, default=3, help='How many children for one crumple state')
     parser.add_argument('--critic_type', type=int, default=1, help='How many children for one current state')
     parser.add_argument('--process_num', type=int, default=1, help='How many process do you need')
-    parser.add_argument('--use_goal_image',       default=0, type=int)
-    parser.add_argument('--out_logits',     default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
     parser.add_argument('--model', default='aff', type=str)
-    parser.add_argument('--without_global', action='store_true')
-    parser.add_argument('--exp', action='store_true')
     args = parser.parse_args()
 
     env_kwargs = env_arg_dict[args.env_name]
@@ -411,7 +315,6 @@ def main():
     env_kwargs['num_variations'] = args.num_variations
     env_kwargs['render'] = True
     env_kwargs['headless'] = args.headless
-    env_kwargs['goal_shape'] = args.shape
 
     if not env_kwargs['use_cached_states']:
         print('Waiting to generate environment variations. May take 1 minute for each variation...')

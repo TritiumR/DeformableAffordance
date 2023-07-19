@@ -24,32 +24,19 @@ import ipdb
 
 
 class AffCritic:
-    def __init__(self, name, task, image_size=320, critic_pick=False, random_pick=False, expert_pick=False, use_goal_image=False,
-                 out_logits=1, step=1, use_mask=False):
+    def __init__(self, name, task, image_size=160, step=1):
         """Creates Transporter agent with attention and transport modules."""
         self.name = name
         self.task = task
         self.image_size = image_size
         self.step = step
         self.total_iter = 0
-        if use_goal_image:
-            self.input_shape = (image_size, image_size, 8)
-        else:
-            self.input_shape = (image_size, image_size, 4)
+        self.input_shape = (image_size, image_size, 4)
         self.models_dir = os.path.join('checkpoints', self.name + f'-step-{self.step}')
-
-        self.expert_pick = expert_pick
-        self.critic_pick = critic_pick
-        self.critic_num = 33
-        self.random_pick = random_pick
-
-        self.out_logits = out_logits
-        self.use_goal_image = use_goal_image
-        self.use_mask = use_mask
 
         self.reward_cache = dict()
 
-    def compute_reward(self, metric, not_on_cloth, curr_obs=None, only_state=False, only_gt=False, iepisode=None, obs=None):
+    def compute_reward(self, metric, not_on_cloth, curr_obs=None, iepisode=None):
         m_len = len(metric)
         reward = []
 
@@ -72,74 +59,27 @@ class AffCritic:
                     curr_distance = metric[i][1] * 100
                     reward.append(curr_distance)
         else:
-            # l_img = np.concatenate((
-            #     cv2.cvtColor(obs, cv2.COLOR_BGR2RGB),
-            #     cv2.cvtColor(curr_obs[0], cv2.COLOR_BGR2RGB),
-            #     cv2.cvtColor(curr_obs[1], cv2.COLOR_BGR2RGB)),
-            #     axis=1)
-            # r_img = np.concatenate((
-            #     cv2.cvtColor(curr_obs[2], cv2.COLOR_BGR2RGB),
-            #     cv2.cvtColor(curr_obs[3], cv2.COLOR_BGR2RGB),
-            #     cv2.cvtColor(curr_obs[4], cv2.COLOR_BGR2RGB)),
-            #     axis=1)
-            # img = np.concatenate((l_img, r_img), axis=0)
-            #
-            # score_list = ''
-            if only_gt:
-                for i in range(0, m_len):
+            if iepisode in self.reward_cache:
+                return self.reward_cache[iepisode]
+            attention = self.attention_model.forward_batch(curr_obs.copy())
+            for i in range(0, m_len):
+                if self.task == 'cloth-flatten':
+                    gt_state = np.max(attention[i])
                     curr_percent = metric[i][1] * 50
-                    reward.append(curr_percent)
-                # print(reward)
-            else:
-                if iepisode in self.reward_cache:
-                    return self.reward_cache[iepisode]
-                attention = self.attention_model.forward_batch(curr_obs.copy())
-                for i in range(0, m_len):
-                    if self.task == 'cloth-flatten':
-                        gt_state = np.max(attention[i])
-                        curr_percent = metric[i][1] * 50
-                    elif self.task == 'rope-configuration':
-                        gt_state = np.min(attention[i])
-                        curr_percent = metric[i][1] * 100
-                    # if (i < 5):
-                    #     score_list += f'-{int(gt_state * 2)}'
+                elif self.task == 'rope-configuration':
+                    gt_state = np.min(attention[i])
+                    curr_percent = metric[i][1] * 100
+                reward_i = (curr_percent * 2 + gt_state) / 3
+                reward.append(reward_i)
 
-                    # img_obs = curr_obs[i][:, :, :3]
-                    # vis_aff = attention[i]
-                    # if self.use_mask:
-                    #     mask = np.where(img_obs == (0, 0, 0), 0, 1)
-                    #     vis_aff *= mask
-                    # vis_aff = vis_aff - np.min(vis_aff)
-                    # if self.task == 'rope-configuration':
-                    #     vis_aff = -vis_aff
-                    # # vis_aff = np.exp(vis_aff) / np.sum(np.exp(vis_aff))
-                    # vis_aff = 255 * vis_aff / 50
-                    # vis_aff = cv2.applyColorMap(np.uint8(vis_aff), cv2.COLORMAP_JET)
-                    # vis_img = np.concatenate((cv2.cvtColor(img_obs, cv2.COLOR_BGR2RGB), vis_aff), axis=1)
-                    # cv2.imwrite(f'./visual/1105-26-cloth-no-online-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg', vis_img)
-                    # print(f'saved ./visual/1105-26-cloth-no-online-{iepisode}-{i}-{int(gt_state * 100)}-vis.jpg')
-
-                    # print('gt_state: ', gt_state)
-                    # print("curr: ", curr_percent)
-                    if only_state:
-                        reward_i = gt_state
-                    else:
-                        reward_i = (curr_percent * 2 + gt_state) / 3
-                    reward.append(reward_i)
-
-                self.reward_cache[iepisode] = reward
-                # cv2.imwrite(f'./visual/state-{score_list}.jpg', img)
-                # print("save img")
+            self.reward_cache[iepisode] = reward
         return reward
 
     def train_aff(self, dataset, num_iter, writer, batch, no_perturb=False):
         for i in range(num_iter):
             obs, act, _, _, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
 
-            if self.use_goal_image:
-                input_image = np.concatenate((obs, goal), axis=2)
-            else:
-                input_image = obs.copy()
+            input_image = obs.copy()
 
             p0 = [min(self.input_shape[0] - 1, int((act[0][1] + 1.) * 0.5 * self.input_shape[0])),
                   min(self.input_shape[0] - 1, int((act[0][0] + 1.) * 0.5 * self.input_shape[0]))]
@@ -194,38 +134,22 @@ class AffCritic:
         self.total_iter += num_iter
         self.save_aff()
 
-    def train_critic(self, dataset, num_iter, writer, batch=1, extra_dataset=None, no_perturb=False, only_state=False, only_gt=False):
+    def train_critic(self, dataset, num_iter, writer, batch=1, no_perturb=False):
         for i in range(num_iter):
             # for batch training
             input_batch = []
             p0_batch = []
             p1_list_batch = []
-            step_batch = []
             reward_batch = []
-
-            flag = 0
 
             for bh in range(batch):
                 curr_obs = None
                 if self.step > 1:
-                    if extra_dataset is not None:
-                        if bh % 2 == 0:
-                            obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
-                        else:
-                            obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
-                    else:
-                        obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
+                    obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
                 else:
                     obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
 
-                # self.visualize_aff_critic(obs.copy(), id=iepisode, curr_obs=np.array(curr_obs).copy(), action=act)
-
-                step_batch.append(step)
-
-                if self.use_goal_image:
-                    input_image = np.concatenate((obs, goal), axis=2)
-                else:
-                    input_image = obs.copy()
+                input_image = obs.copy()
 
                 p0 = [min(self.input_shape[0] - 1, int((act[0][1] + 1.) * 0.5 * self.input_shape[0])),
                       min(self.input_shape[0] - 1, int((act[0][0] + 1.) * 0.5 * self.input_shape[0]))]
@@ -235,7 +159,7 @@ class AffCritic:
                     p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]), int((point[2] + 1.) * 0.5 * self.input_shape[0])]
                     p1_list.append(p1)
 
-                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, only_state, only_gt, iepisode, obs=obs.copy())
+                reward = self.compute_reward(metric, not_on_cloth[0], curr_obs, iepisode)
                 # print('reward: ', reward)
                 reward_batch.append(reward.copy())
 
@@ -249,7 +173,6 @@ class AffCritic:
                     pixels_list.extend(p1_list)
                     input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
                     if input_image_perturb is None:
-                        flag = 1
                         input_batch.append(input_image.copy())
                     else:
                         p0 = pixels[0]
@@ -259,76 +182,14 @@ class AffCritic:
                     p0_batch.append(p0)
                     p1_list_batch.append(p1_list.copy())
 
-            if flag == 1 and not no_perturb:
-                print("no perturb")
-
             # Compute Transport training loss.
-            loss = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=False)
+            loss = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch)
             with writer.as_default():
                 tf.summary.scalar('critic_loss', self.critic_model.metric.result(), step=self.total_iter+i)
             print(f'Train Iter: {self.total_iter + i} Critic Loss: {loss:.4f}')
 
         self.total_iter += num_iter
         self.save_critic()
-
-    # def validate(self, dataset, extra_dataset, writer, visualize, iter=0):
-    #     for i in range(dataset.validate):
-    #         for bh in range(1):
-    #             curr_obs = None
-    #             if self.step > 1:
-    #                 if extra_dataset is not None:
-    #                     if bh % 2 == 0:
-    #                         obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
-    #                     else:
-    #                         obs, act, metric, step, not_on_cloth, iepisode = extra_dataset.sample_index(need_next=False)
-    #                 else:
-    #                     obs, curr_obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=True)
-    #             else:
-    #                 obs, act, metric, step, not_on_cloth, iepisode = dataset.sample_index(need_next=False)
-    #
-    #             step_batch.append(step)
-    #
-    #             if self.use_goal_image:
-    #                 input_image = np.concatenate((obs, goal), axis=2)
-    #             else:
-    #                 input_image = obs.copy()
-    #
-    #             p0 = [int((act[0][1] + 1.) * 0.5 * self.input_shape[0]),
-    #                   int((act[0][0] + 1.) * 0.5 * self.input_shape[0])]
-    #             p1_list = []
-    #             for point in act:
-    #                 p1 = [int((point[3] + 1.) * 0.5 * self.input_shape[0]),
-    #                       int((point[2] + 1.) * 0.5 * self.input_shape[0])]
-    #                 p1_list.append(p1)
-    #
-    #             reward = self.compute_reward(metric, not_on_cloth[0], curr_obs)
-    #             # print('reward: ', reward)
-    #             reward_batch.append(reward.copy())
-    #
-    #             if no_perturb:
-    #                 input_batch.append(input_image.copy())
-    #                 p0_batch.append(p0)
-    #                 p1_list_batch.append(p1_list.copy())
-    #             else:
-    #                 # Do data augmentation (perturb rotation and translation).
-    #                 pixels_list = [p0]
-    #                 pixels_list.extend(p1_list)
-    #                 input_image_perturb, pixels = agent_utils.perturb(input_image.copy(), pixels_list)
-    #                 if input_image_perturb is None:
-    #                     input_batch.append(input_image.copy())
-    #                 else:
-    #                     p0 = pixels[0]
-    #                     p1_list = pixels[1:]
-    #                     input_batch.append(input_image_perturb.copy())
-    #
-    #                 p0_batch.append(p0)
-    #                 p1_list_batch.append(p1_list.copy())
-    #
-    #         # Compute Transport training loss.
-    #         loss1 = self.critic_model.train_batch(input_batch, p0_batch, p1_list_batch, reward_batch, step_batch, validate=True)
-    #         with writer.as_default():
-    #             tf.summary.scalar('critic_loss', self.critic_model.validate_metric.result(), step=iter + i)
-    #         print(f'Validate Iter: {iter + i} Loss: {loss1:.4f}')
 
     def act(self, obs, p0=None):
         """Run inference and return best action given visual observations.
@@ -344,78 +205,19 @@ class AffCritic:
         np.array(obs['color']) and goal['color']: (3, 480, 640, 3)
         np.array(obs['depth']) and goal['depth']: (3, 480, 640)
         """
-        if self.random_pick:
-            if self.task == 'cloth-flatten':
-                indexs = np.transpose(np.nonzero(obs[:, :, 0]))
-                index = random.choice(indexs)
-                # print(index)
-                p0_pixel = (index[0], index[1])
-            elif self.task == 'rope-configuration':
-                mask = np.where(obs[:, :, -1] < 0.348, 255, 0)
-                indexs = np.transpose(np.nonzero(mask))
-                index = random.choice(indexs)
-            # print(index)
-                p0_pixel = (random.randint(0, 159), random.randint(0, 159))
+        # Attention model forward pass.
+        img_aff = obs.copy()
+        attention = self.attention_model.forward(img_aff)
 
-        elif self.expert_pick:
-            p0_pixel = p0
+        if self.task == 'cloth-flatten':
+            argmax = np.argmax(attention)
 
-        elif self.critic_pick:
-            p0_list = []
-            interval = int(self.input_shape[0] / (self.critic_num - 1))
-            for i in range(self.critic_num):
-                for j in range(self.critic_num):
-                    p0_list.append((min(self.input_shape[0] - 1, i * interval), min(self.input_shape[1] - 1, j * interval)))
+        elif self.task == 'rope-configuration':
+            argmax = np.argmin(attention)
 
-            img_pick = obs.copy()
-            max_score = -float('inf')
-            min_score = float('inf')
-            max_i = 0
+        argmax = np.unravel_index(argmax, shape=attention.shape)
 
-            if self.task == 'cloth-flatten':
-                for i in range(0, self.critic_num ** 2):
-                    u1 = p0_list[i][0]
-                    v1 = p0_list[i][1]
-                    p0_pixel = (u1, v1)
-                    critic_score = np.max(self.critic_model.forward(img_pick.copy(), p0_pixel)[:, :, :, 0])
-                    if critic_score > max_score:
-                        max_score = critic_score
-                        max_i = i
-            elif self.task == 'rope-configuration':
-                for i in range(0, self.critic_num ** 2):
-                    u1 = p0_list[i][0]
-                    v1 = p0_list[i][1]
-                    p0_pixel = (u1, v1)
-                    critic_score = np.min(self.critic_model.forward(img_pick.copy(), p0_pixel)[:, :, :, 0])
-                    if critic_score < min_score:
-                        min_score = critic_score
-                        max_i = i
-
-            p0_pixel = (p0_list[max_i][0], p0_list[max_i][1])
-
-        else:
-            # Attention model forward pass.
-            if self.use_goal_image:
-                input_image = obs.copy()
-                maxdim = int(input_image.shape[2] / 2)
-                input_only = input_image[:, :, :maxdim].copy()
-                attention = self.attention_model.forward(input_only)
-            else:
-                img_aff = obs.copy()
-                attention = self.attention_model.forward(img_aff)
-
-            if self.task == 'cloth-flatten':
-                if self.use_mask:
-                    mask = np.where(obs[:, :, :-1] == (0, 0, 0), 0, 1)
-                    attention *= mask
-                argmax = np.argmax(attention)
-
-            elif self.task == 'rope-configuration':
-                argmax = np.argmin(attention)
-
-            argmax = np.unravel_index(argmax, shape=attention.shape)
-
-            p0_pixel = argmax[1:3]
+        p0_pixel = argmax[1:3]
 
         img_critic = obs.copy()
         output = self.critic_model.forward(img_critic, p0_pixel)
@@ -426,8 +228,6 @@ class AffCritic:
             argmax = np.argmin(critic_score)
         argmax = np.unravel_index(argmax, shape=critic_score.shape)
         p1_pixel = argmax[1:3]
-
-        # self.visualize_critic(obs.copy(), p0_pixel, p1_pixel, critic_score)
 
         u1 = (p0_pixel[1]) * 2.0 / self.input_shape[0] - 1
         v1 = (p0_pixel[0]) * 2.0 / self.input_shape[0] - 1
@@ -483,17 +283,6 @@ class AffCritic:
         for d in range(self.input_shape[2]):
             image[:, :, d] = (image[:, :, d] / 255 - self.aff_mean[d]) / self.aff_std[d]
         return image
-
-    # def ori_preprocess(self, image_in):
-    #     image = copy.deepcopy(image_in)
-    #     """Pre-process images (subtract mean, divide by std)."""
-    #     color_mean = 0.18877631
-    #     depth_mean = 0.00509261
-    #     color_std = 0.07276466
-    #     depth_std = 0.00903967
-    #     image[:, :, :3] = (image[:, :, :3] / 255 - color_mean) / color_std
-    #     image[:, :, 3:] = (image[:, :, 3:] - depth_mean) / depth_std
-    #     return image
 
     def load(self, num_iter):
         """Load pre-trained models."""
@@ -666,12 +455,8 @@ class OriginalTransporterAffCriticAgent(AffCritic):
     turned to 36 for Andy's paper) and to crop to get kernels _before_ the query.
     """
 
-    def __init__(self, name, task, image_size=320, use_goal_image=0, load_critic_dir='xxx', load_aff_dir='xxx',
-                 out_logits=1, without_global=False, critic_pick=False, random_pick=False, expert_pick=False, step=1,
-                 learning_rate=1e-4, unet=1, use_mask=False):
-        super().__init__(name, task, image_size=image_size, use_goal_image=use_goal_image, out_logits=out_logits,
-                         critic_pick=critic_pick, random_pick=random_pick, expert_pick=expert_pick, step=step,
-                         use_mask=use_mask)
+    def __init__(self, name, task, image_size=160, load_critic_dir='xxx', load_aff_dir='xxx', step=1, learning_rate=1e-4):
+        super().__init__(name, task, image_size=image_size, step=step)
 
         if load_critic_dir != 'xxx':
             fname = 'criticmean_std.pkl'
@@ -702,15 +487,11 @@ class OriginalTransporterAffCriticAgent(AffCritic):
         self.attention_model = Affordance(input_shape=self.input_shape,
                                           preprocess=self.aff_preprocess,
                                           learning_rate=learning_rate,
-                                          unet=unet
                                           )
 
         self.critic_model = Critic_MLP(input_shape=self.input_shape,
                                        preprocess=self.critic_preprocess,
-                                       out_logits=self.out_logits,
                                        learning_rate=learning_rate,
-                                       without_global=without_global,
-                                       unet=unet
                                        )
 
         if load_aff_dir != 'xxx':
@@ -726,26 +507,7 @@ class OriginalTransporterAffCriticAgent(AffCritic):
             print('*' * 3 + f'load_critic_dir {load_critic_dir}' + '*' * 3)
             self.critic_model.load(load_critic_dir)
             print('*' * 50)
-            print(f'*' * 20 + f'critic_pick {self.critic_pick}' + '*' * 20)
 
 
-class GoalTransporterAgent(AffCritic):
-    """
-    Goal-conditioned Transporter agent where we pass the goal image through another FCN,
-    and then combine the resulting features with the pick and placing networks for better
-    goal-conditioning. This uses our new `TransportGoal` architecture. We don't stack the
-    input and target images, so we can directly use `self.input_shape` for both modules.
-    """
-
-    def __init__(self, name, task, num_rotations=24):
-        # (Oct 26) set attn_no_targ=False, and that should be all we need along w/shape ...
-        super().__init__(name, task, use_goal_image=True, attn_no_targ=False)
-
-        # (Oct 26) Stack the goal image for the Attention module -- model cannot pick properly otherwise.
-        a_shape = (self.input_shape[0], self.input_shape[1], int(self.input_shape[2] * 2))
-
-        self.attention_model = Attention(input_shape=a_shape,
-                                         num_rotations=1,
-                                         preprocess=self.preprocess)
 
 

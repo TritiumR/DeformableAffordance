@@ -20,100 +20,89 @@ import pickle
 
 
 def run_jobs(args, env, agent):
-    full_covered_area = 0.0625
-    if args.set_flat:
+    if args.env_name == 'ClothFlatten':
+        # from flat configuration
+        full_covered_area = env._set_to_flatten()
+    elif args.env_name == 'RopeConfiguration':
+        # from goal configuration
+        env.set_state(env.goal_state[0])
+        full_distance = env.compute_reward()
+    pyflex.step()
+
+    step_i = 0
+
+    while step_i < args.step:
+        # print("step_i: ", step_i)
         if args.env_name == 'ClothFlatten':
-            # from flat configuration
-            full_covered_area = env._set_to_flatten()
+            prev_obs, prev_depth = pyflex.render_cloth()
         elif args.env_name == 'RopeConfiguration':
-            # from goal configuration
-            env.set_state(env.goal_state[0])
-            full_distance = env.compute_reward()
-        pyflex.step()
+            env.action_tool.hide()
+            prev_obs, prev_depth = pyflex.render()
+        prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
+        prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
+        mask = np.where(prev_depth[:, :, 0] < 0.348, 255, 0)
 
-        step_i = 0
+        # crumple the cloth by grabbing corner
+        if args.env_name == 'ClothFlatten':
+            # if step_i == 0:
+            mask = prev_obs[:, :, 0]
+            indexs = np.transpose(np.where(mask != 0))
+            corner_id = random.randint(0, 3)
+            top, left = indexs.min(axis=0)
+            bottom, right = indexs.max(axis=0)
 
-        while step_i < args.step:
-            # print("step_i: ", step_i)
+            corners = [[top, left],
+                       [top, right],
+                       [bottom, right],
+                       [bottom, left]]
+            u1 = (corners[corner_id][1]) * 2.0 / 720 - 1
+            v1 = (corners[corner_id][0]) * 2.0 / 720 - 1
+
+            u2 = random.uniform(-1., 1.)
+            v2 = random.uniform(-1., 1.)
+
+            action = np.array([u1, v1, u2, v2])
+
+        elif args.env_name == 'RopeConfiguration':
+            indexs = np.transpose(np.nonzero(mask))
+            index = random.choice(indexs)
+            u1 = (index[1]) * 2.0 / 720 - 1
+            v1 = (index[0]) * 2.0 / 720 - 1
+
+            u2 = max(min(np.random.normal(u1, scale=0.4), 0.999), -1.)
+            v2 = max(min(np.random.normal(v1, scale=0.4), 0.999), -1.)
+
+            action = np.array([u1, v1, u2, v2])
+
+        _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
+
+        if env.action_tool.not_on_cloth:
+            print(f'{step_i} not on cloth')
             if args.env_name == 'ClothFlatten':
-                prev_obs, prev_depth = pyflex.render_cloth()
+                # from flat configuration
+                full_covered_area = env._set_to_flatten()
             elif args.env_name == 'RopeConfiguration':
-                env.action_tool.hide()
-                prev_obs, prev_depth = pyflex.render()
-            prev_obs = prev_obs.reshape((720, 720, 4))[::-1, :, :3]
-            prev_depth = prev_depth.reshape((720, 720))[::-1].reshape(720, 720, 1)
-            mask = np.where(prev_depth[:, :, 0] < 0.348, 255, 0)
+                # from goal configuration
+                env.set_state(env.goal_state[0])
+                full_distance = -env.compute_reward()
+            pyflex.step()
 
-            # crumple the cloth by grabbing corner
-            if args.env_name == 'ClothFlatten':
-                # if step_i == 0:
-                mask = prev_obs[:, :, 0]
-                indexs = np.transpose(np.where(mask != 0))
-                corner_id = random.randint(0, 3)
-                top, left = indexs.min(axis=0)
-                bottom, right = indexs.max(axis=0)
-
-                corners = [[top, left],
-                           [top, right],
-                           [bottom, right],
-                           [bottom, left]]
-                u1 = (corners[corner_id][1]) * 2.0 / 720 - 1
-                v1 = (corners[corner_id][0]) * 2.0 / 720 - 1
-
-                u2 = random.uniform(-1., 1.)
-                v2 = random.uniform(-1., 1.)
-
-                action = np.array([u1, v1, u2, v2])
-
-            elif args.env_name == 'RopeConfiguration':
-                indexs = np.transpose(np.nonzero(mask))
-                index = random.choice(indexs)
-                u1 = (index[1]) * 2.0 / 720 - 1
-                v1 = (index[0]) * 2.0 / 720 - 1
-
-                u2 = max(min(np.random.normal(u1, scale=0.4), 0.999), -1.)
-                v2 = max(min(np.random.normal(v1, scale=0.4), 0.999), -1.)
-
-                action = np.array([u1, v1, u2, v2])
-
-            _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
-
-            if env.action_tool.not_on_cloth:
-                print(f'{step_i} not on cloth')
-                if args.env_name == 'ClothFlatten':
-                    # from flat configuration
-                    full_covered_area = env._set_to_flatten()
-                elif args.env_name == 'RopeConfiguration':
-                    # from goal configuration
-                    if args.shape == 'S':
-                        env.set_state(env.goal_state[0])
-                    elif args.shape == 'O':
-                        env.set_state(env.goal_state[1])
-                    elif args.shape == 'M':
-                        env.set_state(env.goal_state[2])
-                    elif args.shape == 'C':
-                        env.set_state(env.goal_state[3])
-                    elif args.shape == 'U':
-                        env.set_state(env.goal_state[4])
-                    full_distance = -env.compute_reward()
-                pyflex.step()
-
+            step_i = 0
+            continue
+        if args.env_name == 'RopeConfiguration':
+            env.action_tool.hide()
+        step_i += 1
+        if args.env_name == 'ClothFlatten' and step_i == args.step:
+            now_area = env._get_current_covered_area(pyflex.get_positions())
+            now_percent = now_area / full_covered_area
+            if now_percent >= (0.65 - args.step * 0.05):
                 step_i = 0
                 continue
-            if args.env_name == 'RopeConfiguration':
-                env.action_tool.hide()
-            step_i += 1
-            if args.env_name == 'ClothFlatten' and step_i == args.step:
-                now_area = env._get_current_covered_area(pyflex.get_positions())
-                now_percent = now_area / full_covered_area
-                if now_percent >= (0.65 - args.step * 0.05):
-                    step_i = 0
-                    continue
-            elif args.env_name == 'RopeConfiguration':
-                now_distance = env.compute_reward()
-                if now_distance >= -0.06:
-                    step_i = 0
-                    continue
+        elif args.env_name == 'RopeConfiguration':
+            now_distance = env.compute_reward()
+            if now_distance >= -0.06:
+                step_i = 0
+                continue
 
     env.start_record()
 
@@ -143,11 +132,7 @@ def run_jobs(args, env, agent):
         crump_obs = np.concatenate([crump_obs, crump_depth], 2)
         crump_obs = cv2.resize(crump_obs, (args.image_size, args.image_size), interpolation=cv2.INTER_AREA)
         vis_img.append(cv2.cvtColor(crump_obs[:, :, :3], cv2.COLOR_BGR2RGB).copy())
-        if args.expert_pick:
-            reverse_p0_pixel = (int((action[3] + 1.) / 2 * args.image_size), int((action[2] + 1.) / 2 * args.image_size))
-            action = agent.act(crump_obs.copy(), p0=reverse_p0_pixel)
-        else:
-            action = agent.act(crump_obs.copy())
+        action = agent.act(crump_obs.copy())
 
         _, _, _, info = env.step(action, record_continuous_video=True, img_size=args.img_size)
 
@@ -202,7 +187,7 @@ def run_jobs(args, env, agent):
         path_name = os.path.join(args.save_video_dir, agent.name + args.exp_name)
         if not os.path.exists(path_name):
             os.makedirs(path_name)
-        save_name = os.path.join(path_name, f'{args.test_id}-{in_step}-{result}-{normalize_score}.gif')
+        save_name = os.path.join(path_name, f'{args.test_id}-{in_step}-{normalize_score}.gif')
         save_numpy_as_gif(np.array(env.video_frames), save_name)
         print('Video generated and save to {}'.format(save_name))
 
@@ -215,29 +200,19 @@ def main():
     # ['PassWater', 'PourWater', 'PourWaterAmount', 'RopeFlatten', 'ClothFold', 'ClothFlatten', 'ClothDrop', 'ClothFoldCrumpled', 'ClothFoldDrop', 'RopeConfiguration']
     parser.add_argument('--env_name', type=str, default='ClothDrop')
     parser.add_argument('--img_size', type=int, default=720, help='Size of the recorded videos')
-    parser.add_argument('--image_size', type=int, default=320, help='Size of the input')
+    parser.add_argument('--image_size', type=int, default=160, help='Size of the input')
     parser.add_argument('--headless', type=int, default=0, help='Whether to run the environment with headless rendering')
     parser.add_argument('--num_variations', type=int, default=1, help='Number of environment variations to be generated')
     parser.add_argument('--num_demos', type=int, default=1, help='How many data do you need for training')
     parser.add_argument('--task', type=str, default='cloth-flatten')
-    parser.add_argument('--shape', type=str, default='U')
-    parser.add_argument('--set_flat', type=int, default=1)
-    parser.add_argument('--step', default=1, type=int)
-    parser.add_argument('--test_step', default=20, type=int)
+    parser.add_argument('--step', default=4, type=int)
+    parser.add_argument('--test_step', default=10, type=int)
     parser.add_argument('--agent', default='aff_critic')
     parser.add_argument('--test_id', type=int, default=1, help='which test')
     parser.add_argument('--save_video_dir', type=str, default=None, help='Path to the saved video')
-    parser.add_argument('--use_goal_image',       default=0, type=int)
-    parser.add_argument('--out_logits',     default=1, type=int)
-    parser.add_argument('--unet', default=1, type=int)
     parser.add_argument('--exp_name', type=str, default='0809-01')
     parser.add_argument('--load_critic_dir',       default='xxx')
     parser.add_argument('--load_aff_dir',       default='xxx')
-    parser.add_argument('--without_global', action='store_true')
-    parser.add_argument('--expert_pick',    action='store_true')
-    parser.add_argument('--critic_pick',    action='store_true')
-    parser.add_argument('--random_pick',    action='store_true')
-    parser.add_argument('--use_mask', action='store_true')
     args = parser.parse_args()
 
     env_kwargs = env_arg_dict[args.env_name]
@@ -260,17 +235,8 @@ def main():
 
     agent = agents.names[args.agent](name,
                                      args.task,
-                                     image_size=args.image_size,
-                                     use_goal_image=args.use_goal_image,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
-                                     out_logits=args.out_logits,
-                                     without_global=args.without_global,
-                                     expert_pick=args.expert_pick,
-                                     critic_pick=args.critic_pick,
-                                     random_pick=args.random_pick,
-                                     unet=args.unet,
-                                     use_mask=args.use_mask
                                      )
 
     env = normalize(SOFTGYM_ENVS[args.env_name](**env_kwargs))
