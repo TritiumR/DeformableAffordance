@@ -1,4 +1,4 @@
-# Learning Foresightful Dense Visual Affordance for Deformable Object Manipulation [ ICCV 2023 ]
+# Learning Foresightful Dense Visual Affordance for Deformable Object Manipulation [ICCV 2023]
 This is the official implementation of the paper: [Learning Foresightful Dense Visual Affordance 
 for Deformable Object Manipulation](https://hyperplane-lab.github.io/DeformableAffordance/) (ICCV 2023).
 
