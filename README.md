@@ -1,6 +1,10 @@
 # Learning Foresightful Dense Visual Affordance for Deformable Object Manipulation [ ICCV 2023 ]
-This is the official implementation of the paper "Learning Foresightful Dense Visual Affordance 
-for Deformable Object Manipulation" (ICCV 2023).
+This is the official implementation of the paper: [Learning Foresightful Dense Visual Affordance 
+for Deformable Object Manipulation](https://hyperplane-lab.github.io/DeformableAffordance/) (ICCV 2023).
+
+[Project](https://hyperplane-lab.github.io/DeformableAffordance/) | [Paper](https://arxiv.org/pdf/2303.11057.pdf) | [Arxiv](https://arxiv.org/pdf/2303.11057.pdf) | [Video](https://youtu.be/DiZ9aXjK_PU) | [Video (real world)](https://youtu.be/aYneBzwhOGs)
+
+![teaser.png](teaser.png)
 
 ## Environment Installation
 Please refer to https://github.com/Xingyu-Lin/softgym for SoftGym Installation Instructions.
@@ -39,3 +43,14 @@ bash scripts/test-rope-configuration.sh
 ```
 
 The manipulation result (gif) will be stored in "test_video" directory.
+
+## Citation
+If you find this paper useful, please consider citing:
+```
+@inproceedings{wu2023learning,
+  title={Learning Foresightful Dense Visual Affordance for Deformable Object Manipulation},
+  author={Wu, Ruihai and Ning, Chuanruo and Dong, Hao},
+  booktitle={IEEE International Conference on Computer Vision (ICCV)},
+  year={2023}
+}
+```
