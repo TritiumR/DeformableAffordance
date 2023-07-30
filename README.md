@@ -13,7 +13,6 @@ Please refer to https://github.com/Xingyu-Lin/softgym for SoftGym Installation I
 2. Install other dependencies
 Our environment dependencies are included in the "environment.yml" file. You can easily install them when you create a 
 new conda environment in the first step.
-```
 
 ## Collect Data
 Collecting data for task **SpreadCloth**, please run 
