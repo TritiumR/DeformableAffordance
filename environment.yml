@@ -1,4 +1,4 @@
-name: softgym
+name: defo
 channels:
   - defaults
 dependencies:
@@ -20,3 +20,10 @@ dependencies:
     - Shapely==1.6.4.post2
     - pyquaternion==0.9.5 
     - sk-video==1.1.10
+    - packaging
+    - tensorflow==2.5.0
+    - tensorflow_addons
+    - ipdb
+    - meshcat
+    - transformations
+
