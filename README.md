@@ -7,7 +7,13 @@ for Deformable Object Manipulation](https://hyperplane-lab.github.io/DeformableA
 ![teaser.png](teaser.png)
 
 ## Environment Installation
+1. Install SoftGym simulator
 Please refer to https://github.com/Xingyu-Lin/softgym for SoftGym Installation Instructions.
+
+2. Install other dependencies
+Our environment dependencies are included in the "environment.yml" file. You can easily install them when you create a 
+new conda environment in the first step.
+
 ## Collect Data
 Collecting data for task **SpreadCloth**, please run 
 ```
