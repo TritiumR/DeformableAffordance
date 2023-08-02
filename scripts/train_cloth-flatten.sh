@@ -1,5 +1,5 @@
 #!/bin/bash
-for ((i=1;i<=5;i++))
+for ((i=1;i<=4;i++))
 do
   echo "running step $i placing"
   if [ 1 = "$i" ]
@@ -31,7 +31,7 @@ do
     --batch 20 \
     --learning_rate 1e-4 \
     --model critic \
-    --load_aff_dir checkpoints/cloth-flatten-IST-step-"$i"/attention-online-ckpt-7000.h5
+    --load_aff_dir checkpoints/cloth-flatten-IST-step-$(("$i"-1))/attention-online-ckpt-7000.h5
   fi
   echo "running step $i picking"
   CUDA_VISIBLE_DEVICES=0 python ./softgym/train.py \

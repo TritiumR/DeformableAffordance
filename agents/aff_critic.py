@@ -41,7 +41,7 @@ class AffCritic:
         reward = []
 
         if not_on_cloth == 1:
-            print('not on cloth')
+            # print('not on cloth')
             m_len = len(metric)
             if self.task == 'cloth-flatten':
                 reward = np.zeros(m_len)
@@ -90,8 +90,8 @@ class AffCritic:
                     input_image = input_image_perturb
                     p0 = p0_list[0]
                 else:
-                    print('no perturb')
-
+                    # print('no perturb')
+                    pass
             p_list = [p0]
             for p_i in range(batch):
                 # sample_x = max(min(np.random.normal(loc=p0[0], scale=0.12), self.input_shape[0] - 1), 0)

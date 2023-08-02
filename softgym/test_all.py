@@ -77,7 +77,7 @@ def run_jobs(args, env, agent):
         _, _, _, info = env.step(action, record_continuous_video=False, img_size=args.img_size)
 
         if env.action_tool.not_on_cloth:
-            print(f'{step_i} not on cloth')
+            # print(f'{step_i} not on cloth')
             if args.env_name == 'ClothFlatten':
                 # from flat configuration
                 full_covered_area = env._set_to_flatten()

@@ -27,6 +27,7 @@ def run_jobs(process_id, args, env_kwargs):
     tf.random.set_seed(process_id)
     agent = agents.names[args.agent](name,
                                      args.task,
+                                     step=args.step - 1,
                                      load_critic_dir=args.load_critic_dir,
                                      load_aff_dir=args.load_aff_dir,
                                      learning_rate=args.learning_rate,
@@ -232,7 +233,7 @@ def run_jobs(process_id, args, env_kwargs):
                         gt = metric_data[base] * 50
                     elif args.env_name == 'RopeConfiguration':
                         gt = metric_data[base] * 100
-                    print("aff output: ", output, "gt: ", gt)
+                    # print("aff output: ", output, "gt: ", gt)
                     if loss is None:
                         loss = tf.keras.losses.MAE(gt, output)
                     else:
@@ -266,7 +267,7 @@ def run_jobs(process_id, args, env_kwargs):
                             gt = metric_data[base + p1_id] * 50
                         elif args.env_name == 'RopeConfiguration':
                             gt = metric_data[base + p1_id] * 100
-                        print("critic output: ", output, "gt: ", gt)
+                        # print("critic output: ", output, "gt: ", gt)
                         if loss_critic is None:
                             loss_critic = tf.keras.losses.MAE(gt, output) / args.critic_type
                         else:
