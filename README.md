@@ -62,3 +62,6 @@ If you find this paper useful, please consider citing:
   year={2023}
 }
 ```
+
+## Contact
+If you have any questions, please feel free to contact [Ruihai Wu](https://warshallrho.github.io/) at wuruihai_at_pku_edu_cn and [Chuanruo Ning](https://tritiumr.github.io/) at chuanruo_at_stu_pku_edu_cn
