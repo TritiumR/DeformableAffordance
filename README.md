@@ -50,7 +50,7 @@ bash scripts/test-rope-configuration.sh
 
 The manipulation result (.gif) will be stored in "test_video" directory.
 
-![image](cloth.gif)
+<img src="cloth.gif" alt="image" width="200" height="200">
 
 ## Citation
 If you find this paper useful, please consider citing:
