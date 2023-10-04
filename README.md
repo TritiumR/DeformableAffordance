@@ -2,15 +2,17 @@
 This is the official implementation of the paper: [Learning Foresightful Dense Visual Affordance 
 for Deformable Object Manipulation](https://hyperplane-lab.github.io/DeformableAffordance/) (ICCV 2023).
 
-[Project](https://hyperplane-lab.github.io/DeformableAffordance/) | [Paper](https://arxiv.org/pdf/2303.11057.pdf) | [Arxiv](https://arxiv.org/pdf/2303.11057.pdf) | [Video](https://youtu.be/DiZ9aXjK_PU) | [Video (real world)](https://youtu.be/aYneBzwhOGs)
+[Project](https://hyperplane-lab.github.io/DeformableAffordance/) | [Paper](https://arxiv.org/pdf/2303.11057.pdf) | [ArXiv](https://arxiv.org/pdf/2303.11057.pdf) | [Video](https://youtu.be/DiZ9aXjK_PU) | [Video (real world)](https://youtu.be/aYneBzwhOGs)
 
 ![teaser.png](teaser.png)
 
 ## Environment Installation
 1. Install SoftGym simulator
+
 Please refer to https://github.com/Xingyu-Lin/softgym for SoftGym Installation Instructions.
 
 2. Install other dependencies
+
 Our environment dependencies are included in the "environment.yml" file. You can easily install them when you create a 
 new conda environment in the first step.
 
@@ -55,11 +57,13 @@ The manipulation result (.gif) will be stored in "test_video" directory.
 ## Citation
 If you find this paper useful, please consider citing:
 ```
-@inproceedings{wu2023learning,
-  title={Learning Foresightful Dense Visual Affordance for Deformable Object Manipulation},
-  author={Wu, Ruihai and Ning, Chuanruo and Dong, Hao},
-  booktitle={IEEE International Conference on Computer Vision (ICCV)},
-  year={2023}
+@InProceedings{Wu_2023_ICCV,
+    author    = {Wu, Ruihai and Ning, Chuanruo and Dong, Hao},
+    title     = {Learning Foresightful Dense Visual Affordance for Deformable Object Manipulation},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    month     = {October},
+    year      = {2023},
+    pages     = {10947-10956}
 }
 ```
 
