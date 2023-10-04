@@ -2,7 +2,7 @@
 This is the official implementation of the paper: [Learning Foresightful Dense Visual Affordance 
 for Deformable Object Manipulation](https://hyperplane-lab.github.io/DeformableAffordance/) (ICCV 2023).
 
-[Project](https://hyperplane-lab.github.io/DeformableAffordance/) | [Paper](https://arxiv.org/pdf/2303.11057.pdf) | [ArXiv](https://arxiv.org/pdf/2303.11057.pdf) | [Video](https://youtu.be/DiZ9aXjK_PU) | [Video (real world)](https://youtu.be/aYneBzwhOGs)
+[Project](https://hyperplane-lab.github.io/DeformableAffordance/) | [Paper]([https://arxiv.org/pdf/2303.11057.pdf](https://openaccess.thecvf.com/content/ICCV2023/html/Wu_Learning_Foresightful_Dense_Visual_Affordance_for_Deformable_Object_Manipulation_ICCV_2023_paper.html)) | [ArXiv](https://arxiv.org/pdf/2303.11057.pdf) | [Video](https://youtu.be/DiZ9aXjK_PU) | [Video (real world)](https://youtu.be/aYneBzwhOGs)
 
 ![teaser.png](teaser.png)
 
